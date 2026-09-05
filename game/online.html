@@ -21,26 +21,39 @@
     <h2 class="start-title">创建或加入房间</h2>
 
     <div class="online-panel">
-      <div class="btn-row">
+
+      <!-- 初始：两个入口 -->
+      <div class="btn-row" id="menuRow">
         <button id="btnCreate" class="btn" type="button">创建房间</button>
         <button id="btnJoin" class="btn" type="button">加入房间</button>
       </div>
 
-      <div class="join-row" id="joinRow" hidden>
-        <input id="inputCode" class="code-input" maxlength="6" placeholder="6 位房间码" autocomplete="off" spellcheck="false" />
-        <button id="btnJoinGo" class="btn" type="button">进入</button>
+      <!-- 创建后：只显示房间码 + 进入游戏 -->
+      <div id="createView" hidden>
+        <span class="cap">房间码（发给朋友）</span>
+        <div class="code-box">
+          <b id="roomCode">------</b>
+          <button id="btnCopy" class="btn ghost" type="button">复制</button>
+        </div>
+        <div class="btn-row enter-row">
+          <a id="btnEnter" class="btn on" href="#">进入游戏 →</a>
+        </div>
+        <button class="back-link" id="btnBackCreate" type="button">← 返回</button>
       </div>
 
-      <div class="room-row" id="roomRow" hidden>
-        <span class="cap">房间码（发给朋友）</span>
-        <div class="code-box"><b id="roomCode">------</b><button id="btnCopy" class="btn ghost" type="button">复制</button></div>
+      <!-- 加入：输入框 + 加入游戏 -->
+      <div id="joinView" hidden>
+        <span class="cap">输入 6 位房间码</span>
+        <div class="join-row">
+          <input id="inputCode" class="code-input" maxlength="6" placeholder="房间码" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="btn-row enter-row">
+          <button id="btnJoinGo" class="btn on" type="button">加入游戏</button>
+        </div>
+        <button class="back-link" id="btnBackJoin" type="button">← 返回</button>
       </div>
 
       <div class="status" id="status">未连接</div>
-
-      <div class="btn-row enter-row" id="enterRow" hidden>
-        <a id="btnEnter" class="btn on" href="#">进入游戏 →</a>
-      </div>
     </div>
   </div>
 </section>
@@ -51,55 +64,71 @@
   'use strict';
 
   var status = document.getElementById('status');
+  var menuRow = document.getElementById('menuRow');
   var btnCreate = document.getElementById('btnCreate');
   var btnJoin = document.getElementById('btnJoin');
-  var joinRow = document.getElementById('joinRow');
-  var inputCode = document.getElementById('inputCode');
-  var btnJoinGo = document.getElementById('btnJoinGo');
-  var roomRow = document.getElementById('roomRow');
+  var createView = document.getElementById('createView');
   var roomCode = document.getElementById('roomCode');
   var btnCopy = document.getElementById('btnCopy');
-  var enterRow = document.getElementById('enterRow');
   var btnEnter = document.getElementById('btnEnter');
+  var btnBackCreate = document.getElementById('btnBackCreate');
+  var joinView = document.getElementById('joinView');
+  var inputCode = document.getElementById('inputCode');
+  var btnJoinGo = document.getElementById('btnJoinGo');
+  var btnBackJoin = document.getElementById('btnBackJoin');
 
   var o = new window.QuoridorOnline();
   var pendingCode = null;
 
-  function setStatus(m) { status.textContent = m; }
+  function setStatus(m, cls) {
+    status.textContent = m;
+    status.className = 'status' + (cls ? ' status--' + cls : '');
+  }
 
-  function go(room, role) {
-    pendingCode = room;
-    roomCode.textContent = room;
-    roomRow.hidden = false;
-    enterRow.hidden = false;
-    btnEnter.href = 'play.html?mode=online&room=' + encodeURIComponent(room) + '&role=' + role;
-    setStatus(role === 'host'
-      ? '房间已创建，把房间码发给朋友，准备好后进入游戏'
-      : '已加入，准备好后进入游戏');
+  function showMenu() {
+    menuRow.hidden = false;
+    createView.hidden = true;
+    joinView.hidden = true;
+  }
+  function showCreate() {
+    menuRow.hidden = true;
+    createView.hidden = false;
+    joinView.hidden = true;
+  }
+  function showJoin() {
+    menuRow.hidden = true;
+    createView.hidden = true;
+    joinView.hidden = false;
+    inputCode.focus();
   }
 
   btnCreate.addEventListener('click', function () {
-    setStatus('创建房间中…');
+    setStatus('创建房间中…', 'connecting');
     o.createRoom().then(function (code) {
-      go(code, 'host');
+      pendingCode = code;
+      roomCode.textContent = code;
+      btnEnter.href = 'play.html?mode=online&room=' + encodeURIComponent(code) + '&role=host';
+      showCreate();
+      setStatus('房间已创建，把房间码发给朋友', 'connected');
     }).catch(function (e) {
-      setStatus('创建失败：' + (e && e.message ? e.message : e));
+      setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected');
     });
   });
 
   btnJoin.addEventListener('click', function () {
-    joinRow.hidden = false;
-    inputCode.focus();
+    showJoin();
+    setStatus('输入朋友发来的房间码', 'connecting');
   });
 
   function tryJoin() {
     var code = (inputCode.value || '').trim().toUpperCase();
-    if (code.length !== 6) { setStatus('请输入 6 位房间码'); return; }
-    setStatus('加入房间中…');
+    if (code.length !== 6) { setStatus('请输入 6 位房间码', 'disconnected'); return; }
+    setStatus('加入房间中…', 'connecting');
     o.joinRoom(code).then(function () {
-      go(code, 'guest');
+      // 加入成功直接进游戏，不再显示房间码/进入游戏（避免重复的「进入」按钮）
+      location.href = 'play.html?mode=online&room=' + encodeURIComponent(code) + '&role=guest';
     }).catch(function (e) {
-      setStatus('加入失败：' + (e && e.message ? e.message : e));
+      setStatus('加入失败：' + (e && e.message ? e.message : e), 'disconnected');
     });
   }
 
@@ -110,8 +139,13 @@
     if (navigator.clipboard && pendingCode) {
       navigator.clipboard.writeText(pendingCode).catch(function () {});
     }
-    setStatus('房间码已复制：' + pendingCode);
+    setStatus('房间码已复制：' + pendingCode, 'connected');
   });
+
+  btnBackCreate.addEventListener('click', showMenu);
+  btnBackJoin.addEventListener('click', showMenu);
+
+  showMenu();
 })();
 </script>
 </body>

@@ -273,7 +273,8 @@
       myPlayer = p;
       connOk = true;
       if (first) {
-        showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '你是紫方（后手），等待对手加入…', 'connected');
+        // 发起方=红方先手等待；加入方=提示已成功进入房间
+        showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '成功进入房间（你是紫方·后手）', 'connected');
       } else {
         showOnlineStatus('已重新连接，继续对战', 'connected');
       }
@@ -282,10 +283,22 @@
     });
     o.on('state', function (s) { applyRemote(s); });
     o.on('players', function (ps) {
-      oppConnected = ps[1 - myPlayer];
+      var now = ps[1 - myPlayer];
       if (myPlayer >= 0) {
-        showOnlineStatus(oppConnected ? '对手已连接，开战！' : '等待对手加入…（把房间码发给朋友）', 'connected');
+        if (now && !oppConnected) {
+          // 对手刚上线
+          showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '成功进入房间（你是紫方·后手）', 'connected');
+        } else if (!now && oppConnected) {
+          // 对手掉线
+          showOnlineStatus('对手已离开，等待重连…', 'reconnecting');
+        } else if (!now) {
+          showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
+        } else {
+          // 双方都在，保持稳定提示
+          showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '成功进入房间（你是紫方·后手）', 'connected');
+        }
       }
+      oppConnected = now;
     });
     o.on('status', function (s) {
       if (s.state === 'connecting') { connOk = false; showOnlineStatus('连接中…', 'connecting'); }
