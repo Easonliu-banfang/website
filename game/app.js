@@ -19,10 +19,18 @@
   var myPlayer = -1;
   var oppConnected = false;
   var connOk = false;   // 联机通道是否就绪，断线重连期间为 false，锁输入
+  var welcomed = false;
+
+  // 悔棋 / 重开 的双向确认状态
+  var reqPending = false;     // 本端是否正处于请求/响应待定中（锁输入）
+  var reqKind = null;         // 'undo' | 'new' | null：本端发起的请求类型
+  var incomingKind = null;    // 'undo' | 'new' | null：对方发来的请求类型
+  var leftShown = false;      // 是否已弹出「对手离开」横幅
 
   var el = {};
   ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
-   'btnNew', 'stepCount', 'p2name', 'onlineStatus', 'roomCodeTag'].forEach(function (id) {
+   'btnNew', 'stepCount', 'p2name', 'onlineStatus', 'roomCodeTag',
+   'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
@@ -66,9 +74,10 @@
 
     el.btnMove.classList.toggle('on', !placing);
     el.btnWall.classList.toggle('on', placing);
-    el.btnWall.disabled = !placing && state.players[state.turn].walls <= 0;
-    el.btnUndo.disabled = onlineMode || state.history.length === 0;
-    el.btnNew.disabled = onlineMode;
+    var wallPlayer = (onlineMode && myPlayer >= 0) ? myPlayer : state.turn;
+    el.btnWall.disabled = !placing && state.players[wallPlayer].walls <= 0;
+    el.btnUndo.disabled = reqPending || state.history.length === 0;
+    el.btnNew.disabled = reqPending;
   }
 
   function updateHints() {
@@ -153,7 +162,7 @@
 
   function interactive() {
     if (!state || state.winner >= 0 || aiThinking) return false;
-    if (onlineMode) return connOk && state.turn === myPlayer;
+    if (onlineMode) return connOk && !reqPending && state.turn === myPlayer;
     return !isAITurn();
   }
 
@@ -232,19 +241,79 @@
 
   el.btnMove.addEventListener('click', function () { setPlacing(false); });
   el.btnWall.addEventListener('click', function () { setPlacing(!placing); });
-  el.btnNew.addEventListener('click', function () { newGame(vsAI); });
 
   el.btnUndo.addEventListener('click', function () {
+    if (onlineMode) { requestUndo(); return; }
     if (aiThinking || !state.history.length) return;
     Q.undo(state);
     if (vsAI && state.history.length) Q.undo(state);
     el.banner.classList.remove('show');
-    placing = false;
-    R.anim = null;
-    R.hover = null;
-    aiThinking = false;
+    placing = false; R.anim = null; R.hover = null; aiThinking = false;
+    syncUI(); updateHints();
+  });
+
+  el.btnNew.addEventListener('click', function () {
+    if (onlineMode) { requestNew(); return; }
+    newGame(vsAI);
+  });
+
+  // 悔棋核心：撤回一步（联机下双方各自执行一次，保证一致）
+  function doUndoCore() {
+    Q.undo(state);
+    el.banner.classList.remove('show');
+    placing = false; R.anim = null; R.hover = null; aiThinking = false;
+    syncUI(); updateHints();
+  }
+
+  /* ---------- 联机：悔棋 / 重开 的双向确认 ---------- */
+
+  function showReqModal(text, sub) {
+    if (!el.reqModal) return;
+    el.reqText.textContent = text;
+    el.reqSub.textContent = sub || '';
+    el.reqModal.hidden = false;
+  }
+  function hideReqModal() { if (el.reqModal) el.reqModal.hidden = true; }
+
+  function requestUndo() {
+    if (reqPending || !state || state.history.length === 0 || state.winner >= 0) return;
+    reqPending = true; reqKind = 'undo'; incomingKind = null;
+    online.sendRelay('req_undo');
+    showOnlineStatus('已发送悔棋请求，等待对方确认…', 'connecting');
     syncUI();
-    updateHints();
+  }
+  function respondUndo(ok) {
+    incomingKind = null; hideReqModal();
+    online.sendRelay('res_undo', ok);
+    reqPending = false;
+    if (ok) { doUndoCore(); showOnlineStatus('已同意悔棋', 'connected'); }
+    else { showOnlineStatus('已拒绝对方悔棋', 'disconnected'); }
+    syncUI();
+  }
+
+  function requestNew() {
+    if (reqPending || !state) return;
+    reqPending = true; reqKind = 'new'; incomingKind = null;
+    online.sendRelay('req_new');
+    showOnlineStatus('已发送重开请求，等待对方确认…', 'connecting');
+    syncUI();
+  }
+  function respondNew(ok) {
+    incomingKind = null; hideReqModal();
+    online.sendRelay('res_new', ok);
+    reqPending = false;
+    if (ok) { showOnlineStatus('已同意重开，等待重置…', 'connecting'); }
+    else { showOnlineStatus('已拒绝对方重开', 'disconnected'); }
+    syncUI();
+  }
+
+  if (el.btnReqOk) el.btnReqOk.addEventListener('click', function () {
+    if (incomingKind === 'undo') respondUndo(true);
+    else if (incomingKind === 'new') respondNew(true);
+  });
+  if (el.btnReqNo) el.btnReqNo.addEventListener('click', function () {
+    if (incomingKind === 'undo') respondUndo(false);
+    else if (incomingKind === 'new') respondNew(false);
   });
 
   /* ---------- 联机模式（互联网对战） ---------- */
@@ -255,12 +324,25 @@
     el.onlineStatus.className = 'status' + (cls ? ' status--' + cls : '');
   }
 
+  function opponentLeft() {
+    reqPending = false; reqKind = null; incomingKind = null;
+    hideReqModal();
+    leftShown = true;
+    showOnlineStatus('对手已离开游戏，等待其重连…', 'reconnecting');
+    el.banner.textContent = '对手已离开游戏';
+    el.banner.classList.add('show');
+  }
+  function opponentPresent() {
+    if (leftShown) { leftShown = false; el.banner.classList.remove('show'); }
+  }
+
   function applyRemote(s) {
     state = s;
     R.hover = null;
     placing = false;
     syncUI();
     updateHints();
+    R.draw(state);   // 立即重绘：对方放墙/走子后无需等下一帧即可看到
     if (state.winner >= 0) {
       el.banner.textContent = (state.winner === myPlayer ? '你赢了' : '对手获胜') + ' 抵达对岸';
       el.banner.classList.add('show');
@@ -269,11 +351,12 @@
 
   function bindOnlineEvents(o) {
     o.on('welcome', function (p) {
-      var first = (myPlayer < 0);
+      var first = !welcomed;
+      welcomed = true;
       myPlayer = p;
+      R.flip = (p === 1);   // 后手(紫方)翻转棋盘，看到自己在底部、对手在顶部
       connOk = true;
       if (first) {
-        // 发起方=红方先手等待；加入方=提示已成功进入房间
         showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '成功进入房间（你是紫方·后手）', 'connected');
       } else {
         showOnlineStatus('已重新连接，继续对战', 'connected');
@@ -284,21 +367,45 @@
     o.on('state', function (s) { applyRemote(s); });
     o.on('players', function (ps) {
       var now = ps[1 - myPlayer];
-      if (myPlayer >= 0) {
-        if (now && !oppConnected) {
-          // 对手刚上线
-          showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '成功进入房间（你是紫方·后手）', 'connected');
-        } else if (!now && oppConnected) {
-          // 对手掉线
-          showOnlineStatus('对手已离开，等待重连…', 'reconnecting');
-        } else if (!now) {
-          showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
-        } else {
-          // 双方都在，保持稳定提示
-          showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '成功进入房间（你是紫方·后手）', 'connected');
-        }
+      if (myPlayer < 0) { oppConnected = now; return; }
+      if (now && !oppConnected) {
+        opponentPresent();
+        showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '双方已就位，开始游戏', 'connected');
+      } else if (!now && oppConnected) {
+        opponentLeft();
+      } else if (!now) {
+        showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
       }
       oppConnected = now;
+    });
+    o.on('req_undo', function () {
+      if (!state || state.winner >= 0 || state.history.length === 0) { online.sendRelay('res_undo', false); return; }
+      reqPending = true; incomingKind = 'undo';
+      showReqModal('对方请求悔棋', '同意后撤回上一步');
+      syncUI();
+    });
+    o.on('res_undo', function (ok) {
+      reqPending = false;
+      if (ok) { doUndoCore(); showOnlineStatus('悔棋成功', 'connected'); }
+      else { showOnlineStatus('对方拒绝了悔棋', 'disconnected'); }
+      syncUI();
+    });
+    o.on('req_new', function () {
+      if (!state) { online.sendRelay('res_new', false); return; }
+      reqPending = true; incomingKind = 'new';
+      showReqModal('对方请求重开一局', '同意后棋局将重置');
+      syncUI();
+    });
+    o.on('res_new', function (ok) {
+      reqPending = false;
+      if (ok) {
+        // 发起人收到同意 → 通知服务端重置权威棋局并广播
+        online.sendReset();
+        showOnlineStatus('已同意重开，重置中…', 'connecting');
+      } else {
+        showOnlineStatus('对方拒绝了重开', 'disconnected');
+      }
+      syncUI();
     });
     o.on('status', function (s) {
       if (s.state === 'connecting') { connOk = false; showOnlineStatus('连接中…', 'connecting'); }
@@ -312,8 +419,11 @@
 
   function startOnline(room, role) {
     onlineMode = true;
-    myPlayer = -1;
+    myPlayer = role === 'host' ? 0 : 1;   // 提示性，welcome 最终确认
+    R.flip = (myPlayer === 1);
     connOk = false;
+    welcomed = false;
+    reqPending = false; reqKind = null; incomingKind = null; leftShown = false;
     state = Q.createState();
     el.p2name.textContent = '对手';
     started = true;
@@ -329,9 +439,14 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    if (!started || onlineMode) return;
+    if (!started) return;
     if (e.target.tagName === 'INPUT') return;
     var k = e.key.toLowerCase();
+    if (onlineMode) {
+      if (k === 'u') el.btnUndo.click();
+      else if (k === 'n') el.btnNew.click();
+      return;
+    }
     if (k === 'w') setPlacing(!placing);
     else if (k === 'u') el.btnUndo.click();
     else if (k === 'n') newGame(vsAI);
@@ -371,7 +486,6 @@
       }
       startOnline(room, role);
     } else {
-      // 无参数：回退到模式选择页
       location.href = 'quoridor.html';
     }
   }
@@ -384,8 +498,10 @@
     get vsAI() { return vsAI; },
     get myPlayer() { return myPlayer; },
     get onlineMode() { return onlineMode; },
+    get reqPending() { return reqPending; },
     renderer: R,
     engine: Q,
+    online: online,
     newGame: newGame
   };
 })();

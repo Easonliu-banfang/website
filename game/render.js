@@ -31,8 +31,15 @@
     this.hover = null;
     this.hints = [];
     this.pulse = 0;
+    this.flip = false;   // true 时棋盘上下翻转：让后手(紫方)也能看到自己在底部
     this.resize();
   }
+
+  /* 逻辑坐标(r,c) ⇄ 显示坐标 的换算（flip 时绕中心 180°） */
+  Renderer.prototype._dr = function (r) { return this.flip ? (N - 1 - r) : r; };
+  Renderer.prototype._dc = function (c) { return this.flip ? (N - 1 - c) : c; };
+  Renderer.prototype._lr = function (dr) { return this.flip ? (N - 1 - dr) : dr; };
+  Renderer.prototype._lc = function (dc) { return this.flip ? (N - 1 - dc) : dc; };
 
   Renderer.prototype.resize = function () {
     var w = this.canvas.clientWidth || 480;
@@ -54,7 +61,8 @@
   /* ---------- 坐标换算 ---------- */
 
   Renderer.prototype.cellRect = function (r, c) {
-    return { x: this.ox + c * this.pitch, y: this.oy + r * this.pitch, s: this.cell };
+    var dr = this._dr(r), dc = this._dc(c);
+    return { x: this.ox + dc * this.pitch, y: this.oy + dr * this.pitch, s: this.cell };
   };
 
   Renderer.prototype.hitCell = function (mx, my) {
@@ -64,7 +72,7 @@
     var lx = mx - this.ox - c * this.pitch;
     var ly = my - this.oy - r * this.pitch;
     if (lx > this.cell || ly > this.cell) return null;   // 落在缝隙上
-    return { r: r, c: c };
+    return { r: this._lr(r), c: this._lc(c) };
   };
 
   /* 墙槽互相重叠一格，取中心最近的那个 */
@@ -79,19 +87,20 @@
           cx = hx + hw / 2; cy = hy + this.gap / 2;
           d = (mx - cx) * (mx - cx) + (my - cy) * (my - cy);
           if (d < bestD) { bestD = d; best = { r: i, c: j, dir: 'H' }; }
-        }
-        var vx = this.ox + j * this.pitch + this.cell;
-        var vy = this.oy + i * this.pitch;
-        var vh = 2 * this.cell + this.gap;
-        if (mx >= vx && mx <= vx + this.gap && my >= vy && my <= vy + vh) {
-          cx = vx + this.gap / 2; cy = vy + vh / 2;
-          d = (mx - cx) * (mx - cx) + (my - cy) * (my - cy);
-          if (d < bestD) { bestD = d; best = { r: i, c: j, dir: 'V' }; }
-        }
+      }
+      var vx = this.ox + j * this.pitch + this.cell;
+      var vy = this.oy + i * this.pitch;
+      var vh = 2 * this.cell + this.gap;
+      if (mx >= vx && mx <= vx + this.gap && my >= vy && my <= vy + vh) {
+        cx = vx + this.gap / 2; cy = vy + vh / 2;
+        d = (mx - cx) * (mx - cx) + (my - cy) * (my - cy);
+        if (d < bestD) { bestD = d; best = { r: i, c: j, dir: 'V' }; }
       }
     }
-    return best;
-  };
+  }
+  if (!best) return null;
+  return { r: this._lr(best.r), c: this._lc(best.c), dir: best.dir };
+};
 
   /* ---------- 绘制 ---------- */
 
@@ -131,9 +140,12 @@
     var g = this.ctx, s = N * this.pitch - this.gap;
     var top = { x: this.ox, y: this.oy, w: s, h: this.cell };
     var bot = { x: this.ox, y: this.oy + (N - 1) * this.pitch, w: s, h: this.cell };
-    g.fillStyle = C.goal2;   // P2 的目标在上
+    // 上/下起点染色：flip 时交换，使每位玩家看到的自己起点都在底部
+    var topColor = this.flip ? C.goal1 : C.goal2;
+    var botColor = this.flip ? C.goal2 : C.goal1;
+    g.fillStyle = topColor;   // P1(紫) 起点 / flip 时为 P0(青) 起点
     g.fillRect(top.x, top.y, top.w, top.h);
-    g.fillStyle = C.goal1;   // P1 的目标在下
+    g.fillStyle = botColor;   // P0(青) 起点 / flip 时为 P1(紫) 起点
     g.fillRect(bot.x, bot.y, bot.w, bot.h);
   };
 

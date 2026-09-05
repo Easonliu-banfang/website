@@ -97,6 +97,10 @@
         }
         else if (m.type === 'state') self._emit('state', m.state);
         else if (m.type === 'players') self._emit('players', m.players);
+        else if (m.type === 'req_undo') self._emit('req_undo');
+        else if (m.type === 'res_undo') self._emit('res_undo', m.ok);
+        else if (m.type === 'req_new') self._emit('req_new');
+        else if (m.type === 'res_new') self._emit('res_new', m.ok);
         else if (m.type === 'error') self._emit('error', m.msg);
         else if (m.type === 'pong') { /* 心跳回包，忽略 */ }
       };
@@ -152,6 +156,14 @@
   };
   Online.prototype.sendWall = function (r, c, dir) {
     if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: 'wall', player: this.player, r: r, c: c, dir: dir }));
+  };
+  // 中继：把悔棋/重开 的请求或确认转给对手（服务端原样转发）
+  Online.prototype.sendRelay = function (type, ok) {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: type, player: this.player, ok: ok }));
+  };
+  // 重开：通知服务端重置权威棋局并广播
+  Online.prototype.sendReset = function () {
+    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: 'reset', player: this.player }));
   };
   Online.prototype.close = function () {
     this._intentionalClose = true;

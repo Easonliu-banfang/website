@@ -75,9 +75,21 @@
   </aside>
 </div>
 
-<script src="engine.js"></script>
-<script src="render.js"></script>
-<script src="online.js"></script>
-<script src="app.js"></script>
+<!-- 联机：对方请求悔棋 / 重开 时的确认弹窗 -->
+<div id="reqModal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="reqText" class="req-text">对方请求</p>
+    <p id="reqSub" class="req-sub"></p>
+    <div class="btn-row">
+      <button id="btnReqOk" class="btn on" type="button">同意</button>
+      <button id="btnReqNo" class="btn ghost" type="button">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="engine.js?v=g3"></script>
+<script src="render.js?v=g3"></script>
+<script src="online.js?v=g3"></script>
+<script src="app.js?v=g3"></script>
 </body>
 </html>

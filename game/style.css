@@ -456,3 +456,44 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- 联机确认弹窗 ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 9, 14, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 24px;
+}
+.modal[hidden] { display: none; }
+
+.modal-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-elev);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 16px;
+  padding: 24px 22px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+.req-text {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.req-sub {
+  font-size: 13px;
+  color: var(--dim);
+  margin-bottom: 18px;
+}
+.modal-card .btn-row { gap: 12px; }
+.modal-card .btn { padding: 12px 10px; }
