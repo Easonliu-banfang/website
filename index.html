@@ -3,62 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eason 的小站</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-    .card {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 50px 60px;
-      border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      max-width: 600px;
-    }
-    h1 {
-      font-size: 2.8em;
-      margin-bottom: 16px;
-      letter-spacing: -1px;
-    }
-    p {
-      font-size: 1.25em;
-      line-height: 1.8;
-      opacity: 0.92;
-    }
-    .badge {
-      display: inline-block;
-      margin-top: 28px;
-      padding: 8px 20px;
-      background: rgba(255, 255, 255, 0.22);
-      border-radius: 50px;
-      font-size: 0.9em;
-      letter-spacing: 0.5px;
-    }
-    @media (max-width: 600px) {
-      .card { padding: 36px 28px; }
-      h1 { font-size: 2em; }
-      p { font-size: 1.05em; }
-    }
-  </style>
+  <title>Eason</title>
+  <meta name="description" content="Eason 的个人主页 — Swift 开发 · 逆向工程 · 自动化工具">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <div class="card">
-    <h1>🎉 Hello World!</h1>
-    <p>欢迎来到 <strong>eason.grokai.eu.cc</strong></p>
-    <p>这是我的个人小站，正在建设中...</p>
-    <span class="badge">✨ Powered by GitHub Pages</span>
+
+<nav>
+  <div class="wrap">
+    <a href="#top" class="brand">eason<span class="dot">.</span>dev</a>
+    <ul>
+      <li><a href="#about">关于</a></li>
+      <li><a href="#stack">技能</a></li>
+      <li><a href="#work">项目</a></li>
+      <li><a href="#contact">联系</a></li>
+    </ul>
   </div>
+</nav>
+
+<div class="wrap" id="top">
+
+  <div class="term reveal">
+    <div class="term-bar">
+      <span></span><span></span><span></span>
+      <span class="term-title">eason@shanghai — zsh</span>
+    </div>
+    <div class="term-body">
+      <div><span class="prompt">$</span> <span class="cmd">whoami</span></div>
+      <div class="out">&gt; Eason · 独立开发者 · 上海</div>
+      <div><span class="prompt">$</span> <span class="cmd">cat focus.txt</span></div>
+      <div class="out">&gt; <span class="hl">Swift 原生开发</span> · <span class="hl">逆向工程</span> · <span class="hl">自动化工具</span></div>
+      <div class="type-line"><span class="prompt">$</span> <span class="cmd" id="typed"></span><span class="cursor"></span></div>
+    </div>
+  </div>
+
+  <!-- ========== 01 关于 ========== -->
+  <section id="about" class="reveal">
+    <div class="sec-head">
+      <span class="num">01</span>
+      <h2>关于我</h2>
+      <span class="rule"></span>
+    </div>
+    <p>在上海写代码的 <strong>独立开发者</strong>。喜欢把重复的事情自动化，也喜欢拆开别人写好的东西看它怎么转。</p>
+    <p>主要折腾 macOS 原生应用、Android 逆向与二次打包鉴定、以及各类批处理小工具。信奉能跑起来的脚本胜过完美的设计文档。</p>
+    <p>这个站点本身也是个实验场 —— 静态托管、自定义域名、手写 HTML/CSS，没有框架，没有构建步骤。</p>
+  </section>
+
+  <!-- ========== 02 技能 ========== -->
+  <section id="stack" class="reveal">
+    <div class="sec-head">
+      <span class="num">02</span>
+      <h2>技能栈</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="skills">
+      <span class="skill">Swift</span>
+      <span class="skill">SwiftUI</span>
+      <span class="skill">macOS 开发</span>
+      <span class="skill">Python</span>
+      <span class="skill">JavaScript</span>
+      <span class="skill">Shell</span>
+      <span class="skill">APK 逆向</span>
+      <span class="skill">JADX</span>
+      <span class="skill">Frida</span>
+      <span class="skill">代码签名 / cdhash</span>
+      <span class="skill">QEMU / AVD</span>
+      <span class="skill">CGEvent 注入</span>
+      <span class="skill">Git</span>
+      <span class="skill">HTML / CSS</span>
+    </div>
+  </section>
+
+  <!-- ========== 03 项目（占位，替换成你自己的项目） ========== -->
+  <section id="work" class="reveal">
+    <div class="sec-head">
+      <span class="num">03</span>
+      <h2>项目</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="grid">
+
+      <a class="card" href="#" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="icon">01</span>
+          <span class="arrow">↗</span>
+        </div>
+        <h3>项目名称</h3>
+        <p>一句话说明这个项目解决了什么问题。控制在两行以内，别写流水账。</p>
+        <div class="tags">
+          <span class="tag">Swift</span>
+          <span class="tag">macOS</span>
+        </div>
+      </a>
+
+      <a class="card" href="#" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="icon">02</span>
+          <span class="arrow">↗</span>
+        </div>
+        <h3>项目名称</h3>
+        <p>一句话说明这个项目解决了什么问题。控制在两行以内，别写流水账。</p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">逆向</span>
+        </div>
+      </a>
+
+      <a class="card" href="#" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="icon">03</span>
+          <span class="arrow">↗</span>
+        </div>
+        <h3>项目名称</h3>
+        <p>一句话说明这个项目解决了什么问题。控制在两行以内，别写流水账。</p>
+        <div class="tags">
+          <span class="tag">Shell</span>
+          <span class="tag">自动化</span>
+        </div>
+      </a>
+
+      <a class="card" href="#" target="_blank" rel="noopener">
+        <div class="card-top">
+          <span class="icon">04</span>
+          <span class="arrow">↗</span>
+        </div>
+        <h3>项目名称</h3>
+        <p>一句话说明这个项目解决了什么问题。控制在两行以内，别写流水账。</p>
+        <div class="tags">
+          <span class="tag">JavaScript</span>
+          <span class="tag">工具</span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ========== 04 联系 ========== -->
+  <section id="contact" class="reveal">
+    <div class="sec-head">
+      <span class="num">04</span>
+      <h2>联系</h2>
+      <span class="rule"></span>
+    </div>
+    <p>有想法、有项目、或者只是想聊聊技术，欢迎找我。</p>
+    <div class="links">
+      <a class="btn" href="https://github.com/Easonliu-banfang" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn" href="mailto:your@email.com">邮箱</a>
+      <a class="btn" href="#">博客</a>
+      <a class="btn" href="#">微信</a>
+    </div>
+  </section>
+
+  <footer>
+    <span>© 2026 Eason · 沪ICP备xxxxxxxx号</span>
+    <a href="#top" class="up">↑ 回到顶部</a>
+  </footer>
+
+</div>
+
+<script src="assets/main.js"></script>
 </body>
 </html>
