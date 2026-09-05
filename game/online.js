@@ -5,15 +5,18 @@
  *   - 自动重连：连接非正常断开后用指数退避重试（1s→2s→…→15s，封顶 8 次）
  *   - 状态回调：emit 'status' {state, detail} 给 UI 展示连接状态
  *
- * 部署时把 WORKER_BASE 改成你的 Worker 地址，例如：
- *   var WORKER_BASE = 'https://quoridor.your-subdomain.workers.dev';
- * 本地联调时保持 127.0.0.1:8787（与 `wrangler dev --port 8787` 对应）。
+ * 关于 WORKER_BASE（重要）：
+ *   `*.workers.dev` 这个域名在国内被 DNS 投毒（解析出非 Cloudflare 的假 IP），无代理时联机必失败；
+ *   `*.pages.dev` 解析正常。所以这里指向 Cloudflare Pages 上的反向代理
+ *   （worker/pages/functions/api/[[path]].js），由它在服务端再转发给真正的 Worker。
+ * 若日后给 Worker 挂了自己的自定义域，把这里换成你的域名即可，其余代码不用动。
  */
 (function () {
   'use strict';
 
-  var WORKER_BASE = 'https://quoridor-mp.17721266011.workers.dev';
+  var WORKER_BASE = 'https://quoridor-mp.pages.dev';
   var WS_BASE = WORKER_BASE.replace(/^http/, 'ws');
+  var HTTP_TIMEOUT = 12000;   // 建房间/加入的超时：被投毒或不可达时别让界面干等
 
   var HEARTBEAT_MS = 25000;   // 心跳间隔，远小于 Cloudflare 100s 空闲断开
   var RECONNECT_BASE = 1000;  // 退避基数（毫秒）
@@ -40,11 +43,43 @@
     this._emit('status', { state: state, detail: detail || '' });
   };
 
+  // 带超时的 JSON 请求：超时/不可达时给出中文原因，而不是让界面一直转圈
+  function fetchJSON(url, opts) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      function finish(fn) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        fn();
+      }
+      var timer = setTimeout(function () {
+        finish(function () {
+          reject(new Error('连接超时。国内网络可能无法直连联机服务，可换个网络或开启代理后再试'));
+        });
+      }, HTTP_TIMEOUT);
+
+      fetch(url, opts).then(function (r) {
+        if (!r.ok) {
+          finish(function () { reject(new Error('服务返回 ' + r.status)); });
+          return;
+        }
+        r.json().then(
+          function (d) { finish(function () { resolve(d); }); },
+          function () { finish(function () { reject(new Error('返回内容不是 JSON')); }); }
+        );
+      }, function () {
+        finish(function () {
+          reject(new Error('网络不可达。国内直连联机服务可能受限，可换个网络或开启代理后再试'));
+        });
+      });
+    });
+  }
+
   // 创建房间：返回 6 位房间码
   Online.prototype.createRoom = function () {
     var self = this;
-    return fetch(WORKER_BASE + '/api/room', { method: 'POST' })
-      .then(function (r) { return r.json(); })
+    return fetchJSON(WORKER_BASE + '/api/room', { method: 'POST' })
       .then(function (d) { self.code = d.code; return d.code; });
   };
 
@@ -52,8 +87,7 @@
   Online.prototype.joinRoom = function (code) {
     this.code = code;
     var self = this;
-    return fetch(WORKER_BASE + '/api/room/' + code)
-      .then(function (r) { return r.json(); })
+    return fetchJSON(WORKER_BASE + '/api/room/' + code)
       .then(function (d) {
         if (d.error === 'full' || !d.hasSpace) throw new Error('房间已满');
         if (!d.state) throw new Error('房间不存在');
