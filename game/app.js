@@ -25,6 +25,8 @@
   var oppConnected = false;
   var connOk = false;
   var welcomed = false;
+  var lastPlayers = null;   // 最近一次收到的双方在线状态，welcome 后用于补算对手在线情况
+  var connBanner = false;   // 当前是否因「我方连接中断」而显示横幅
 
   // 悔棋 / 重开 的双向确认状态
   var reqPending = false;
@@ -426,15 +428,29 @@
     el.onlineStatus.className = 'status' + (cls ? ' status--' + cls : '');
   }
 
-  function opponentLeft() {
-    reqPending = false; reqKind = null; incomingKind = null;
-    hideReqModal();
-    leftShown = true;
-    showOnlineStatus('对手已离开游戏，等待其重连…', 'reconnecting');
-    flashBanner('对手已离开游戏');
-  }
-  function opponentPresent() {
-    if (leftShown) { leftShown = false; hideBanner(); }
+  /* 统一处理「对手在线状态」：在线/离线/重连 三态切换。
+     ps 为 [是否玩家0在线, 是否玩家1在线]。myPlayer 在 welcome 后才有效；
+     若早于 welcome 收到 players，先存 lastPlayers，待 welcome 时补算，避免竞态。 */
+  function applyOpponent(ps) {
+    lastPlayers = ps;
+    if (myPlayer < 0) return;
+    var now = !!(ps[1 - myPlayer]);
+    var was = oppConnected;
+    if (now && !was) {
+      // 对手（重新）上线
+      if (leftShown) { leftShown = false; hideBanner(); }
+      showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '双方已就位，开始游戏', 'connected');
+    } else if (!now && was) {
+      // 对手掉线：锁住确认弹窗，提示等待重连（仍允许本端在自己回合继续走子）
+      reqPending = false; reqKind = null; incomingKind = null; hideReqModal();
+      leftShown = true;
+      showOnlineStatus('对手已离开游戏，等待其重连…', 'reconnecting');
+      flashBanner('对手已离开游戏，等待重连…');
+    } else if (!now && !was) {
+      // 一直没对手：等待加入 / 等待房主创建
+      showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
+    }
+    oppConnected = now;
   }
 
   function applyRemote(s) {
@@ -462,6 +478,7 @@
       } else {
         showOnlineStatus('已重新连接，继续对战', 'connected');
       }
+      if (lastPlayers) applyOpponent(lastPlayers);   // 补算对手在线状态，消除 myPlayer<0 竞态
       syncUI();
       updateHints();
     });
@@ -473,19 +490,7 @@
         else { coinShown = true; }   // 中途加入已开局的对局，跳过抛硬币
       }
     });
-    o.on('players', function (ps) {
-      var now = ps[1 - myPlayer];
-      if (myPlayer < 0) { oppConnected = now; return; }
-      if (now && !oppConnected) {
-        opponentPresent();
-        showOnlineStatus(myPlayer === 0 ? '对方已进入房间，开始游戏' : '双方已就位，开始游戏', 'connected');
-      } else if (!now && oppConnected) {
-        opponentLeft();
-      } else if (!now) {
-        showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
-      }
-      oppConnected = now;
-    });
+    o.on('players', function (ps) { applyOpponent(ps); });
     o.on('req_undo', function () {
       if (!state || state.winner >= 0 || state.history.length === 0) { online.sendRelay('res_undo', false); return; }
       reqPending = true; incomingKind = 'undo';
@@ -516,10 +521,26 @@
       syncUI();
     });
     o.on('status', function (s) {
-      if (s.state === 'connecting') { connOk = false; showOnlineStatus('连接中…', 'connecting'); }
-      else if (s.state === 'connected') { connOk = true; if (myPlayer < 0) showOnlineStatus('已连接', 'connected'); }
-      else if (s.state === 'reconnecting') { connOk = false; showOnlineStatus(s.detail || '连接中断，重连中…', 'reconnecting'); }
-      else if (s.state === 'disconnected') { connOk = false; showOnlineStatus(s.detail || '连接已断开', 'disconnected'); }
+      if (s.state === 'connecting') {
+        connOk = false;
+        if (connBanner) { connBanner = false; if (!(state && state.winner >= 0)) hideBanner(); }
+        showOnlineStatus('连接中…', 'connecting');
+      }
+      else if (s.state === 'connected') {
+        connOk = true;
+        if (myPlayer < 0) showOnlineStatus('已连接', 'connected');
+        if (connBanner) { connBanner = false; if (!(state && state.winner >= 0)) hideBanner(); }
+      }
+      else if (s.state === 'reconnecting') {
+        connOk = false;
+        connBanner = true;
+        showOnlineStatus(s.detail || '连接中断，重连中…', 'reconnecting');
+        if (state && state.winner < 0) flashBanner('连接中断，正在重连…');
+      }
+      else if (s.state === 'disconnected') {
+        connOk = false;
+        showOnlineStatus(s.detail || '连接已断开', 'disconnected');
+      }
     });
     o.on('error', function (msg) { showOnlineStatus('错误：' + msg, 'disconnected'); });
     o.on('close', function () { connOk = false; showOnlineStatus('连接已断开', 'disconnected'); });

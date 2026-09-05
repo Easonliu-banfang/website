@@ -41,6 +41,11 @@
   Renderer.prototype._lr = function (dr) { return this.flip ? (N - 1 - dr) : dr; };
   Renderer.prototype._lc = function (dc) { return this.flip ? (N - 1 - dc) : dc; };
 
+  /* 墙槽专用换算：墙槽是 8x8（索引 0..7），棋盘 180° 旋转时映射为 (S-1-r, S-1-c)。
+     不能复用格子的 N-1 换算，否则墙会镜像错位，且 8-0=8 越界导致整条边的槽位放不下墙。 */
+  Renderer.prototype._wr = function (r) { return this.flip ? (S - 1 - r) : r; };
+  Renderer.prototype._wc = function (c) { return this.flip ? (S - 1 - c) : c; };
+
   Renderer.prototype.resize = function () {
     var w = this.canvas.clientWidth || 480;
     var h = this.canvas.clientHeight || w;
@@ -99,7 +104,8 @@
     }
   }
   if (!best) return null;
-  return { r: this._lr(best.r), c: this._lc(best.c), dir: best.dir };
+  // best 是显示坐标的墙槽，换算回逻辑坐标（用墙槽专用的 S-1 换算）
+  return { r: this._wr(best.r), c: this._wc(best.c), dir: best.dir };
 };
 
   /* ---------- 绘制 ---------- */
@@ -173,16 +179,18 @@
     }
   };
 
+  // r,c 是「逻辑」墙槽；内部统一换算到显示坐标再画，flip 时才会跟格子/棋子一起翻转
   Renderer.prototype.drawWall = function (r, c, dir, ghost, valid) {
+    var dr = this._wr(r), dc = this._wc(c);
     var g = this.ctx, x, y, w, h;
     if (dir === 'H') {
-      x = this.ox + c * this.pitch;
-      y = this.oy + r * this.pitch + this.cell;
+      x = this.ox + dc * this.pitch;
+      y = this.oy + dr * this.pitch + this.cell;
       w = 2 * this.cell + this.gap;
       h = this.gap;
     } else {
-      x = this.ox + c * this.pitch + this.cell;
-      y = this.oy + r * this.pitch;
+      x = this.ox + dc * this.pitch + this.cell;
+      y = this.oy + dr * this.pitch;
       w = this.gap;
       h = 2 * this.cell + this.gap;
     }

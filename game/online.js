@@ -18,10 +18,9 @@
   var WS_BASE = WORKER_BASE.replace(/^http/, 'ws');
   var HTTP_TIMEOUT = 12000;   // 建房间/加入的超时：被投毒或不可达时别让界面干等
 
-  var HEARTBEAT_MS = 25000;   // 心跳间隔，远小于 Cloudflare 100s 空闲断开
+  var HEARTBEAT_MS = 15000;   // 心跳间隔，远小于 Cloudflare 100s 空闲断开；同时作为服务端死连接检测的「存活信号」
   var RECONNECT_BASE = 1000;  // 退避基数（毫秒）
-  var RECONNECT_MAX = 15000;  // 单次最大退避
-  var RECONNECT_CAP = 8;      // 最大重试次数，超出后停止并提示用户
+  var RECONNECT_MAX = 30000;  // 单次最大退避（封顶 30s，之后无限重试，不再放弃）
 
   function Online() {
     this.code = null;
@@ -41,6 +40,13 @@
   // 广播连接状态给 UI
   Online.prototype._status = function (state, detail) {
     this._emit('status', { state: state, detail: detail || '' });
+  };
+
+  // 仅当连接处于 OPEN 时发消息；失败静默忽略（连接抖动时调用方无需感知）
+  Online.prototype._wsSend = function (obj) {
+    if (this.ws && this.ws.readyState === 1) {
+      try { this.ws.send(JSON.stringify(obj)); } catch (e) {}
+    }
   };
 
   // 带超时的 JSON 请求：超时/不可达时给出中文原因，而不是让界面一直转圈
@@ -136,7 +142,8 @@
         else if (m.type === 'req_new') self._emit('req_new');
         else if (m.type === 'res_new') self._emit('res_new', m.ok);
         else if (m.type === 'error') self._emit('error', m.msg);
-        else if (m.type === 'pong') { /* 心跳回包，忽略 */ }
+        else if (m.type === 'pong') { /* 服务端心跳回包，忽略 */ }
+        else if (m.type === 'ping') { self._wsSend({ type: 'pong' }); }  // 回应服务端心跳探测
       };
       ws.onclose = function () {
         self._stopHeartbeat();
@@ -163,14 +170,10 @@
     if (this._hbTimer) { clearInterval(this._hbTimer); this._hbTimer = null; }
   };
 
-  // 指数退避重连
+  // 指数退避重连：封顶 30s、无限重试（不再因超过次数而放弃，避免「连不上就彻底卡死」）
   Online.prototype._scheduleReconnect = function () {
     var self = this;
     if (this._intentionalClose) return;
-    if (this._reconnectAttempts >= RECONNECT_CAP) {
-      this._status('disconnected', '重连失败，请检查网络后刷新页面');
-      return;
-    }
     this._reconnectAttempts++;
     var delay = Math.min(RECONNECT_MAX, RECONNECT_BASE * Math.pow(2, this._reconnectAttempts - 1));
     this._status('reconnecting', '连接中断，' + (delay / 1000) + ' 秒后第 ' + this._reconnectAttempts + ' 次重连…');
@@ -186,18 +189,18 @@
   };
 
   Online.prototype.sendMove = function (r, c) {
-    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: 'move', player: this.player, r: r, c: c }));
+    this._wsSend({ type: 'move', player: this.player, r: r, c: c });
   };
   Online.prototype.sendWall = function (r, c, dir) {
-    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: 'wall', player: this.player, r: r, c: c, dir: dir }));
+    this._wsSend({ type: 'wall', player: this.player, r: r, c: c, dir: dir });
   };
   // 中继：把悔棋/重开 的请求或确认转给对手（服务端原样转发）
   Online.prototype.sendRelay = function (type, ok) {
-    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: type, player: this.player, ok: ok }));
+    this._wsSend({ type: type, player: this.player, ok: ok });
   };
   // 重开：通知服务端重置权威棋局并广播
   Online.prototype.sendReset = function () {
-    if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify({ type: 'reset', player: this.player }));
+    this._wsSend({ type: 'reset', player: this.player });
   };
   Online.prototype.close = function () {
     this._intentionalClose = true;
