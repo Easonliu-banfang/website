@@ -183,61 +183,27 @@
 
   /* ---------- AI ---------- */
 
-  // 找一处能拖慢对手、又不伤自己的墙
-  function aiBlockCandidate(s, p) {
-    var foe = 1 - p;
-    var path = Q.shortestPath(s, foe);
-    if (!path || !path.length) return null;
-    var f = s.players[foe], n = path[0];
-    var dr = n.r - f.r, dc = n.c - f.c;
-    var cand = [];
-    if (dr === -1)      { cand.push([f.r - 1, f.c, 'H'], [f.r - 1, f.c - 1, 'H']); }
-    else if (dr === 1)  { cand.push([f.r, f.c, 'H'],     [f.r, f.c - 1, 'H']); }
-    else if (dc === -1) { cand.push([f.r, f.c - 1, 'V'], [f.r - 1, f.c - 1, 'V']); }
-    else if (dc === 1)  { cand.push([f.r, f.c, 'V'],     [f.r - 1, f.c, 'V']); }
-    for (var i = 0; i < cand.length; i++) {
-      if (Q.canPlaceWall(s, cand[i][0], cand[i][1], cand[i][2])) {
-        return { r: cand[i][0], c: cand[i][1], dir: cand[i][2] };
-      }
-    }
-    return null;
-  }
-
-  // 走子评估：从合法走法中选出「离终点更近、并略拖慢对手」的一步。
-  // 关键：候选直接取自 legalMoves（已含跳子/斜走），永不传非法目标给 Q.move，因此不会卡死。
+  // AI 行动：使用 QuoridorAI（Minimax + Alpha-Beta + 迭代加深）选出最佳着法。
+  // 与旧版（单步贪心、只在对手领先≥2 时才考虑放墙、放墙权重仅 0.2）相比，
+  // 本版是对抗式多步搜索，会预判对手反击并做出最优权衡，明显更强。
   function aiTurn() {
-    var p = state.turn, foe = 1 - p;
-    var moves = Q.legalMoves(state, p);
-    if (!moves.length) return;                       // 理论上不会发生（Quoridor 中总有合法步）
-
-    var myDist = Q.distToGoal(state, p);
-    var foeDist = Q.distToGoal(state, foe);
-
-    var best = moves[0], bestScore = Infinity;
-    for (var i = 0; i < moves.length; i++) {
-      var s2 = Q.clone(state);
-      Q.move(s2, p, moves[i].r, moves[i].c);
-      var md = Q.distToGoal(s2, p);
-      var fd = Q.distToGoal(s2, foe);
-      // 我方距离越短越好；对方被拖远（fd 变大）略加分
-      var score = md - 0.2 * (fd - foeDist);
-      if (score < bestScore) { bestScore = score; best = moves[i]; }
-    }
-
-    // 放墙：仅当对手明显领先（领先≥2 且我方仍有通路）且放墙确实有效
-    if (state.players[p].walls > 0 && isFinite(myDist) && foeDist <= myDist - 2) {
-      var w = aiBlockCandidate(state, p);
-      if (w) {
-        var s3 = Q.clone(state);
-        Q.placeWall(s3, p, w.r, w.c, w.dir);
-        if (Q.distToGoal(s3, foe) > foeDist && Q.distToGoal(s3, p) <= myDist + 1) {
-          Q.placeWall(state, p, w.r, w.c, w.dir);
-          return;
-        }
+    if (!vsAI || !state || state.winner >= 0 || state.turn !== aiSide) return;
+    var mv = QuoridorAI.bestMove(state, aiSide, { timeBudget: 1000, maxDepth: 7 });
+    if (!mv) return;
+    var ok;
+    if (mv.type === 'wall') {
+      ok = Q.placeWall(state, aiSide, mv.r, mv.c, mv.dir);
+      if (!ok) {                                   // 极端兜底：墙非法时退而走一步
+        var ms = Q.legalMoves(state, aiSide);
+        if (ms.length) ok = Q.move(state, aiSide, ms[0].r, ms[0].c);
       }
+    } else {
+      ok = Q.move(state, aiSide, mv.r, mv.c);
     }
-
-    Q.move(state, p, best.r, best.c);
+    if (!ok) {                                     // 兜底：避免任何卡死
+      var lm = Q.legalMoves(state, aiSide);
+      if (lm.length) Q.move(state, aiSide, lm[0].r, lm[0].c);
+    }
   }
 
   function maybeAI() {
@@ -246,6 +212,7 @@
     aiThinking = true;
     syncUI();
     updateHints();
+    // 短暂延迟让“电脑思考中”标签先绘制，再进入（可能耗时约 1s 的）搜索
     setTimeout(function () {
       if (!state || state.winner >= 0) return;
       aiTurn();
@@ -256,7 +223,7 @@
         syncUI();
         updateHints();
       }
-    }, 420);
+    }, 60);
   }
 
   /* ---------- 输入 ---------- */
