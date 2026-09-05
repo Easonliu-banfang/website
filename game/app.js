@@ -18,6 +18,7 @@
   var onlineMode = false;
   var myPlayer = -1;
   var oppConnected = false;
+  var connOk = false;   // 联机通道是否就绪，断线重连期间为 false，锁输入
 
   var el = {};
   ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
@@ -152,7 +153,7 @@
 
   function interactive() {
     if (!state || state.winner >= 0 || aiThinking) return false;
-    if (onlineMode) return state.turn === myPlayer;
+    if (onlineMode) return connOk && state.turn === myPlayer;
     return !isAITurn();
   }
 
@@ -248,7 +249,11 @@
 
   /* ---------- 联机模式（互联网对战） ---------- */
 
-  function showOnlineStatus(msg) { if (el.onlineStatus) el.onlineStatus.textContent = msg; }
+  function showOnlineStatus(msg, cls) {
+    if (!el.onlineStatus) return;
+    el.onlineStatus.textContent = msg;
+    el.onlineStatus.className = 'status' + (cls ? ' status--' + cls : '');
+  }
 
   function applyRemote(s) {
     state = s;
@@ -264,8 +269,14 @@
 
   function bindOnlineEvents(o) {
     o.on('welcome', function (p) {
+      var first = (myPlayer < 0);
       myPlayer = p;
-      showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '你是紫方（后手），等待对手加入…');
+      connOk = true;
+      if (first) {
+        showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '你是紫方（后手），等待对手加入…', 'connected');
+      } else {
+        showOnlineStatus('已重新连接，继续对战', 'connected');
+      }
       syncUI();
       updateHints();
     });
@@ -273,16 +284,23 @@
     o.on('players', function (ps) {
       oppConnected = ps[1 - myPlayer];
       if (myPlayer >= 0) {
-        showOnlineStatus(oppConnected ? '对手已连接，开战！' : '等待对手加入…（把房间码发给朋友）');
+        showOnlineStatus(oppConnected ? '对手已连接，开战！' : '等待对手加入…（把房间码发给朋友）', 'connected');
       }
     });
-    o.on('error', function (msg) { showOnlineStatus('错误：' + msg); });
-    o.on('close', function () { showOnlineStatus('连接已断开'); });
+    o.on('status', function (s) {
+      if (s.state === 'connecting') { connOk = false; showOnlineStatus('连接中…', 'connecting'); }
+      else if (s.state === 'connected') { connOk = true; if (myPlayer < 0) showOnlineStatus('已连接', 'connected'); }
+      else if (s.state === 'reconnecting') { connOk = false; showOnlineStatus(s.detail || '连接中断，重连中…', 'reconnecting'); }
+      else if (s.state === 'disconnected') { connOk = false; showOnlineStatus(s.detail || '连接已断开', 'disconnected'); }
+    });
+    o.on('error', function (msg) { showOnlineStatus('错误：' + msg, 'disconnected'); });
+    o.on('close', function () { connOk = false; showOnlineStatus('连接已断开', 'disconnected'); });
   }
 
   function startOnline(room, role) {
     onlineMode = true;
     myPlayer = -1;
+    connOk = false;
     state = Q.createState();
     el.p2name.textContent = '对手';
     started = true;

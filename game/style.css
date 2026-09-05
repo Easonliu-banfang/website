@@ -312,6 +312,10 @@ body::before {
   min-height: 18px;
   line-height: 1.5;
 }
+.status--connecting { color: var(--faint); }
+.status--connected { color: var(--cyan); }
+.status--reconnecting { color: #fbbf24; }
+.status--disconnected { color: #f87171; }
 
 /* ---------- 游戏布局 ---------- */
 
