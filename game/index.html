@@ -3,111 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>步步为营 · Quoridor</title>
-  <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
+  <title>游戏室 · Eason 的个人网站</title>
+  <meta name="description" content="Eason 的游戏室 —— 步步为营等小游戏集合">
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="wrap">
+    <header class="room-head">
+      <a href="../index.html" class="back">← 返回主页</a>
+      <h1>游戏室</h1>
+      <p class="sub">挑一个，开玩。</p>
+    </header>
 
-<div class="wrap">
+    <div class="room-grid">
+      <a class="gcard playable" href="quoridor.html">
+        <div class="gcard-top">
+          <span class="gico">⬡</span>
+          <span class="garrow">↗</span>
+        </div>
+        <h3>步步为营</h3>
+        <p>Quoridor · 走到对岸，或者把对手堵死。支持互联网联机、面对面、人机对战。</p>
+        <div class="gtags">
+          <span class="gtag">单机</span>
+          <span class="gtag">联机</span>
+          <span class="gtag">Canvas</span>
+        </div>
+      </a>
 
-  <header class="head">
-    <a href="../index.html" class="back">← 返回主页</a>
-    <h1>步步为营</h1>
-    <p class="sub">Quoridor · 走到对岸，或者把对手堵死</p>
-  </header>
+      <div class="gcard locked">
+        <div class="gcard-top">
+          <span class="gico">★</span>
+          <span class="glock">soon</span>
+        </div>
+        <h3>敬请期待</h3>
+        <p>下一个小游戏正在路上，先去步步为营热热身。</p>
+      </div>
 
-  <div class="layout">
-
-    <div class="board-col">
-      <div class="board-box">
-        <canvas id="board"></canvas>
-        <div id="banner" class="banner"></div>
+      <div class="gcard locked">
+        <div class="gcard-top">
+          <span class="gico">✦</span>
+          <span class="glock">soon</span>
+        </div>
+        <h3>敬请期待</h3>
+        <p>想法很多，时间很少。更多游戏会慢慢补上。</p>
       </div>
     </div>
-
-    <aside class="panel">
-
-      <div class="card turn-card">
-        <span class="cap">当前回合</span>
-        <span class="turn-val p0" id="turnLabel">玩家一 行动</span>
-      </div>
-
-      <div class="card">
-        <span class="cap">剩余墙数</span>
-        <div class="player p0">
-          <span class="dot"></span>
-          <span class="pname">玩家一</span>
-          <span class="pwall"><b id="w1">10</b> 面</span>
-        </div>
-        <div class="player p1">
-          <span class="dot"></span>
-          <span class="pname"><span id="p2name">电脑</span></span>
-          <span class="pwall"><b id="w2">10</b> 面</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <span class="cap">这一步做什么</span>
-        <div class="btn-row">
-          <button id="btnMove" class="btn on">走子</button>
-          <button id="btnWall" class="btn">放墙</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <span class="cap">对手</span>
-        <div class="btn-row">
-          <button id="btnAI" class="btn on">人机</button>
-          <button id="btnPvP" class="btn">双人</button>
-        </div>
-      </div>
-
-      <div class="card online-card">
-        <span class="cap">联机对战（互联网）</span>
-        <div class="btn-row">
-          <button id="btnCreate" class="btn">创建房间</button>
-          <button id="btnJoin" class="btn">加入房间</button>
-        </div>
-        <div class="join-row" id="joinRow">
-          <input id="inputCode" class="code-input" maxlength="6" placeholder="6 位房间码" autocomplete="off" />
-          <button id="btnJoinGo" class="btn">进入</button>
-        </div>
-        <div class="room-row" id="roomRow">
-          <span class="cap">房间码（发给朋友）</span>
-          <div class="code-box"><b id="roomCode">------</b><button id="btnCopy" class="btn ghost">复制</button></div>
-        </div>
-        <div class="status" id="onlineStatus">未连接</div>
-        <button id="btnExitOnline" class="btn ghost" style="display:none;">退出联机</button>
-      </div>
-
-      <div class="card">
-        <div class="btn-row">
-          <button id="btnUndo" class="btn ghost">悔棋</button>
-          <button id="btnNew" class="btn ghost">新局</button>
-        </div>
-        <div class="meta">
-          第 <b id="stepCount">0</b> 回合
-          <span class="keys">W 切墙 · U 悔棋 · N 新局</span>
-        </div>
-      </div>
-
-      <div class="card tips">
-        <span class="cap">怎么玩</span>
-        <p>每回合二选一：<b>移动一步</b>，或者<b>放一面墙</b>。</p>
-        <p>先走到对面底边者胜。墙不能把对手的路彻底封死。</p>
-      </div>
-
-    </aside>
-
   </div>
-
-</div>
-
-<script src="engine.js"></script>
-<script src="render.js"></script>
-<script src="online.js"></script>
-<script src="app.js"></script>
 </body>
 </html>

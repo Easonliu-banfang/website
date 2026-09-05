@@ -1,4 +1,4 @@
-/* 交互层：模式切换、鼠标操作、AI 对手、渲染循环 */
+/* 交互层：模式选择、鼠标操作、AI 对手、渲染循环、联机 */
 (function () {
   'use strict';
 
@@ -11,6 +11,7 @@
   var aiSide = 1;
   var placing = false;
   var aiThinking = false;
+  var started = false;
 
   // 联机模式
   var online = null;
@@ -19,14 +20,40 @@
   var oppConnected = false;
 
   var el = {};
-  ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
-   'btnNew', 'btnAI', 'btnPvP', 'stepCount', 'p2name',
+  ['startScreen', 'modeGrid', 'onlinePanel', 'backModes', 'btnChooseMode', 'gameScreen',
+   'turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
+   'btnNew', 'stepCount', 'p2name',
    'btnCreate', 'btnJoin', 'joinRow', 'inputCode', 'btnJoinGo',
-   'roomRow', 'roomCode', 'btnCopy', 'onlineStatus', 'btnExitOnline'].forEach(function (id) {
+   'roomRow', 'roomCode', 'btnCopy', 'onlineStatus'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
   function isAITurn() { return vsAI && state && state.turn === aiSide; }
+
+  /* ---------- 界面切换 ---------- */
+
+  function enterGameScreen() {
+    el.startScreen.hidden = true;
+    el.gameScreen.hidden = false;
+    R.resize();
+  }
+
+  function backToModes() {
+    started = false;
+    onlineMode = false;
+    if (online) { online.close(); online = null; }
+    state = null;
+    R.anim = null;
+    R.hover = null;
+    el.banner.classList.remove('show');
+    el.gameScreen.hidden = true;
+    el.startScreen.hidden = false;
+    el.modeGrid.hidden = false;
+    el.onlinePanel.hidden = true;
+    el.joinRow.hidden = true;
+    el.roomRow.hidden = true;
+    el.onlineStatus.textContent = '未连接';
+  }
 
   /* ---------- 局面控制 ---------- */
 
@@ -38,12 +65,13 @@
     R.anim = null;
     R.hover = null;
     el.banner.classList.remove('show');
-    el.btnAI.classList.toggle('on', vsAI);
-    el.btnPvP.classList.toggle('on', !vsAI);
     el.p2name.textContent = vsAI ? '电脑' : '玩家二';
     syncUI();
     maybeAI();
   }
+
+  function startLocal() { started = true; newGame(false); enterGameScreen(); }
+  function startAI()    { started = true; newGame(true);  enterGameScreen(); }
 
   function syncUI() {
     el.w1.textContent = state.players[0].walls;
@@ -68,8 +96,6 @@
     el.btnWall.disabled = !placing && state.players[state.turn].walls <= 0;
     el.btnUndo.disabled = onlineMode || state.history.length === 0;
     el.btnNew.disabled = onlineMode;
-    el.btnAI.disabled = onlineMode;
-    el.btnPvP.disabled = onlineMode;
   }
 
   function updateHints() {
@@ -94,7 +120,6 @@
 
   /* ---------- AI ---------- */
 
-  /* 在对手最短路径的首段上找一面能放的墙 */
   function aiBlockCandidate(s, p) {
     var foe = 1 - p;
     var path = Q.shortestPath(s, foe);
@@ -119,7 +144,6 @@
     var mine = Q.shortestPath(state, p);
     if (!mine || !mine.length) return;
     var foes = Q.shortestPath(state, 1 - p);
-    // 对手不比自己慢，就先拦一手
     if (state.players[p].walls > 0 && foes && foes.length <= mine.length + 1) {
       var w = aiBlockCandidate(state, p);
       if (w) { Q.placeWall(state, p, w.r, w.c, w.dir); return; }
@@ -156,7 +180,7 @@
 
   function interactive() {
     if (!state || state.winner >= 0 || aiThinking) return false;
-    if (onlineMode) return state.turn === myPlayer;  // 联机：仅自己回合可操作
+    if (onlineMode) return state.turn === myPlayer;
     return !isAITurn();
   }
 
@@ -187,9 +211,7 @@
     }
   });
 
-  canvas.addEventListener('mouseleave', function () {
-    R.hover = null;
-  });
+  canvas.addEventListener('mouseleave', function () { R.hover = null; });
 
   canvas.addEventListener('click', function (e) {
     if (!interactive()) return;
@@ -200,7 +222,7 @@
       var w = R.hitWall(p.x, p.y);
       if (!w || !Q.canPlaceWall(state, who, w.r, w.c, w.dir)) return;
       if (onlineMode) {
-        Q.placeWall(state, who, w.r, w.c, w.dir);   // 乐观更新，服务器回权威状态
+        Q.placeWall(state, who, w.r, w.c, w.dir);
         afterAction();
         online.sendWall(w.r, w.c, w.dir);
       } else if (Q.placeWall(state, who, w.r, w.c, w.dir)) {
@@ -237,14 +259,12 @@
 
   el.btnMove.addEventListener('click', function () { setPlacing(false); });
   el.btnWall.addEventListener('click', function () { setPlacing(!placing); });
-  el.btnAI.addEventListener('click', function () { newGame(true); });
-  el.btnPvP.addEventListener('click', function () { newGame(false); });
   el.btnNew.addEventListener('click', function () { newGame(vsAI); });
 
   el.btnUndo.addEventListener('click', function () {
     if (aiThinking || !state.history.length) return;
     Q.undo(state);
-    if (vsAI && state.history.length) Q.undo(state);   // 连电脑那步一起退
+    if (vsAI && state.history.length) Q.undo(state);
     el.banner.classList.remove('show');
     placing = false;
     R.anim = null;
@@ -254,16 +274,31 @@
     updateHints();
   });
 
+  /* ---------- 模式选择 ---------- */
+
+  el.modeGrid.addEventListener('click', function (e) {
+    var card = e.target.closest('.mode-card');
+    if (!card) return;
+    var mode = card.getAttribute('data-mode');
+    if (mode === 'local') startLocal();
+    else if (mode === 'ai') startAI();
+    else if (mode === 'online') { el.modeGrid.hidden = true; el.onlinePanel.hidden = false; }
+  });
+
+  el.btnChooseMode.addEventListener('click', backToModes);
+  el.backModes.addEventListener('click', function () {
+    el.onlinePanel.hidden = true;
+    el.modeGrid.hidden = false;
+    if (online) { online.close(); online = null; }
+    onlineMode = false;
+    el.joinRow.hidden = true;
+    el.roomRow.hidden = true;
+    el.onlineStatus.textContent = '未连接';
+  });
+
   /* ---------- 联机模式（互联网对战） ---------- */
 
   function showOnlineStatus(msg) { el.onlineStatus.textContent = msg; }
-
-  function setOnlineUI(active) {
-    el.btnExitOnline.style.display = active ? 'block' : 'none';
-    el.btnCreate.disabled = active;
-    el.btnJoin.disabled = active;
-    if (!active) { el.roomRow.style.display = 'none'; el.joinRow.style.display = 'none'; }
-  }
 
   function applyRemote(s) {
     state = s;
@@ -280,8 +315,10 @@
   function startOnline(preferred) {
     onlineMode = true;
     myPlayer = -1;
-    state = Q.createState();   // 本地初始渲染（与服务器一致，等待权威同步）
+    state = Q.createState();
     el.p2name.textContent = '对手';
+    started = true;
+    enterGameScreen();
     syncUI();
     updateHints();
     online.connect(preferred);
@@ -290,7 +327,6 @@
   function bindOnlineEvents(o) {
     o.on('welcome', function (p) {
       myPlayer = p;
-      setOnlineUI(true);
       showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '你是紫方（后手），等待对手加入…');
       syncUI();
       updateHints();
@@ -313,7 +349,7 @@
     showOnlineStatus('创建房间中…');
     online.createRoom().then(function (code) {
       el.roomCode.textContent = code;
-      el.roomRow.style.display = 'block';
+      el.roomRow.hidden = false;
       startOnline(0);
     }).catch(function (e) { showOnlineStatus('创建失败：' + e.message); online = null; });
   }
@@ -330,20 +366,8 @@
     }).catch(function (e) { showOnlineStatus('加入失败：' + e.message); online = null; });
   }
 
-  function doExit() {
-    onlineMode = false;
-    if (online) online.close();
-    online = null;
-    myPlayer = -1;
-    oppConnected = false;
-    el.banner.classList.remove('show');
-    setOnlineUI(false);
-    showOnlineStatus('未连接');
-    newGame(vsAI);
-  }
-
   el.btnCreate.addEventListener('click', doCreate);
-  el.btnJoin.addEventListener('click', function () { el.joinRow.style.display = 'flex'; el.inputCode.focus(); });
+  el.btnJoin.addEventListener('click', function () { el.joinRow.hidden = false; el.inputCode.focus(); });
   el.btnJoinGo.addEventListener('click', doJoin);
   el.inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') doJoin(); });
   el.btnCopy.addEventListener('click', function () {
@@ -351,10 +375,9 @@
     if (navigator.clipboard) navigator.clipboard.writeText(code).catch(function () {});
     showOnlineStatus('房间码已复制：' + code);
   });
-  el.btnExitOnline.addEventListener('click', doExit);
 
   document.addEventListener('keydown', function (e) {
-    if (onlineMode) return;
+    if (!started || onlineMode) return;
     if (e.target.tagName === 'INPUT') return;
     var k = e.key.toLowerCase();
     if (k === 'w') setPlacing(!placing);
@@ -376,10 +399,9 @@
   });
 
   R.resize();
-  newGame(true);
   loop();
 
-  /* 调试 / 扩展出口：控制台可查看局面，联机层也挂在这里 */
+  /* 调试 / 扩展出口 */
   window.QuoridorGame = {
     get state() { return state; },
     get vsAI() { return vsAI; },
@@ -388,13 +410,6 @@
     renderer: R,
     engine: Q,
     newGame: newGame,
-    cellXY: function (r, c) {
-      return { x: R.ox + c * R.pitch + R.cell / 2, y: R.oy + r * R.pitch + R.cell / 2 };
-    },
-    wallXY: function (r, c, dir) {
-      return dir === 'H'
-        ? { x: R.ox + c * R.pitch + (2 * R.cell + R.gap) / 2, y: R.oy + r * R.pitch + R.cell + R.gap / 2 }
-        : { x: R.ox + c * R.pitch + R.cell + R.gap / 2, y: R.oy + r * R.pitch + (2 * R.cell + R.gap) / 2 };
-    }
+    backToModes: backToModes
   };
 })();
