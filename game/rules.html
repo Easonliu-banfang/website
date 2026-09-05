@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>步步为营 · 玩法规则</title>
+  <meta name="description" content="步步为营 Quoridor 玩法规则">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="room-head">
+    <a href="index.html" class="back">← 返回游戏室</a>
+    <h1>玩法规则</h1>
+    <p class="sub">看懂这几条，开玩不懵。</p>
+  </header>
+
+  <div class="rules-card">
+    <h3>🎯 目标</h3>
+    <p>把自己的棋子走到<b>正对面的底边</b>就赢。你从底部出发，对手从顶部出发，谁先抵达对岸谁胜。</p>
+
+    <h3>🚶 每回合二选一</h3>
+    <p><b>① 移动一步</b>：向上 / 下 / 左 / 右走一格。<br>
+       <b>② 放一面墙</b>：挡住对手的去路（每人 10 面墙）。</p>
+
+    <h3>⏭️ 关于「跳子」</h3>
+    <p>若正前方被对手挡住，可<b>直接跳过对手</b>落到其正后方；若正后方也被挡住，可<b>斜向</b>走到两侧的空格。所以两子贴脸时，照样能两步跨越。</p>
+
+    <h3>🧱 墙的规矩</h3>
+    <p>墙放在格线交叉处，可挡住两格通道。<b>但不能把对手的路彻底封死</b>——系统会自动拒绝这种墙。</p>
+
+    <h3>🪙 先手随机</h3>
+    <p>每局开局会抛硬币决定谁先走，先手不再固定，更公平。</p>
+
+    <h3>🔁 悔棋 / 新局</h3>
+    <p>联机模式下，悔棋和重开会向对手发起请求，<b>双方都点头</b>才执行；面对面 / 人机则直接生效。</p>
+
+    <div class="btn-row enter-row">
+      <a id="btnKnown" class="btn on" href="quoridor.html">我已知晓，开始游戏 →</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

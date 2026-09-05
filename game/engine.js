@@ -123,6 +123,29 @@
     return path;
   }
 
+  /* 到终点的最短距离（BFS），把对手所在格视为不可直接踩（跳跃另算）。用于 AI 评估走子/放墙。 */
+  function distToGoal(s, p) {
+    var me = s.players[p], foe = s.players[1 - p], goal = me.goal;
+    var seen = {}, q = [[me.r, me.c]], head = 0;
+    seen[key(me.r, me.c)] = 0;
+    while (head < q.length) {
+      var cur = q[head++], r = cur[0], c = cur[1];
+      if (r === goal) return seen[key(r, c)];
+      var d = seen[key(r, c)];
+      for (var i = 0; i < 4; i++) {
+        var nr = r + DIRS[i][0], nc = c + DIRS[i][1];
+        if (nr < 0 || nr >= N || nc < 0 || nc >= N) continue;
+        if (blocked(s, r, c, nr, nc)) continue;
+        if (nr === foe.r && nc === foe.c) continue;   // 对手所在格不能直接踩，跳跃由 legalMoves 单独处理
+        var k = key(nr, nc);
+        if (seen[k] !== undefined) continue;
+        seen[k] = d + 1;
+        q.push([nr, nc]);
+      }
+    }
+    return Infinity;
+  }
+
   /* 墙槽是否已被占用或与邻墙重叠 */
   function wallConflict(s, r, c, dir) {
     if (r < 0 || r >= S || c < 0 || c >= S) return true;
@@ -195,6 +218,7 @@
     legalMoves: legalMoves,
     hasPath: hasPath,
     shortestPath: shortestPath,
+    distToGoal: distToGoal,
     canPlaceWall: canPlaceWall,
     wallConflict: wallConflict,
     blocked: blocked,

@@ -7,52 +7,125 @@
   var R = new window.QRender(canvas);
 
   var state = null;
-  var vsAI = true;
+  var vsAI = false;
   var aiSide = 1;
   var placing = false;
   var aiThinking = false;
   var started = false;
+
+  // 抛硬币 / 横幅
+  var coinLock = false;     // 抛硬币动画期间锁输入
+  var coinShown = false;    // 本局是否已播放过抛硬币（联机重开时复位，避免重复播放）
+  var winTimer = null;
 
   // 联机模式
   var online = null;
   var onlineMode = false;
   var myPlayer = -1;
   var oppConnected = false;
-  var connOk = false;   // 联机通道是否就绪，断线重连期间为 false，锁输入
+  var connOk = false;
   var welcomed = false;
 
   // 悔棋 / 重开 的双向确认状态
-  var reqPending = false;     // 本端是否正处于请求/响应待定中（锁输入）
-  var reqKind = null;         // 'undo' | 'new' | null：本端发起的请求类型
-  var incomingKind = null;    // 'undo' | 'new' | null：对方发来的请求类型
-  var leftShown = false;      // 是否已弹出「对手离开」横幅
+  var reqPending = false;
+  var reqKind = null;
+  var incomingKind = null;
+  var leftShown = false;
 
   var el = {};
   ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
    'btnNew', 'stepCount', 'p2name', 'onlineStatus', 'roomCodeTag',
-   'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo'].forEach(function (id) {
+   'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo',
+   'coinModal', 'coin', 'coinTitle', 'coinResult', 'coinSub'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
-  function isAITurn() { return vsAI && state && state.turn === aiSide; }
+  function isAITurn() { return !onlineMode && vsAI && state && state.turn === aiSide; }
+
+  /* ---------- 横幅 / 抛硬币 ---------- */
+
+  function hideBanner() {
+    el.banner.classList.remove('show', 'big');
+    if (winTimer) { clearTimeout(winTimer); winTimer = null; }
+  }
+  function showWinBanner(text, autoClose) {
+    el.banner.textContent = text;
+    el.banner.classList.remove('big');
+    el.banner.classList.add('show');
+    if (autoClose) {
+      if (winTimer) clearTimeout(winTimer);
+      winTimer = setTimeout(hideBanner, 3000);   // 3 秒后自动关闭
+    } else if (winTimer) {
+      clearTimeout(winTimer); winTimer = null;
+    }
+  }
+  function flashBanner(text) {
+    if (winTimer) { clearTimeout(winTimer); winTimer = null; }
+    el.banner.textContent = text;
+    el.banner.classList.remove('big');
+    el.banner.classList.add('show');
+  }
+
+  // 抛硬币决定先手：first = 先手玩家(0 红 / 1 紫)
+  function playCoin(first, opts) {
+    opts = opts || {};
+    coinLock = true;
+    coinShown = true;
+    el.coinModal.hidden = false;
+    el.coin.classList.remove('flip', 'settled');
+    el.coinTitle.textContent = '随机先手';
+    el.coinResult.textContent = '';
+    el.coinSub.textContent = '';
+    void el.coin.offsetWidth;        // 强制重排以重启动画
+    el.coin.classList.add('flip');
+    setTimeout(function () {
+      var firstLabel, sub;
+      if (opts.ai) {
+        firstLabel = first === 0 ? '🟥 你（红方）先手' : '🟪 电脑（紫方）先手';
+        sub = first === 0 ? '你先手，开始！' : '电脑先手，稍候…';
+      } else if (opts.mode === 'online') {
+        firstLabel = first === 0 ? '🟥 红方先手' : '🟪 紫方先手';
+        sub = (first === myPlayer) ? '你先手，开始！' : '对手先手';
+      } else {
+        firstLabel = first === 0 ? '🟥 红方先手' : '🟪 紫方先手';
+        sub = first === 0 ? '玩家一先手' : '玩家二先手';
+      }
+      el.coinResult.textContent = firstLabel;
+      el.coinSub.textContent = sub;
+      el.coin.classList.add('settled');
+    }, 1100);
+    setTimeout(function () {
+      el.coinModal.hidden = true;
+      el.coin.classList.remove('flip', 'settled');
+      coinLock = false;
+      syncUI();
+      updateHints();
+      if (opts.ai && state && state.winner < 0 && state.turn === aiSide) maybeAI();
+    }, 2400);
+  }
 
   /* ---------- 局面控制 ---------- */
 
-  function newGame(ai) {
+  // 开新局：随机先手 + 抛硬币动画，ai 为 true 时人类=玩家0、电脑=玩家1
+  function beginGame(ai) {
     vsAI = !!ai;
     state = Q.createState();
+    state.turn = Math.random() < 0.5 ? 0 : 1;   // 随机先手，消除先手优势
+    aiSide = 1;
     placing = false;
     aiThinking = false;
     R.anim = null;
     R.hover = null;
-    el.banner.classList.remove('show');
-    el.p2name.textContent = vsAI ? '电脑' : '玩家二';
+    winTimer && clearTimeout(winTimer);
+    hideBanner();
+    el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? '对手' : '玩家二');
+    coinShown = false;
     syncUI();
-    maybeAI();
+    playCoin(state.turn, { ai: vsAI, mode: 'local' });
   }
 
-  function startLocal() { started = true; newGame(false); }
-  function startAI()    { started = true; newGame(true); }
+  function startLocal() { started = true; onlineMode = false; beginGame(false); }
+  function startAI()    { started = true; onlineMode = false; beginGame(true); }
 
   function syncUI() {
     el.w1.textContent = state.players[0].walls;
@@ -80,9 +153,10 @@
     el.btnNew.disabled = reqPending;
   }
 
+  // 提示格：仅当轮到「本地玩家」且可操作时才显示（修复玩家2看不到提示）
   function updateHints() {
-    if (!state || state.winner >= 0 || aiThinking || isAITurn() || placing) R.hints = [];
-    else R.hints = Q.legalMoves(state, state.turn);
+    if (!state || state.winner >= 0 || aiThinking || placing || !interactive()) R.hints = [];
+    else R.hints = Q.legalMoves(state, onlineMode ? myPlayer : state.turn);
   }
 
   function afterAction() {
@@ -91,10 +165,13 @@
     syncUI();
     updateHints();
     if (state.winner >= 0) {
-      el.banner.textContent = onlineMode
-        ? (state.winner === myPlayer ? '你赢了' : '对手获胜') + ' 抵达对岸'
-        : (state.winner === 0 ? '玩家一' : (vsAI ? '电脑' : '玩家二')) + ' 抵达对岸';
-      el.banner.classList.add('show');
+      if (vsAI) {
+        showWinBanner(state.winner === 0 ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？', true);
+      } else if (onlineMode) {
+        showWinBanner(state.winner === myPlayer ? '🎉 你赢了！' : '对手获胜', false);
+      } else {
+        showWinBanner((state.winner === 0 ? '玩家一' : '玩家二') + ' 获胜', false);
+      }
       return;
     }
     maybeAI();
@@ -102,6 +179,7 @@
 
   /* ---------- AI ---------- */
 
+  // 找一处能拖慢对手、又不伤自己的墙
   function aiBlockCandidate(s, p) {
     var foe = 1 - p;
     var path = Q.shortestPath(s, foe);
@@ -121,16 +199,41 @@
     return null;
   }
 
+  // 走子评估：从合法走法中选出「离终点更近、并略拖慢对手」的一步。
+  // 关键：候选直接取自 legalMoves（已含跳子/斜走），永不传非法目标给 Q.move，因此不会卡死。
   function aiTurn() {
-    var p = state.turn;
-    var mine = Q.shortestPath(state, p);
-    if (!mine || !mine.length) return;
-    var foes = Q.shortestPath(state, 1 - p);
-    if (state.players[p].walls > 0 && foes && foes.length <= mine.length + 1) {
-      var w = aiBlockCandidate(state, p);
-      if (w) { Q.placeWall(state, p, w.r, w.c, w.dir); return; }
+    var p = state.turn, foe = 1 - p;
+    var moves = Q.legalMoves(state, p);
+    if (!moves.length) return;                       // 理论上不会发生（Quoridor 中总有合法步）
+
+    var myDist = Q.distToGoal(state, p);
+    var foeDist = Q.distToGoal(state, foe);
+
+    var best = moves[0], bestScore = Infinity;
+    for (var i = 0; i < moves.length; i++) {
+      var s2 = Q.clone(state);
+      Q.move(s2, p, moves[i].r, moves[i].c);
+      var md = Q.distToGoal(s2, p);
+      var fd = Q.distToGoal(s2, foe);
+      // 我方距离越短越好；对方被拖远（fd 变大）略加分
+      var score = md - 0.2 * (fd - foeDist);
+      if (score < bestScore) { bestScore = score; best = moves[i]; }
     }
-    Q.move(state, p, mine[0].r, mine[0].c);
+
+    // 放墙：仅当对手明显领先（领先≥2 且我方仍有通路）且放墙确实有效
+    if (state.players[p].walls > 0 && isFinite(myDist) && foeDist <= myDist - 2) {
+      var w = aiBlockCandidate(state, p);
+      if (w) {
+        var s3 = Q.clone(state);
+        Q.placeWall(s3, p, w.r, w.c, w.dir);
+        if (Q.distToGoal(s3, foe) > foeDist && Q.distToGoal(s3, p) <= myDist + 1) {
+          Q.placeWall(state, p, w.r, w.c, w.dir);
+          return;
+        }
+      }
+    }
+
+    Q.move(state, p, best.r, best.c);
   }
 
   function maybeAI() {
@@ -143,13 +246,13 @@
       if (!state || state.winner >= 0) return;
       aiTurn();
       aiThinking = false;
-      syncUI();
-      updateHints();
       if (state.winner >= 0) {
-        el.banner.textContent = '电脑 抵达对岸';
-        el.banner.classList.add('show');
+        showWinBanner('😶 电脑获胜，再来一局？', true);
+      } else {
+        syncUI();
+        updateHints();
       }
-    }, 400);
+    }, 420);
   }
 
   /* ---------- 输入 ---------- */
@@ -161,7 +264,7 @@
   }
 
   function interactive() {
-    if (!state || state.winner >= 0 || aiThinking) return false;
+    if (!state || state.winner >= 0 || aiThinking || coinLock) return false;
     if (onlineMode) return connOk && !reqPending && state.turn === myPlayer;
     return !isAITurn();
   }
@@ -247,20 +350,19 @@
     if (aiThinking || !state.history.length) return;
     Q.undo(state);
     if (vsAI && state.history.length) Q.undo(state);
-    el.banner.classList.remove('show');
+    hideBanner();
     placing = false; R.anim = null; R.hover = null; aiThinking = false;
     syncUI(); updateHints();
   });
 
   el.btnNew.addEventListener('click', function () {
     if (onlineMode) { requestNew(); return; }
-    newGame(vsAI);
+    beginGame(vsAI);
   });
 
-  // 悔棋核心：撤回一步（联机下双方各自执行一次，保证一致）
   function doUndoCore() {
     Q.undo(state);
-    el.banner.classList.remove('show');
+    hideBanner();
     placing = false; R.anim = null; R.hover = null; aiThinking = false;
     syncUI(); updateHints();
   }
@@ -302,7 +404,7 @@
     incomingKind = null; hideReqModal();
     online.sendRelay('res_new', ok);
     reqPending = false;
-    if (ok) { showOnlineStatus('已同意重开，等待重置…', 'connecting'); }
+    if (ok) { coinShown = false; showOnlineStatus('已同意重开，等待重置…', 'connecting'); }
     else { showOnlineStatus('已拒绝对方重开', 'disconnected'); }
     syncUI();
   }
@@ -329,11 +431,10 @@
     hideReqModal();
     leftShown = true;
     showOnlineStatus('对手已离开游戏，等待其重连…', 'reconnecting');
-    el.banner.textContent = '对手已离开游戏';
-    el.banner.classList.add('show');
+    flashBanner('对手已离开游戏');
   }
   function opponentPresent() {
-    if (leftShown) { leftShown = false; el.banner.classList.remove('show'); }
+    if (leftShown) { leftShown = false; hideBanner(); }
   }
 
   function applyRemote(s) {
@@ -342,10 +443,9 @@
     placing = false;
     syncUI();
     updateHints();
-    R.draw(state);   // 立即重绘：对方放墙/走子后无需等下一帧即可看到
+    R.draw(state);
     if (state.winner >= 0) {
-      el.banner.textContent = (state.winner === myPlayer ? '你赢了' : '对手获胜') + ' 抵达对岸';
-      el.banner.classList.add('show');
+      showWinBanner(state.winner === myPlayer ? '🎉 你赢了！' : '对手获胜', false);
     }
   }
 
@@ -354,7 +454,8 @@
       var first = !welcomed;
       welcomed = true;
       myPlayer = p;
-      R.flip = (p === 1);   // 后手(紫方)翻转棋盘，看到自己在底部、对手在顶部
+      vsAI = false;                                  // 联机不是人机，否则会误判玩家2为AI而吞掉提示
+      R.flip = (p === 1);
       connOk = true;
       if (first) {
         showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '成功进入房间（你是紫方·后手）', 'connected');
@@ -364,7 +465,14 @@
       syncUI();
       updateHints();
     });
-    o.on('state', function (s) { applyRemote(s); });
+    o.on('state', function (s) {
+      applyRemote(s);
+      // 开局抛硬币：收到第一份「空棋盘」权威局面时播放一次
+      if (!coinShown) {
+        if (s.history.length === 0) { playCoin(s.turn, { mode: 'online' }); }
+        else { coinShown = true; }   // 中途加入已开局的对局，跳过抛硬币
+      }
+    });
     o.on('players', function (ps) {
       var now = ps[1 - myPlayer];
       if (myPlayer < 0) { oppConnected = now; return; }
@@ -399,7 +507,7 @@
     o.on('res_new', function (ok) {
       reqPending = false;
       if (ok) {
-        // 发起人收到同意 → 通知服务端重置权威棋局并广播
+        coinShown = false;                          // 重开：下一帧收到新棋盘时再抛一次硬币
         online.sendReset();
         showOnlineStatus('已同意重开，重置中…', 'connecting');
       } else {
@@ -419,11 +527,13 @@
 
   function startOnline(room, role) {
     onlineMode = true;
-    myPlayer = role === 'host' ? 0 : 1;   // 提示性，welcome 最终确认
+    vsAI = false;
+    myPlayer = role === 'host' ? 0 : 1;
     R.flip = (myPlayer === 1);
     connOk = false;
     welcomed = false;
     reqPending = false; reqKind = null; incomingKind = null; leftShown = false;
+    coinShown = false; coinLock = false;
     state = Q.createState();
     el.p2name.textContent = '对手';
     started = true;
@@ -449,7 +559,7 @@
     }
     if (k === 'w') setPlacing(!placing);
     else if (k === 'u') el.btnUndo.click();
-    else if (k === 'n') newGame(vsAI);
+    else if (k === 'n') beginGame(vsAI);
   });
 
   /* ---------- 循环 ---------- */
@@ -499,9 +609,10 @@
     get myPlayer() { return myPlayer; },
     get onlineMode() { return onlineMode; },
     get reqPending() { return reqPending; },
+    get coinLock() { return coinLock; },
     renderer: R,
     engine: Q,
     online: online,
-    newGame: newGame
+    beginGame: beginGame
   };
 })();

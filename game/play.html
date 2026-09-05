@@ -65,14 +65,18 @@
       </div>
     </div>
 
-    <div class="card tips">
-      <span class="cap">怎么玩</span>
-      <p>每回合二选一：<b>移动一步</b>，或者<b>放一面墙</b>。</p>
-      <p>先走到对面底边者胜。墙不能把对手的路彻底封死。</p>
-    </div>
-
     <div class="status" id="onlineStatus" hidden></div>
   </aside>
+</div>
+
+<!-- 抛硬币：随机先手动画 -->
+<div id="coinModal" class="modal coin-modal" hidden>
+  <div class="coin-card">
+    <p class="coin-title" id="coinTitle">随机先手</p>
+    <div class="coin" id="coin"><span class="coin-face">🪙</span></div>
+    <p class="coin-result" id="coinResult"></p>
+    <p class="coin-sub" id="coinSub"></p>
+  </div>
 </div>
 
 <!-- 联机：对方请求悔棋 / 重开 时的确认弹窗 -->
@@ -87,9 +91,9 @@
   </div>
 </div>
 
-<script src="engine.js?v=g3"></script>
-<script src="render.js?v=g3"></script>
-<script src="online.js?v=g3"></script>
-<script src="app.js?v=g3"></script>
+<script src="engine.js?v=g5"></script>
+<script src="render.js?v=g5"></script>
+<script src="online.js?v=g5"></script>
+<script src="app.js?v=g5"></script>
 </body>
 </html>
