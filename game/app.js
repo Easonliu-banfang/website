@@ -33,6 +33,8 @@
   var reqKind = null;
   var incomingKind = null;
   var leftShown = false;
+  var wantNew = false;     // 本端是否已点击「重开」（用于「双方都点→默认同意」）
+  var resetSent = false;   // 本局「重开重置」是否已发出，防止 res_new 重复/重投递导致双重置
 
   var el = {};
   ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
@@ -397,7 +399,7 @@
 
   function requestNew() {
     if (reqPending || !state) return;
-    reqPending = true; reqKind = 'new'; incomingKind = null;
+    reqPending = true; reqKind = 'new'; incomingKind = null; wantNew = true;
     online.sendRelay('req_new');
     showOnlineStatus('已发送重开请求，等待对方确认…', 'connecting');
     syncUI();
@@ -405,7 +407,7 @@
   function respondNew(ok) {
     incomingKind = null; hideReqModal();
     online.sendRelay('res_new', ok);
-    reqPending = false;
+    reqPending = false; wantNew = false;
     if (ok) { coinShown = false; showOnlineStatus('已同意重开，等待重置…', 'connecting'); }
     else { showOnlineStatus('已拒绝对方重开', 'disconnected'); }
     syncUI();
@@ -484,6 +486,7 @@
     });
     o.on('state', function (s) {
       applyRemote(s);
+      if (s.history.length === 0) { wantNew = false; resetSent = false; }   // 新一局已下达，清除重开相关标记
       // 开局抛硬币：收到第一份「空棋盘」权威局面时播放一次
       if (!coinShown) {
         if (s.history.length === 0) { playCoin(s.turn, { mode: 'online' }); }
@@ -505,15 +508,32 @@
     });
     o.on('req_new', function () {
       if (!state) { online.sendRelay('res_new', false); return; }
+      // 双方都想重开 → 默认同意，不再弹确认窗（也不用等对方点）。
+      // 约定：玩家编号较小的一方回 res_new，较大的一方静默等待其回包后再触发重置，
+      // 避免两端都回 res_new 造成服务端连续两次重置、先手动画显示不一致。
+      if (wantNew) {
+        if (myPlayer === 0) {
+          incomingKind = null; hideReqModal();
+          online.sendRelay('res_new', true);
+          reqPending = false; wantNew = false;
+          showOnlineStatus('双方都想重开，已自动同意，重置中…', 'connecting');
+        } else {
+          incomingKind = null; hideReqModal();
+          reqPending = false;
+          showOnlineStatus('对方也想重开，正在重置…', 'connecting');
+        }
+        syncUI();
+        return;
+      }
       reqPending = true; incomingKind = 'new';
       showReqModal('对方请求重开一局', '同意后棋局将重置');
       syncUI();
     });
     o.on('res_new', function (ok) {
-      reqPending = false;
+      reqPending = false; wantNew = false;
       if (ok) {
         coinShown = false;                          // 重开：下一帧收到新棋盘时再抛一次硬币
-        online.sendReset();
+        if (!resetSent) { resetSent = true; online.sendReset(); }  // 防止 res_new 重投递导致双重置
         showOnlineStatus('已同意重开，重置中…', 'connecting');
       } else {
         showOnlineStatus('对方拒绝了重开', 'disconnected');
@@ -553,7 +573,7 @@
     R.flip = (myPlayer === 1);
     connOk = false;
     welcomed = false;
-    reqPending = false; reqKind = null; incomingKind = null; leftShown = false;
+    reqPending = false; reqKind = null; incomingKind = null; leftShown = false; wantNew = false; resetSent = false;
     coinShown = false; coinLock = false;
     state = Q.createState();
     el.p2name.textContent = '对手';
@@ -630,6 +650,7 @@
     get myPlayer() { return myPlayer; },
     get onlineMode() { return onlineMode; },
     get reqPending() { return reqPending; },
+    get wantNew() { return wantNew; },
     get coinLock() { return coinLock; },
     renderer: R,
     engine: Q,
