@@ -112,6 +112,7 @@
 
   // 开新局：随机先手 + 抛硬币动画，ai 为 true 时人类=玩家0、电脑=玩家1
   function beginGame(ai) {
+    invalidateAI();                                       // 作废任何在途的 AI 计算结果
     vsAI = !!ai;
     state = Q.createState();
     state.turn = Math.random() < 0.5 ? 0 : 1;   // 随机先手，消除先手优势
@@ -181,49 +182,98 @@
     maybeAI();
   }
 
-  /* ---------- AI ---------- */
+  /* ---------- AI（Web Worker 后台搜索，不阻塞主线程动画） ---------- */
 
-  // AI 行动：使用 QuoridorAI（Minimax + Alpha-Beta + 迭代加深）选出最佳着法。
-  // 与旧版（单步贪心、只在对手领先≥2 时才考虑放墙、放墙权重仅 0.2）相比，
-  // 本版是对抗式多步搜索，会预判对手反击并做出最优权衡，明显更强。
-  function aiTurn() {
-    if (!vsAI || !state || state.winner >= 0 || state.turn !== aiSide) return;
-    var mv = QuoridorAI.bestMove(state, aiSide, { timeBudget: 1000, maxDepth: 7 });
-    if (!mv) return;
-    var ok;
+  // 把 Minimax 搜索放进 Web Worker，主线程继续跑 requestAnimationFrame 渲染循环，
+  // 彻底解决「电脑思考时用户走子动画被卡住」的问题。Worker 不可用时退回同步计算。
+  var aiWorker = null;
+  var aiReqId = 0;
+
+  // 让任何在途的 AI 计算结果作废（开新局 / 悔棋等切换局面时调用）
+  function invalidateAI() { aiReqId++; aiThinking = false; }
+
+  function ensureAIWorker() {
+    if (aiWorker) return aiWorker;
+    try {
+      aiWorker = new Worker('ai.worker.js?v=g10');
+      aiWorker.onmessage = function (ev) {
+        var msg = ev.data;
+        if (!msg) return;
+        if (msg.reqId !== aiReqId) return;                 // 过期结果直接丢弃
+        if (msg.type === 'error') {                        // Worker 出错 → 同步兜底
+          aiWorker = null;
+          syncAIFallback();
+          return;
+        }
+        if (msg.type === 'move') applyAIMove(msg.move);
+      };
+      aiWorker.onerror = function () {                     // 加载/运行失败 → 同步兜底
+        aiWorker = null;
+        syncAIFallback();
+      };
+    } catch (ex) {
+      aiWorker = null;
+    }
+    return aiWorker;
+  }
+
+  // 同步兜底（仅当 Worker 不可用/出错时触发），会短暂阻塞主线程，但保证 AI 仍可行动
+  function syncAIFallback() {
+    setTimeout(function () {
+      if (!state || state.winner >= 0 || state.turn !== aiSide) return;
+      if (typeof QuoridorAI === 'undefined') return;
+      var mv = QuoridorAI.bestMove(state, aiSide, { timeBudget: 1000, maxDepth: 7 });
+      applyAIMove(mv);
+    }, 30);
+  }
+
+  // 将 Worker 算出的着法应用到盘面（含动画与收尾），不再递归触发 maybeAI
+  function applyAIMove(mv) {
+    aiThinking = false;
+    if (!mv || !state || state.winner >= 0 || state.turn !== aiSide) {
+      syncUI(); updateHints(); return;
+    }
     if (mv.type === 'wall') {
-      ok = Q.placeWall(state, aiSide, mv.r, mv.c, mv.dir);
-      if (!ok) {                                   // 极端兜底：墙非法时退而走一步
+      var ok = Q.placeWall(state, aiSide, mv.r, mv.c, mv.dir);
+      if (!ok) {                                          // 墙非法 → 退而走一步
         var ms = Q.legalMoves(state, aiSide);
         if (ms.length) ok = Q.move(state, aiSide, ms[0].r, ms[0].c);
       }
     } else {
-      ok = Q.move(state, aiSide, mv.r, mv.c);
+      var from = { r: state.players[aiSide].r, c: state.players[aiSide].c };
+      Q.move(state, aiSide, mv.r, mv.c);
+      R.startAnim(aiSide, from, { r: mv.r, c: mv.c });
     }
-    if (!ok) {                                     // 兜底：避免任何卡死
-      var lm = Q.legalMoves(state, aiSide);
-      if (lm.length) Q.move(state, aiSide, lm[0].r, lm[0].c);
+    R.hover = null;
+    placing = false;
+    syncUI();
+    updateHints();
+    if (state.winner >= 0) {
+      showWinBanner('😶 电脑获胜，再来一局？', true);
     }
   }
 
   function maybeAI() {
     if (onlineMode) return;
     if (!vsAI || !state || state.winner >= 0 || state.turn !== aiSide) return;
-    aiThinking = true;
+    aiThinking = true;                                    // 立即置位，主线程不被阻塞
     syncUI();
     updateHints();
-    // 短暂延迟让“电脑思考中”标签先绘制，再进入（可能耗时约 1s 的）搜索
-    setTimeout(function () {
-      if (!state || state.winner >= 0) return;
-      aiTurn();
-      aiThinking = false;
-      if (state.winner >= 0) {
-        showWinBanner('😶 电脑获胜，再来一局？', true);
-      } else {
-        syncUI();
-        updateHints();
-      }
-    }, 60);
+    var myReq = ++aiReqId;                                // 标记本次请求，旧结果会因 reqId 不匹配被丢弃
+    var worker = ensureAIWorker();
+    if (worker) {
+      try {
+        worker.postMessage({
+          type: 'think',
+          reqId: myReq,
+          state: state,
+          aiSide: aiSide,
+          opts: { timeBudget: 1000, maxDepth: 7 }
+        });
+        return;                                           // 立刻返回，主线程继续渲染动画
+      } catch (ex) { /* 落到同步兜底 */ }
+    }
+    syncAIFallback();
   }
 
   /* ---------- 输入 ---------- */
