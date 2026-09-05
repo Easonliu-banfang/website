@@ -238,6 +238,9 @@ body::before {
 
 .btn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 11px 10px;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.1);
@@ -245,9 +248,12 @@ body::before {
   color: var(--dim);
   font-family: var(--sans);
   font-size: 14px;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
   transition: all 0.17s ease;
 }
+.enter-row { margin-top: 16px; }
 .btn:hover:not(:disabled) {
   color: var(--text);
   border-color: rgba(34,211,238,0.45);

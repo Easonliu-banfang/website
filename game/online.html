@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>步步为营 · 互联网对战</title>
+  <meta name="description" content="步步为营 Quoridor —— 创建或加入联机房间">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="quoridor.html" class="back">← 选择模式</a>
+  <h1>互联网对战</h1>
+</header>
+
+<section class="start">
+  <div class="start-inner">
+    <p class="start-sub">和好友联机对决</p>
+    <h2 class="start-title">创建或加入房间</h2>
+
+    <div class="online-panel">
+      <div class="btn-row">
+        <button id="btnCreate" class="btn" type="button">创建房间</button>
+        <button id="btnJoin" class="btn" type="button">加入房间</button>
+      </div>
+
+      <div class="join-row" id="joinRow" hidden>
+        <input id="inputCode" class="code-input" maxlength="6" placeholder="6 位房间码" autocomplete="off" spellcheck="false" />
+        <button id="btnJoinGo" class="btn" type="button">进入</button>
+      </div>
+
+      <div class="room-row" id="roomRow" hidden>
+        <span class="cap">房间码（发给朋友）</span>
+        <div class="code-box"><b id="roomCode">------</b><button id="btnCopy" class="btn ghost" type="button">复制</button></div>
+      </div>
+
+      <div class="status" id="status">未连接</div>
+
+      <div class="btn-row enter-row" id="enterRow" hidden>
+        <a id="btnEnter" class="btn on" href="#">进入游戏 →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="online.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var status = document.getElementById('status');
+  var btnCreate = document.getElementById('btnCreate');
+  var btnJoin = document.getElementById('btnJoin');
+  var joinRow = document.getElementById('joinRow');
+  var inputCode = document.getElementById('inputCode');
+  var btnJoinGo = document.getElementById('btnJoinGo');
+  var roomRow = document.getElementById('roomRow');
+  var roomCode = document.getElementById('roomCode');
+  var btnCopy = document.getElementById('btnCopy');
+  var enterRow = document.getElementById('enterRow');
+  var btnEnter = document.getElementById('btnEnter');
+
+  var o = new window.QuoridorOnline();
+  var pendingCode = null;
+
+  function setStatus(m) { status.textContent = m; }
+
+  function go(room, role) {
+    pendingCode = room;
+    roomCode.textContent = room;
+    roomRow.hidden = false;
+    enterRow.hidden = false;
+    btnEnter.href = 'play.html?mode=online&room=' + encodeURIComponent(room) + '&role=' + role;
+    setStatus(role === 'host'
+      ? '房间已创建，把房间码发给朋友，准备好后进入游戏'
+      : '已加入，准备好后进入游戏');
+  }
+
+  btnCreate.addEventListener('click', function () {
+    setStatus('创建房间中…');
+    o.createRoom().then(function (code) {
+      go(code, 'host');
+    }).catch(function (e) {
+      setStatus('创建失败：' + (e && e.message ? e.message : e));
+    });
+  });
+
+  btnJoin.addEventListener('click', function () {
+    joinRow.hidden = false;
+    inputCode.focus();
+  });
+
+  function tryJoin() {
+    var code = (inputCode.value || '').trim().toUpperCase();
+    if (code.length !== 6) { setStatus('请输入 6 位房间码'); return; }
+    setStatus('加入房间中…');
+    o.joinRoom(code).then(function () {
+      go(code, 'guest');
+    }).catch(function (e) {
+      setStatus('加入失败：' + (e && e.message ? e.message : e));
+    });
+  }
+
+  btnJoinGo.addEventListener('click', tryJoin);
+  inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryJoin(); });
+
+  btnCopy.addEventListener('click', function () {
+    if (navigator.clipboard && pendingCode) {
+      navigator.clipboard.writeText(pendingCode).catch(function () {});
+    }
+    setStatus('房间码已复制：' + pendingCode);
+  });
+})();
+</script>
+</body>
+</html>

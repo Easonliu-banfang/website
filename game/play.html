@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>步步为营 · Quoridor</title>
+  <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="quoridor.html" class="back">← 选择模式</a>
+  <h1>步步为营</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden></span>
+</header>
+
+<div class="layout">
+
+  <div class="board-col">
+    <div class="board-box">
+      <canvas id="board"></canvas>
+      <div id="banner" class="banner"></div>
+    </div>
+  </div>
+
+  <aside class="panel">
+
+    <div class="card turn-card">
+      <span class="cap">当前回合</span>
+      <span class="turn-val p0" id="turnLabel">玩家一 行动</span>
+    </div>
+
+    <div class="card">
+      <span class="cap">剩余墙数</span>
+      <div class="player p0">
+        <span class="dot"></span>
+        <span class="pname">玩家一</span>
+        <span class="pwall"><b id="w1">10</b> 面</span>
+      </div>
+      <div class="player p1">
+        <span class="dot"></span>
+        <span class="pname"><span id="p2name">电脑</span></span>
+        <span class="pwall"><b id="w2">10</b> 面</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="cap">这一步做什么</span>
+      <div class="btn-row">
+        <button id="btnMove" class="btn on" type="button">走子</button>
+        <button id="btnWall" class="btn" type="button">放墙</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <button id="btnUndo" class="btn ghost" type="button">悔棋</button>
+        <button id="btnNew" class="btn ghost" type="button">新局</button>
+      </div>
+      <div class="meta">
+        第 <b id="stepCount">0</b> 回合
+        <span class="keys">W 切墙 · U 悔棋 · N 新局</span>
+      </div>
+    </div>
+
+    <div class="card tips">
+      <span class="cap">怎么玩</span>
+      <p>每回合二选一：<b>移动一步</b>，或者<b>放一面墙</b>。</p>
+      <p>先走到对面底边者胜。墙不能把对手的路彻底封死。</p>
+    </div>
+
+    <div class="status" id="onlineStatus" hidden></div>
+  </aside>
+</div>
+
+<script src="engine.js"></script>
+<script src="render.js"></script>
+<script src="online.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

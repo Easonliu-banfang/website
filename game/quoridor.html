@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>步步为营 · Quoridor</title>
-  <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
+  <title>步步为营 · 选择对战方式</title>
+  <meta name="description" content="步步为营 Quoridor —— 选择对战方式">
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,115 +13,32 @@
 <header class="head">
   <a href="index.html" class="back">← 游戏室</a>
   <h1>步步为营</h1>
-  <button id="btnChooseMode" class="mode-tag" type="button">选择模式</button>
 </header>
 
-<!-- ============ 开始界面：选择对战方式 ============ -->
-<section id="startScreen" class="start">
+<section class="start">
   <div class="start-inner">
     <p class="start-sub">走到对面，或者把对手堵死</p>
     <h2 class="start-title">选择对战方式</h2>
 
-    <div id="modeGrid" class="mode-grid">
-      <button class="mode-card" data-mode="online" type="button">
+    <div class="mode-grid">
+      <a class="mode-card" href="online.html">
         <span class="mode-ico">🌐</span>
         <span class="mode-name">互联网对战</span>
         <span class="mode-desc">和好友联机对决</span>
-      </button>
-      <button class="mode-card" data-mode="local" type="button">
+      </a>
+      <a class="mode-card" href="play.html?mode=local">
         <span class="mode-ico">👥</span>
         <span class="mode-name">面对面</span>
         <span class="mode-desc">同一设备双人</span>
-      </button>
-      <button class="mode-card" data-mode="ai" type="button">
+      </a>
+      <a class="mode-card" href="play.html?mode=ai">
         <span class="mode-ico">🤖</span>
         <span class="mode-name">和 AI 对战</span>
         <span class="mode-desc">挑战电脑</span>
-      </button>
-    </div>
-
-    <!-- 联机子面板 -->
-    <div id="onlinePanel" class="online-panel" hidden>
-      <button id="backModes" class="back-link" type="button">← 返回</button>
-      <div class="btn-row">
-        <button id="btnCreate" class="btn" type="button">创建房间</button>
-        <button id="btnJoin" class="btn" type="button">加入房间</button>
-      </div>
-      <div class="join-row" id="joinRow" hidden>
-        <input id="inputCode" class="code-input" maxlength="6" placeholder="6 位房间码" autocomplete="off" spellcheck="false" />
-        <button id="btnJoinGo" class="btn" type="button">进入</button>
-      </div>
-      <div class="room-row" id="roomRow" hidden>
-        <span class="cap">房间码（发给朋友）</span>
-        <div class="code-box"><b id="roomCode">------</b><button id="btnCopy" class="btn ghost" type="button">复制</button></div>
-      </div>
-      <div class="status" id="onlineStatus">未连接</div>
+      </a>
     </div>
   </div>
 </section>
 
-<!-- ============ 游戏主界面 ============ -->
-<div id="gameScreen" class="layout" hidden>
-
-  <div class="board-col">
-    <div class="board-box">
-      <canvas id="board"></canvas>
-      <div id="banner" class="banner"></div>
-    </div>
-  </div>
-
-  <aside class="panel">
-
-    <div class="card turn-card">
-      <span class="cap">当前回合</span>
-      <span class="turn-val p0" id="turnLabel">玩家一 行动</span>
-    </div>
-
-    <div class="card">
-      <span class="cap">剩余墙数</span>
-      <div class="player p0">
-        <span class="dot"></span>
-        <span class="pname">玩家一</span>
-        <span class="pwall"><b id="w1">10</b> 面</span>
-      </div>
-      <div class="player p1">
-        <span class="dot"></span>
-        <span class="pname"><span id="p2name">电脑</span></span>
-        <span class="pwall"><b id="w2">10</b> 面</span>
-      </div>
-    </div>
-
-    <div class="card">
-      <span class="cap">这一步做什么</span>
-      <div class="btn-row">
-        <button id="btnMove" class="btn on" type="button">走子</button>
-        <button id="btnWall" class="btn" type="button">放墙</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="btn-row">
-        <button id="btnUndo" class="btn ghost" type="button">悔棋</button>
-        <button id="btnNew" class="btn ghost" type="button">新局</button>
-      </div>
-      <div class="meta">
-        第 <b id="stepCount">0</b> 回合
-        <span class="keys">W 切墙 · U 悔棋 · N 新局</span>
-      </div>
-    </div>
-
-    <div class="card tips">
-      <span class="cap">怎么玩</span>
-      <p>每回合二选一：<b>移动一步</b>，或者<b>放一面墙</b>。</p>
-      <p>先走到对面底边者胜。墙不能把对手的路彻底封死。</p>
-    </div>
-
-  </aside>
-</div>
-
-<script src="engine.js"></script>
-<script src="render.js"></script>
-<script src="online.js"></script>
-<script src="app.js"></script>
 </body>
 </html>

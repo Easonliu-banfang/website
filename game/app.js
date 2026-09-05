@@ -1,4 +1,4 @@
-/* 交互层：模式选择、鼠标操作、AI 对手、渲染循环、联机 */
+/* 交互层：读取 URL 参数开局（local / ai / online），处理鼠标操作、AI 对手、渲染循环、联机同步 */
 (function () {
   'use strict';
 
@@ -20,40 +20,12 @@
   var oppConnected = false;
 
   var el = {};
-  ['startScreen', 'modeGrid', 'onlinePanel', 'backModes', 'btnChooseMode', 'gameScreen',
-   'turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
-   'btnNew', 'stepCount', 'p2name',
-   'btnCreate', 'btnJoin', 'joinRow', 'inputCode', 'btnJoinGo',
-   'roomRow', 'roomCode', 'btnCopy', 'onlineStatus'].forEach(function (id) {
+  ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
+   'btnNew', 'stepCount', 'p2name', 'onlineStatus', 'roomCodeTag'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
   function isAITurn() { return vsAI && state && state.turn === aiSide; }
-
-  /* ---------- 界面切换 ---------- */
-
-  function enterGameScreen() {
-    el.startScreen.hidden = true;
-    el.gameScreen.hidden = false;
-    R.resize();
-  }
-
-  function backToModes() {
-    started = false;
-    onlineMode = false;
-    if (online) { online.close(); online = null; }
-    state = null;
-    R.anim = null;
-    R.hover = null;
-    el.banner.classList.remove('show');
-    el.gameScreen.hidden = true;
-    el.startScreen.hidden = false;
-    el.modeGrid.hidden = false;
-    el.onlinePanel.hidden = true;
-    el.joinRow.hidden = true;
-    el.roomRow.hidden = true;
-    el.onlineStatus.textContent = '未连接';
-  }
 
   /* ---------- 局面控制 ---------- */
 
@@ -70,8 +42,8 @@
     maybeAI();
   }
 
-  function startLocal() { started = true; newGame(false); enterGameScreen(); }
-  function startAI()    { started = true; newGame(true);  enterGameScreen(); }
+  function startLocal() { started = true; newGame(false); }
+  function startAI()    { started = true; newGame(true); }
 
   function syncUI() {
     el.w1.textContent = state.players[0].walls;
@@ -274,31 +246,9 @@
     updateHints();
   });
 
-  /* ---------- 模式选择 ---------- */
-
-  el.modeGrid.addEventListener('click', function (e) {
-    var card = e.target.closest('.mode-card');
-    if (!card) return;
-    var mode = card.getAttribute('data-mode');
-    if (mode === 'local') startLocal();
-    else if (mode === 'ai') startAI();
-    else if (mode === 'online') { el.modeGrid.hidden = true; el.onlinePanel.hidden = false; }
-  });
-
-  el.btnChooseMode.addEventListener('click', backToModes);
-  el.backModes.addEventListener('click', function () {
-    el.onlinePanel.hidden = true;
-    el.modeGrid.hidden = false;
-    if (online) { online.close(); online = null; }
-    onlineMode = false;
-    el.joinRow.hidden = true;
-    el.roomRow.hidden = true;
-    el.onlineStatus.textContent = '未连接';
-  });
-
   /* ---------- 联机模式（互联网对战） ---------- */
 
-  function showOnlineStatus(msg) { el.onlineStatus.textContent = msg; }
+  function showOnlineStatus(msg) { if (el.onlineStatus) el.onlineStatus.textContent = msg; }
 
   function applyRemote(s) {
     state = s;
@@ -310,18 +260,6 @@
       el.banner.textContent = (state.winner === myPlayer ? '你赢了' : '对手获胜') + ' 抵达对岸';
       el.banner.classList.add('show');
     }
-  }
-
-  function startOnline(preferred) {
-    onlineMode = true;
-    myPlayer = -1;
-    state = Q.createState();
-    el.p2name.textContent = '对手';
-    started = true;
-    enterGameScreen();
-    syncUI();
-    updateHints();
-    online.connect(preferred);
   }
 
   function bindOnlineEvents(o) {
@@ -342,39 +280,22 @@
     o.on('close', function () { showOnlineStatus('连接已断开'); });
   }
 
-  function doCreate() {
-    if (online) return;
-    online = new window.QuoridorOnline();
-    bindOnlineEvents(online);
-    showOnlineStatus('创建房间中…');
-    online.createRoom().then(function (code) {
-      el.roomCode.textContent = code;
-      el.roomRow.hidden = false;
-      startOnline(0);
-    }).catch(function (e) { showOnlineStatus('创建失败：' + e.message); online = null; });
-  }
+  function startOnline(room, role) {
+    onlineMode = true;
+    myPlayer = -1;
+    state = Q.createState();
+    el.p2name.textContent = '对手';
+    started = true;
+    if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + room; el.roomCodeTag.hidden = false; }
+    if (el.onlineStatus) el.onlineStatus.hidden = false;
+    syncUI();
+    updateHints();
 
-  function doJoin() {
-    if (online) return;
-    var code = (el.inputCode.value || '').trim().toUpperCase();
-    if (code.length !== 6) { showOnlineStatus('请输入 6 位房间码'); return; }
     online = new window.QuoridorOnline();
+    online.code = room;
     bindOnlineEvents(online);
-    showOnlineStatus('加入房间中…');
-    online.joinRoom(code).then(function () {
-      startOnline(1);
-    }).catch(function (e) { showOnlineStatus('加入失败：' + e.message); online = null; });
+    online.connect(role === 'host' ? 0 : 1);
   }
-
-  el.btnCreate.addEventListener('click', doCreate);
-  el.btnJoin.addEventListener('click', function () { el.joinRow.hidden = false; el.inputCode.focus(); });
-  el.btnJoinGo.addEventListener('click', doJoin);
-  el.inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') doJoin(); });
-  el.btnCopy.addEventListener('click', function () {
-    var code = el.roomCode.textContent;
-    if (navigator.clipboard) navigator.clipboard.writeText(code).catch(function () {});
-    showOnlineStatus('房间码已复制：' + code);
-  });
 
   document.addEventListener('keydown', function (e) {
     if (!started || onlineMode) return;
@@ -401,6 +322,31 @@
   R.resize();
   loop();
 
+  /* ---------- 开局引导：根据 URL 参数进入对应模式 ---------- */
+
+  function boot() {
+    var params = new URLSearchParams(location.search);
+    var mode = params.get('mode');
+    if (mode === 'ai') {
+      startAI();
+    } else if (mode === 'local') {
+      startLocal();
+    } else if (mode === 'online') {
+      var room = (params.get('room') || '').trim().toUpperCase();
+      var role = params.get('role') || 'guest';
+      if (!room) {
+        if (el.onlineStatus) { el.onlineStatus.hidden = false; showOnlineStatus('缺少房间码，请从「互联网对战」页进入'); }
+        return;
+      }
+      startOnline(room, role);
+    } else {
+      // 无参数：回退到模式选择页
+      location.href = 'quoridor.html';
+    }
+  }
+
+  boot();
+
   /* 调试 / 扩展出口 */
   window.QuoridorGame = {
     get state() { return state; },
@@ -409,7 +355,6 @@
     get onlineMode() { return onlineMode; },
     renderer: R,
     engine: Q,
-    newGame: newGame,
-    backToModes: backToModes
+    newGame: newGame
   };
 })();
