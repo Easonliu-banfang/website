@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eason 的小站</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 50px 60px;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 2.8em;
+      margin-bottom: 16px;
+      letter-spacing: -1px;
+    }
+    p {
+      font-size: 1.25em;
+      line-height: 1.8;
+      opacity: 0.92;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 28px;
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 50px;
+      font-size: 0.9em;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 600px) {
+      .card { padding: 36px 28px; }
+      h1 { font-size: 2em; }
+      p { font-size: 1.05em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎉 Hello World!</h1>
+    <p>欢迎来到 <strong>eason.grokai.eu.cc</strong></p>
+    <p>这是我的个人小站，正在建设中...</p>
+    <span class="badge">✨ Powered by GitHub Pages</span>
+  </div>
+</body>
+</html>
