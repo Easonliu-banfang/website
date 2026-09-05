@@ -224,6 +224,50 @@ body::before {
 .tips p:last-child { margin-bottom: 0; }
 .tips b { color: var(--text); font-weight: 600; }
 
+/* 联机对战面板 */
+.online-card { border-color: rgba(167,139,250,0.28); }
+.join-row { display: none; gap: 8px; margin-top: 11px; }
+.room-row { display: none; margin-top: 13px; }
+.code-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  outline: none;
+}
+.code-input:focus { border-color: rgba(34,211,238,0.5); }
+.code-box { display: flex; align-items: center; gap: 10px; margin-top: 7px; }
+#roomCode {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: var(--cyan);
+  text-shadow: 0 0 18px rgba(34,211,238,0.35);
+}
+#btnCopy { flex: none; }
+.status {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+  min-height: 16px;
+  line-height: 1.5;
+}
+#btnExitOnline {
+  margin-top: 12px;
+  width: 100%;
+  border-color: rgba(167,139,250,0.4);
+  color: var(--purple);
+}
+
 /* ---------- 响应式 ---------- */
 
 @media (max-width: 880px) {

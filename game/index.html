@@ -64,6 +64,24 @@
         </div>
       </div>
 
+      <div class="card online-card">
+        <span class="cap">联机对战（互联网）</span>
+        <div class="btn-row">
+          <button id="btnCreate" class="btn">创建房间</button>
+          <button id="btnJoin" class="btn">加入房间</button>
+        </div>
+        <div class="join-row" id="joinRow">
+          <input id="inputCode" class="code-input" maxlength="6" placeholder="6 位房间码" autocomplete="off" />
+          <button id="btnJoinGo" class="btn">进入</button>
+        </div>
+        <div class="room-row" id="roomRow">
+          <span class="cap">房间码（发给朋友）</span>
+          <div class="code-box"><b id="roomCode">------</b><button id="btnCopy" class="btn ghost">复制</button></div>
+        </div>
+        <div class="status" id="onlineStatus">未连接</div>
+        <button id="btnExitOnline" class="btn ghost" style="display:none;">退出联机</button>
+      </div>
+
       <div class="card">
         <div class="btn-row">
           <button id="btnUndo" class="btn ghost">悔棋</button>
@@ -89,6 +107,7 @@
 
 <script src="engine.js"></script>
 <script src="render.js"></script>
+<script src="online.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
