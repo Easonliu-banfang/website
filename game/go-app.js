@@ -104,11 +104,11 @@
     setTimeout(function () {
       var firstLabel, sub;
       if (opts.ai) {
-        firstLabel = first === 0 ? '⚫ 你（黑）先手' : '⚪ AI（白）先手';
-        sub = first === 0 ? '你执黑，开始！' : 'AI 执白，稍候…';
+        firstLabel = first === 0 ? '⚫ 你（黑）先手' : '⚪ 电脑（白）先手';
+        sub = first === 0 ? '你执黑，开始！' : '电脑执白，稍候…';
       } else if (opts.mode === 'online') {
-        firstLabel = first === 0 ? '⚫ 玩家一（黑）先手' : '⚪ 玩家二（白）先手';
-        sub = (first === myPlayer) ? '你执黑，先手' : '对手执黑先手';
+        firstLabel = (first === myPlayer) ? '⚫ 你（黑）先手' : '⚪ 对手（白）先手';
+        sub = (first === myPlayer) ? '你执黑，开始！' : '对手执黑，你执白';
       } else {
         firstLabel = first === 0 ? '⚫ 玩家一（黑）先手' : '⚪ 玩家二（白）先手';
         sub = first === 0 ? '玩家一执黑先行' : '玩家二执黑先行';
@@ -147,8 +147,8 @@
       else if (t.mode === 'blitz') el.timerTag.textContent = '包干 ' + Math.round(t.baseMs / 60000) + ' 分钟';
       else el.timerTag.textContent = '读秒 ' + Math.round(t.baseMs / 60000) + ' 分 + ' + t.byoCount + '×' + Math.round(t.byoMs / 1000) + ' 秒';
     }
-    if (el.clockName0) el.clockName0.textContent = (onlineMode && myPlayer === 0) ? '你' : '黑';
-    if (el.clockName1) el.clockName1.textContent = (onlineMode && myPlayer === 1) ? '你' : '白';
+    if (el.clockName0) el.clockName0.textContent = onlineMode ? (myPlayer === 0 ? '你' : '对手') : '黑';
+    if (el.clockName1) el.clockName1.textContent = onlineMode ? (myPlayer === 1 ? '你' : '对手') : '白';
   }
 
   function renderClock() {
@@ -457,7 +457,9 @@
       if (el.btnPass) el.btnPass.disabled = true;
       return;
     }
-    el.turnLabel.textContent = state.turn === 1 ? '黑棋落子' : '白棋落子';
+    el.turnLabel.textContent = vsAI
+      ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
+      : (state.turn === 1 ? '黑棋落子' : '白棋落子');
     el.turnLabel.className = 'turn-val p' + state.turn;
     if (el.btnPass) el.btnPass.disabled = !myTurn();
     if (el.btnNew) el.btnNew.disabled = reqPending;

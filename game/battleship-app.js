@@ -197,7 +197,7 @@
     state.turn = Math.random() < 0.5 ? 0 : 1;   // 随机先手
     el.placePanel.hidden = true;
     el.phaseLabel.textContent = '开火阶段';
-    var first = state.turn === 0 ? '玩家一' : (vsAI ? '电脑' : '玩家二');
+    var first = state.turn === 0 ? (vsAI ? '玩家' : '玩家一') : (vsAI ? '电脑' : '玩家二');
     showBanner(first + ' 先手！', false);
     syncUI(); updateFleet();
     maybeAI();

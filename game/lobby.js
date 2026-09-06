@@ -50,7 +50,7 @@
       seat.classList.toggle('is-ready', ready);
       var nameEl = seat.querySelector('.seat-name');
       var readyEl = seat.querySelector('.seat-ready');
-      if (nameEl) nameEl.textContent = (isYou ? '我' : '对手') + '（玩家' + (i + 1) + '）';
+      if (nameEl) nameEl.textContent = isYou ? '我' : '对手';
       if (readyEl) readyEl.textContent = !online ? '离线' : (ready ? '已准备 ✓' : '未准备');
     });
     var connected = (you >= 0);   // 未收到真实 lobby（you=-1）前禁用按钮，避免点击把服务端自动准备态误 toggle 掉
