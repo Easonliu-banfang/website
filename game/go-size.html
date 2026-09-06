@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋 · 选择棋盘尺寸</title>
+  <meta name="description" content="围棋 Go —— 选择棋盘尺寸">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css?v=b4">
+</head>
+<body>
+
+<header class="head">
+  <a href="go.html?v=b4" class="back">← 选择模式</a>
+  <h1>围棋</h1>
+</header>
+
+<section class="start">
+  <div class="start-inner">
+    <p class="start-sub" id="modeSub">选择棋盘尺寸</p>
+    <h2 class="start-title">棋盘尺寸</h2>
+
+    <div class="mode-grid">
+      <a class="mode-card" data-size="9">
+        <span class="mode-ico">⬜</span>
+        <span class="mode-name">9 路</span>
+        <span class="mode-desc">入门首选 · 一局几分钟</span>
+      </a>
+      <a class="mode-card" data-size="13">
+        <span class="mode-ico">⬛</span>
+        <span class="mode-name">13 路</span>
+        <span class="mode-desc">进阶 · 攻防更充分</span>
+      </a>
+      <a class="mode-card" data-size="19">
+        <span class="mode-ico">🟫</span>
+        <span class="mode-name">19 路</span>
+        <span class="mode-desc">标准正式 · 考验大局</span>
+      </a>
+    </div>
+
+    <div class="btn-row enter-row">
+      <a class="btn ghost" href="go-rules.html?v=b4">先看玩法规则 →</a>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(location.search);
+  var mode = params.get('mode') || 'local';
+  var subMap = {
+    local: '面对面 · 选择棋盘尺寸',
+    ai: '和 AI 对战 · 选择棋盘尺寸',
+    online: '互联网对战 · 选择棋盘尺寸'
+  };
+  var sub = document.getElementById('modeSub');
+  if (sub && subMap[mode]) sub.textContent = subMap[mode];
+  document.querySelectorAll('.mode-card').forEach(function (a) {
+    var sz = a.getAttribute('data-size');
+    a.href = 'go-play.html?mode=' + encodeURIComponent(mode) + '&size=' + sz + '&v=b4';
+  });
+})();
+</script>
+</body>
+</html>

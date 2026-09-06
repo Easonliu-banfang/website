@@ -6,12 +6,12 @@
   <title>围棋 · Go</title>
   <meta name="description" content="围棋 Go —— 中国规则数子">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b3">
+  <link rel="stylesheet" href="style.css?v=b4">
 </head>
 <body>
 
 <header class="head">
-  <a href="go.html?v=b2" class="back">← 选择模式</a>
+  <a href="go.html?v=b4" class="back">← 选择模式</a>
   <h1>围棋</h1>
   <span id="roomCodeTag" class="mode-tag" hidden></span>
   <span id="sizeTag" class="mode-tag" hidden></span>
@@ -37,15 +37,7 @@
       <span class="phase-label" id="phaseLabel">对局进行中</span>
     </div>
 
-    <!-- 非联机：可切换棋盘尺寸 -->
-    <div class="card" id="sizeCard">
-      <span class="cap">棋盘尺寸（仅本机对局）</span>
-      <div class="size-pick inline">
-        <button class="size-btn" data-size="9" type="button">9 路</button>
-        <button class="size-btn" data-size="13" type="button">13 路</button>
-        <button class="size-btn" data-size="19" type="button">19 路</button>
-      </div>
-    </div>
+    <!-- 棋盘尺寸已在「选择尺寸」页确定 -->
 
     <div class="card">
       <div class="btn-row">
