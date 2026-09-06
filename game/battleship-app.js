@@ -11,7 +11,7 @@
   var trackR = new window.BRender(trackCanvas, 'tracking');
 
   // 缓存破坏版本号（改前端务必同步 bump）
-  var V = 'g1';
+  var V = 'g2';
 
   var state = null;
   var mode = 'local';
@@ -159,6 +159,7 @@
     if (!myTurnToPlace()) return;
     var vp = viewPlayer();
     if (!B.allPlaced(state, vp)) { showBanner('还有船没摆好', false); return; }
+    state.placed[vp] = true;     // 标记本玩家已布阵，否则 fire() 会拒绝
     if (onlineMode) {
       placedLocal = true;
       online.sendPlace(B.layoutOf(state, vp));
