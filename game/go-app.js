@@ -89,7 +89,10 @@
   function renderTimerUI() {
     if (!el.timerCard) return;
     if (el.clockRow) el.clockRow.hidden = !(timer && timer.mode !== 'off');
-    if (el.timerPick) el.timerPick.hidden = onlineMode || !!atStart;
+    if (el.timerPick) {
+      if (onlineMode) el.timerPick.hidden = roomStarted || myPlayer !== 0;  // 联机：开局后隐藏；未开局仅房主(0)可选
+      else el.timerPick.hidden = !!atStart;                                  // 本地：第一手后锁定
+    }
     if (el.timerTag) {
       var t = timerCfg || null;
       if (!t || t.mode === 'off') el.timerTag.textContent = '不限时';
@@ -180,6 +183,7 @@
       var mv = window.GoAI.nextMove(state, aiSide);
       if (!mv) { G.pass(state, aiSide); }
       else { if (!G.place(state, aiSide, mv[0], mv[1])) G.pass(state, aiSide); }
+      tickTimer(aiSide);          // AI 走子（含停一手）也结算时钟
       hideBanner(); syncUI();
       if (state.winner === -2) { enterScoring(); return; }
     }, 600);

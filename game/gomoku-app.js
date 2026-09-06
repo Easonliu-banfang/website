@@ -96,7 +96,10 @@
     if (!el.timerCard) return;
     var cfgOn = !!(timerCfg && timerCfg.mode !== 'off');
     if (el.clockRow) el.clockRow.hidden = !(timer && timer.mode !== 'off');
-    if (el.timerPick) el.timerPick.hidden = onlineMode || !!atStart;   // 对局开始后锁定
+    if (el.timerPick) {
+      if (onlineMode) el.timerPick.hidden = roomStarted || myPlayer !== 0;
+      else el.timerPick.hidden = !!atStart;
+    }
     var names = ['黑', '白'];
     if (el.timerTag) {
       var t = timerCfg || null;
@@ -185,6 +188,11 @@
       if (!mv) return;
       var res = G.place(state, aiSide, mv[0], mv[1]);
       if (!res) { maybeAI(); return; }
+      var movedAI = (aiSide === 1) ? 0 : 1;
+      if (timer && timer.mode !== 'off') {
+        var tOver = window.GameTimer.onMove(timer, movedAI, Date.now());
+        if (tOver >= 0) { timer.winner = tOver; onTimeOut(tOver); }
+      }
       hideBanner(); syncUI();
       if (state.winner >= 0) { onWin(state.winner); return; }
       syncUI();
