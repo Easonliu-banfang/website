@@ -1,4 +1,4 @@
-/* 匹配卡牌（UNO）联机客户端 —— 与五子棋/围棋/海战棋同构
+/* 优诺UNO！（UNO）联机客户端 —— 与五子棋/围棋/海战棋同构
  *  创建房间(带模式)/加入/建立 WS/心跳/有限重连/等待室(ready,start,notify,leave)
  *  对局动作：play(card) / draw / setColor / callUno / pass
  */

@@ -1,4 +1,4 @@
-/* 匹配卡牌（UNO）游戏前端：统一等待室(GameLobby)→开始→对局
+/* 优诺UNO！（UNO）游戏前端：统一等待室(GameLobby)→开始→对局
  *  URL 驱动开局(mode=online&room&role&gm)、渲染裁剪视图、出牌/摸牌/选色交互
  */
 (function () {
@@ -371,7 +371,7 @@
 
     if (q.mode !== 'online' || !q.room) {
       // 非联机（本地/AI 暂未开放）→ 提示返回
-      if (window.Notify) window.Notify.show('匹配卡牌目前仅支持互联网对战（双人/三人/四人/2v2）', 'error', { sticky: true });
+      if (window.Notify) window.Notify.show('优诺UNO！目前仅支持互联网对战（双人/三人/四人/2v2）', 'error', { sticky: true });
       setTimeout(function () { location.href = 'uno.html'; }, 1800);
       return;
     }
