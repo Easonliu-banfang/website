@@ -2,7 +2,6 @@
  * 设计（按需求）：
  *   - 单槽、最新优先：新通知直接替换当前通知，不回滚旧通知
  *   - 常驻事件（重连中/断开/胜负）sticky=true，直到被新通知替换或 clear/clearAll 才消失
- *   - 「当前回合」作为基础层常驻（turnText），普通临时通知覆盖它；临时通知结束后回落到回合指示
  *   - 胜负（win/lose）也走通知栏，sticky 常驻，直到退出/重开/悔棋（clearAll）
  *   - 颜色按严重程度分级 + 左右双色条（CSS）
  */
@@ -12,8 +11,7 @@
   var DEFAULT_TTL = { info: 4000, success: 3000, warn: 0, error: 0, win: 0, lose: 0 };  // 0 = 常驻（需配合 sticky）
 
   var bar = null;
-  var current = null;    // 当前临时/事件通知
-  var turnText = null;   // 基础层：当前回合提示（无事件通知时显示）
+  var current = null;    // 当前通知
   var timer = null;
 
   function ensureBar() {
@@ -31,26 +29,25 @@
   function render() {
     if (!bar) ensureBar();
     if (!bar) return;
-    var t = current || (turnText ? { text: turnText, type: 'turn' } : null);
-    if (!t || !t.text) {
+    if (!current || !current.text) {
       bar.setAttribute('hidden', '');
       bar.textContent = '';
       return;
     }
     bar.removeAttribute('hidden');
-    bar.textContent = t.text;
-    bar.className = 'notify-bar notify-' + (t.type || 'info');
+    bar.textContent = current.text;
+    bar.className = 'notify-bar notify-' + (current.type || 'info');
   }
 
   function killTimer() { if (timer) { clearTimeout(timer); timer = null; } }
 
-  function schedule(type) {
+  function schedule(type, customTtl) {
     killTimer();
-    var ms = DEFAULT_TTL[type];
+    var ms = (type === 'custom') ? customTtl : DEFAULT_TTL[type];
     if (typeof ms === 'number' && ms > 0) timer = setTimeout(function () { dismiss(); }, ms);
   }
 
-  // 当前临时/事件通知结束 → 直接回落到「当前回合」基础层（不恢复任何旧通知）
+  // 当前通知结束 → 直接隐藏（不恢复任何旧通知）
   function dismiss() {
     if (!current) { render(); return; }
     killTimer();
@@ -60,14 +57,12 @@
 
   /* ---------- API ---------- */
 
-  // 设置当前回合指示（基础层，常驻显示）。回合变化时调用。
+  // 回合提示：一次性临时通知，2.5 秒后自动消失（不再常驻）。回合变化时调用。
   function setTurn(text) {
-    ensureBar();
-    turnText = text || null;
-    if (!current) render();
+    show(text, 'info', { ttl: 2500 });
   }
 
-  // 事件通知：直接替换当前。type: info|success|warn|error|win|lose；opts.sticky=true 常驻
+  // 事件通知：直接替换当前。type: info|success|warn|error|win|lose；opts.sticky=true 常驻；opts.ttl=自定义时长
   function show(text, type, opts) {
     ensureBar();
     opts = opts || {};
@@ -75,7 +70,7 @@
       current.type = type || 'info';
       current.sticky = !!opts.sticky;
       render();
-      schedule(current.sticky ? 'none' : current.type);
+      schedule(opts.ttl != null ? 'custom' : (current.sticky ? 'none' : current.type), opts.ttl);
       return;
     }
     if (type === 'success') {
@@ -85,7 +80,7 @@
     }
     current = { text: text, type: type || 'info', sticky: !!opts.sticky };
     render();
-    schedule(current.sticky ? 'none' : current.type);
+    schedule(opts.ttl != null ? 'custom' : (current.sticky ? 'none' : current.type), opts.ttl);
   }
 
   // 清除指定文案的通知（事件解决）

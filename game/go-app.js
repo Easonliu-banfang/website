@@ -463,10 +463,12 @@
       if (el.btnPass) el.btnPass.disabled = true;
       return;
     }
-    window.Notify.setTurn(onlineMode
-      ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
-      : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
-              : (state.turn === 1 ? '黑棋落子' : '白棋落子')));
+    if (roomStarted || !onlineMode) {
+      window.Notify.setTurn(onlineMode
+        ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
+        : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
+                : (state.turn === 1 ? '黑棋落子' : '白棋落子')));
+    }
     if (el.btnPass) el.btnPass.disabled = !myTurn();
     if (el.btnNew) el.btnNew.disabled = reqPending;
     if (el.btnUndo) el.btnUndo.disabled = undoPending || reqPending || !state || state.history.length === 0;

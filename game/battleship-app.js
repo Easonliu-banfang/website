@@ -382,6 +382,7 @@
     if (!state) return;
     var vp = viewPlayer();
     if (onlineMode) {
+      if (!roomStarted) return;   // 等待室阶段不提示回合（开局后才显示）
       window.Notify.setTurn(phase === 'place'
         ? (placedLocal ? '等待对手布阵…' : '布置你的舰队')
         : (state.turn === myPlayer ? '你开火' : '对手开火'));
