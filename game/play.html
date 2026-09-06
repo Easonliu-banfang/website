@@ -6,9 +6,13 @@
   <title>步步为营 · Quoridor</title>
   <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b6">
+  <link rel="stylesheet" href="style.css?v=b7">
 </head>
 <body>
+
+<!-- 全局通知栏 -->
+<div id="notifyBar" class="notify-bar" hidden></div>
+>
 
 <header class="head">
   <a href="quoridor.html?v=b4" class="back">← 选择模式</a>
@@ -64,8 +68,6 @@
         <span class="keys">W 切墙 · U 悔棋 · N 新局</span>
       </div>
     </div>
-
-    <div class="status" id="onlineStatus" hidden></div>
   </aside>
 </div>
 
@@ -127,7 +129,8 @@
 <script src="online.js?v=g15"></script>
 <script src="ai.js?v=g9"></script>
 <script src="lobby.js?v=l3"></script>
-<script src="app.js?v=g15"></script>
+<script src="notify.js?v=n1"></script>
+<script src="app.js?v=g16"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

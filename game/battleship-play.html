@@ -6,9 +6,13 @@
   <title>海战棋 · Battleship</title>
   <meta name="description" content="海战棋 Battleship —— 经典版">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b6">
+  <link rel="stylesheet" href="style.css?v=b7">
 </head>
 <body>
+
+<!-- 全局通知栏 -->
+<div id="notifyBar" class="notify-bar" hidden></div>
+>
 
 <header class="head">
   <a href="battleship.html?v=b4" class="back">← 选择模式</a>
@@ -72,8 +76,6 @@
         <span class="keys">R 旋转 · N 新局</span>
       </div>
     </div>
-
-    <div class="status" id="onlineStatus" hidden></div>
   </aside>
 </div>
 
@@ -135,7 +137,8 @@
 <script src="battleship-online.js?v=g7"></script>
 <script src="battleship-ai.js?v=g2"></script>
 <script src="lobby.js?v=l3"></script>
-<script src="battleship-app.js?v=g8"></script>
+<script src="notify.js?v=n1"></script>
+<script src="battleship-app.js?v=g9"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

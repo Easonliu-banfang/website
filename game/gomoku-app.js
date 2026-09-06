@@ -184,7 +184,7 @@
     state.winner = winnerColor;
     if (timer) timer.active = false;
     syncUI();
-    if (el.onlineStatus) showOnlineStatus('对方超时，' + (winnerColor === 1 ? '黑' : '白') + '获胜', 'connected');
+    showOnlineStatus('对方超时，' + (winnerColor === 1 ? '黑' : '白') + '获胜', 'connected');
     onWin(winnerColor);
   }
 
@@ -246,9 +246,13 @@
 
   /* ---------- 联机事件 ---------- */
   function showOnlineStatus(msg, cls) {
-    if (!el.onlineStatus) return;
-    el.onlineStatus.textContent = msg;
-    el.onlineStatus.className = 'status' + (cls ? ' status--' + cls : '');
+    // 全局通知栏：颜色按严重程度分级（info 青 / success 绿 / warn 橙 / error 红）
+    var type = cls === 'connected' ? 'success'
+      : cls === 'reconnecting' ? 'warn'
+      : cls === 'disconnected' ? 'error'
+      : 'info';
+    if (type === 'success') window.Notify.clearSticky();   // 连接恢复：清除待回滚的断开/重连常驻通知
+    window.Notify.show(msg, type, (type === 'warn' || type === 'error') ? { sticky: true } : undefined);
   }
 
   function fromView(v) {
@@ -484,14 +488,13 @@
       var room = (params.get('room') || '').trim().toUpperCase();
       var role = params.get('role') || 'guest';
       if (!room) {
-        if (el.onlineStatus) { el.onlineStatus.hidden = false; showOnlineStatus('缺少房间码，请从「互联网对战」页进入'); }
+        showOnlineStatus('缺少房间码，请从「互联网对战」页进入');
         return;
       }
       mode = 'online'; onlineMode = true; myPlayer = role === 'host' ? 0 : 1; humanColor = role === 'host' ? 1 : 2;
       roomStarted = false; currentRoom = room;
       state = G.createState(); welcomed = false; reqPending = false; resetSent = false;
       if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + room; el.roomCodeTag.hidden = false; }
-      if (el.onlineStatus) el.onlineStatus.hidden = false;
       syncUI();
       online = new window.GomokuOnline();
       online.code = room;               // 必须设置房间码，否则 WS 连到 /api/room/null/ws 永远收不到 welcome

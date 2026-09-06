@@ -883,3 +883,40 @@ body::before {
 }
 .tpick:hover { border-color: var(--cyan); color: var(--text); }
 .tpick.on { border-color: var(--cyan); color: var(--cyan); background: rgba(56,189,248,0.08); }
+
+/* ---------- 全局通知栏（notify.js） ---------- */
+.notify-bar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(94%, 660px);
+  z-index: 90;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  background: rgba(10, 14, 20, 0.92);
+  color: var(--text);
+  border: 1px solid var(--card-edge);
+  border-left: 3px solid var(--dim);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: notify-in 0.22s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notify-bar[hidden] { display: none; }
+@keyframes notify-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.notify-info    { border-left-color: #38bdf8; color: #cfeafd; }
+.notify-success { border-left-color: #5fd38a; color: #d4f5e3; }
+.notify-warn    { border-left-color: #f5a623; color: #ffe8c2; }
+.notify-error   { border-left-color: #ff7a7a; color: #ffd7d7; }

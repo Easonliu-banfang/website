@@ -6,9 +6,13 @@
   <title>五子棋 · Gomoku</title>
   <meta name="description" content="五子棋 Gomoku —— 经典 15 路" data-page-node-id="URXNRenR7YqdnzcC0U6P5I">
   <meta name="theme-color" content="#0a0e14" data-page-node-id="WKCXAIdXma7XwaVpfEMrL2">
-  <link rel="stylesheet" href="style.css?v=b6" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
+  <link rel="stylesheet" href="style.css?v=b7" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
 </head>
-<body data-page-node-id="E14bzVXW1RdqZu68B5ilPi">
+<body>
+
+<!-- 全局通知栏 -->
+<div id="notifyBar" class="notify-bar" hidden></div>
+ data-page-node-id="E14bzVXW1RdqZu68B5ilPi">
 
 <header class="head" data-page-node-id="hg5HAwc8srLcvN7nyVW897">
   <a href="gomoku.html?v=b4" class="back" data-page-node-id="cplecyaRcourx3tfJ14CIs">← 选择模式</a>
@@ -65,8 +69,6 @@
         <span class="keys" data-page-node-id="NpqAsJhCqNX6X4cKhyKJgE">在交叉点落子 · N 新局 · U 悔棋</span>
       </div>
     </div>
-
-    <div class="status" id="onlineStatus" hidden data-page-node-id="nSjHW2SpHaiSIbpLtRdmoI"></div>
   </aside>
 </div>
 
@@ -129,7 +131,8 @@
 <script src="gomoku-online.js?v=g8"></script>
 <script src="lobby.js?v=l3"></script>
 <script src="timer.js?v=t1"></script>
-<script src="gomoku-app.js?v=g11"></script>
+<script src="notify.js?v=n1"></script>
+<script src="gomoku-app.js?v=g12"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>
