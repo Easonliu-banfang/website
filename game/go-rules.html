@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋 · 玩法规则</title>
+  <meta name="description" content="围棋 Go —— 玩法规则">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="go.html" class="back">← 选择模式</a>
+  <h1>玩法规则</h1>
+</header>
+
+<section class="rules">
+  <div class="rules-inner">
+    <h2 class="rules-title">围棋怎么玩</h2>
+    <ol class="rules-list">
+      <li><b>目标</b>：围地。终局时，谁的「活棋子数 + 围住的空点」多谁赢（中国规则数子法）。</li>
+      <li><b>落子</b>：黑白交替在交叉点落子，黑先。棋子落定后不能移动。</li>
+      <li><b>气</b>：棋子相邻的空交叉点为「气」。棋子（或连成一片的棋子）没气就会被提走。</li>
+      <li><b>提子</b>：落子后若对方某片棋子因此无气，整片被提走。</li>
+      <li><b>禁着</b>：不能下在「自杀点」（落子后自己立刻无气且未提对方子）；劫争点（刚被提的单子位置）下一手不能立刻回提。</li>
+      <li><b>停一手</b>：认为无棋可下可「停一手」。双方连续停手即终局，进入数子。</li>
+      <li><b>数子</b>：终局后程序自动判定死子（无真眼的块），你可点棋盘**手动改判**死子，再「确认数子」。白方贴目 <b id="komiText">6.5</b> 子。</li>
+      <li><b>三模式</b>：
+        <ul>
+          <li>🌐 <b>互联网对战</b>：创建房间发房间码，服务端权威同步（可选 9/13/19 路）。</li>
+          <li>👥 <b>面对面</b>：同设备轮流落子。</li>
+          <li>🤖 <b>和 AI 对战</b>：你执黑先手（推荐 9 路）。</li>
+        </ul>
+      </li>
+    </ol>
+    <div class="btn-row enter-row">
+      <a class="btn on" href="go-play.html?mode=ai&size=9">我已知晓，开玩 →</a>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -571,7 +571,7 @@ body::before {
 .board-frame {
   position: relative;
   width: 100%;
-  max-width: 380px;
+  max-width: 520px;
   margin: 0 auto;
 }
 #ocean, #tracking {
@@ -611,6 +611,50 @@ body::before {
 .ship-name { flex: 1; color: var(--text); }
 .ship-size { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
 .ship-state { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
+
+/* ---------- 联机大厅（海战棋 / 五子棋 / 围棋共用） ---------- */
+.lobby { max-width: 560px; margin: 0 auto; padding: 24px 24px 48px; }
+.lobby-inner { background: var(--card); border: 1px solid var(--card-edge); border-radius: 18px; padding: 26px 22px; }
+.lobby-title { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+.lobby-sub { color: var(--dim); font-size: 14px; margin-bottom: 18px; line-height: 1.6; }
+.room-code-row { display: flex; gap: 10px; margin-bottom: 14px; }
+.room-input, .code-input {
+  flex: 1; padding: 11px 12px; font-family: var(--mono); font-size: 15px; letter-spacing: 2px;
+  background: var(--bg-elev); border: 1px solid var(--card-edge); border-radius: 10px; color: var(--text);
+  text-transform: uppercase;
+}
+.room-input:focus, .code-input:focus { outline: none; border-color: var(--cyan); }
+.lobby-hint { margin-top: 12px; font-size: 13px; color: var(--dim); min-height: 18px; }
+.lobby-tip { margin-top: 16px; font-size: 12px; color: var(--faint); line-height: 1.6; }
+
+/* ---------- 棋盘尺寸切换 ---------- */
+.size-pick { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0 14px; }
+.size-pick.inline { margin: 4px 0 0; }
+.size-pick .cap { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.size-btn {
+  padding: 7px 14px; font-family: var(--mono); font-size: 13px; color: var(--dim);
+  background: var(--bg-elev); border: 1px solid var(--card-edge); border-radius: 9px; cursor: pointer;
+  transition: all 0.15s ease;
+}
+.size-btn:hover { color: var(--text); border-color: rgba(34, 211, 238, 0.4); }
+.size-btn.active { color: #06121a; background: var(--cyan); border-color: var(--cyan); font-weight: 600; }
+
+/* ---------- 终局数子面板（围棋） ---------- */
+.score-text { font-family: var(--mono); font-size: 13.5px; color: var(--text); margin: 4px 0 14px; }
+.score-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.score-row b { color: var(--text); }
+.score-row.total { border-bottom: none; font-size: 15px; padding-top: 10px; }
+.score-row.total b { color: var(--cyan); }
+.score-note { margin-top: 10px; font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+/* ---------- 规则页（海战棋 / 五子棋 / 围棋共用） ---------- */
+.rules { max-width: 640px; margin: 0 auto; padding: 24px 24px 48px; }
+.rules-inner { background: var(--card); border: 1px solid var(--card-edge); border-radius: 18px; padding: 28px 26px; }
+.rules-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; }
+.rules-list { margin: 0; padding-left: 20px; color: var(--dim); line-height: 1.85; font-size: 14.5px; }
+.rules-list li { margin-bottom: 8px; }
+.rules-list b { color: var(--text); }
+.rules-list ul { margin: 6px 0 4px; padding-left: 18px; }
 .ship-row.active {
   background: rgba(34, 211, 238, 0.08);
   border-radius: 6px;

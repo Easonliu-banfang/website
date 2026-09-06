@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋 · 联机大厅</title>
+  <meta name="description" content="围棋 Go —— 联机大厅">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="go.html" class="back">← 选择模式</a>
+  <h1>联机大厅</h1>
+</header>
+
+<section class="lobby">
+  <div class="lobby-inner">
+    <h2 class="lobby-title">创建或加入房间</h2>
+
+    <div class="size-pick">
+      <span class="cap">棋盘尺寸</span>
+      <button class="size-btn active" data-size="9" type="button">9 路</button>
+      <button class="size-btn" data-size="13" type="button">13 路</button>
+      <button class="size-btn" data-size="19" type="button">19 路</button>
+    </div>
+
+    <div class="card">
+      <span class="cap">房间码</span>
+      <div class="room-code-row">
+        <input id="roomInput" class="room-input" type="text" maxlength="6" placeholder="6 位字母数字" autocomplete="off" />
+        <button id="joinBtn" class="btn" type="button">加入</button>
+      </div>
+      <div class="btn-row enter-row">
+        <button id="createBtn" class="btn on" type="button">创建房间</button>
+      </div>
+      <div id="roomCodeTag" class="mode-tag" hidden></div>
+      <div id="lobbyHint" class="lobby-hint"></div>
+      <div class="btn-row enter-row" id="enterRow" hidden>
+        <a id="enterBtn" class="btn on" href="#">进入游戏 →</a>
+      </div>
+    </div>
+
+    <p class="lobby-tip">提示：若提示「国内网络无法直连」，多为当前网络对境外服务受限，可换网络或开启代理后重试。</p>
+  </div>
+</section>
+
+<script>
+(function () {
+  var WORKER = 'https://quoridor-mp.pages.dev';
+  var GAME = 'go';
+  var size = 9;
+  var roomInput = document.getElementById('roomInput');
+  var joinBtn = document.getElementById('joinBtn');
+  var createBtn = document.getElementById('createBtn');
+  var roomCodeTag = document.getElementById('roomCodeTag');
+  var lobbyHint = document.getElementById('lobbyHint');
+  var enterRow = document.getElementById('enterRow');
+  var enterBtn = document.getElementById('enterBtn');
+
+  document.querySelectorAll('.size-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.size-btn').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      size = parseInt(b.getAttribute('data-size'), 10);
+    });
+  });
+
+  function playUrl(code, role) {
+    return 'go-play.html?mode=online&room=' + code + '&role=' + role + '&size=' + size;
+  }
+
+  createBtn.addEventListener('click', function () {
+    lobbyHint.textContent = '创建中…';
+    createBtn.disabled = true;
+    fetch(WORKER + '/api/room?game=' + GAME + '&size=' + size, { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.code) throw new Error('未返回房间码');
+        roomCodeTag.textContent = '房间 ' + d.code + '（' + size + ' 路）';
+        roomCodeTag.hidden = false;
+        lobbyHint.textContent = '房间已创建，把房间码发给好友，两人都进入后即可对弈。';
+        enterRow.hidden = false;
+        enterBtn.href = playUrl(d.code, 'host');
+      })
+      .catch(function (e) { lobbyHint.textContent = '创建失败：' + e.message; createBtn.disabled = false; });
+  });
+
+  joinBtn.addEventListener('click', function () {
+    var code = (roomInput.value || '').trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) { lobbyHint.textContent = '请输入 6 位房间码'; return; }
+    lobbyHint.textContent = '加入中…';
+    joinBtn.disabled = true;
+    fetch(WORKER + '/api/room/' + code + '?game=' + GAME)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.state && !d.hasSpace) throw new Error('房间不存在');
+        if (d.error === 'full' || d.error === 'started') throw new Error('房间已满或已开始');
+        lobbyHint.textContent = '加入成功，正在进入…';
+        enterRow.hidden = false;
+        // 加入方沿用房主设定的尺寸（从房间状态读取，若可用）
+        var sz = (d.state && d.state.size) ? d.state.size : size;
+        enterBtn.href = 'go-play.html?mode=online&room=' + code + '&role=guest&size=' + sz;
+        location.href = enterBtn.href;
+      })
+      .catch(function (e) { lobbyHint.textContent = '加入失败：' + e.message; joinBtn.disabled = false; });
+  });
+
+  roomInput.addEventListener('input', function () {
+    roomInput.value = roomInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋 · 选择对战方式</title>
+  <meta name="description" content="围棋 Go —— 选择对战方式">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="../index.html" class="back">← 游戏室</a>
+  <h1>围棋</h1>
+</header>
+
+<section class="start">
+  <div class="start-inner">
+    <h2 class="start-title">选择对战方式</h2>
+
+    <div class="mode-grid">
+      <a class="mode-card" href="go-online.html">
+        <span class="mode-ico">🌐</span>
+        <span class="mode-name">互联网对战</span>
+        <span class="mode-desc">和好友联机对决</span>
+      </a>
+      <a class="mode-card" href="go-play.html?mode=local&size=19">
+        <span class="mode-ico">👥</span>
+        <span class="mode-name">面对面</span>
+        <span class="mode-desc">同一设备双人</span>
+      </a>
+      <a class="mode-card" href="go-play.html?mode=ai&size=9">
+        <span class="mode-ico">🤖</span>
+        <span class="mode-name">和 AI 对战</span>
+        <span class="mode-desc">挑战电脑（推荐 9 路）</span>
+      </a>
+    </div>
+
+    <div class="size-pick">
+      <span class="cap">棋盘尺寸</span>
+      <a class="size-btn" href="go-play.html?mode=ai&size=9">9 路</a>
+      <a class="size-btn" href="go-play.html?mode=ai&size=13">13 路</a>
+      <a class="size-btn" href="go-play.html?mode=ai&size=19">19 路</a>
+    </div>
+
+    <div class="btn-row enter-row">
+      <a class="btn ghost" href="go-rules.html">先看玩法规则 →</a>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

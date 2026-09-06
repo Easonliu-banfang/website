@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>五子棋 · 玩法规则</title>
+  <meta name="description" content="五子棋 Gomoku —— 玩法规则">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="gomoku.html" class="back">← 选择模式</a>
+  <h1>玩法规则</h1>
+</header>
+
+<section class="rules">
+  <div class="rules-inner">
+    <h2 class="rules-title">五子棋怎么玩</h2>
+    <ol class="rules-list">
+      <li><b>棋盘</b>：标准 15×15 路，黑棋先手。</li>
+      <li><b>落子</b>：在交叉点落子，棋子不能移动或悔取（本版不支持悔棋）。</li>
+      <li><b>胜负</b>：任意方向（横、竖、斜）先连成 <b>5 子</b> 即获胜；长连（≥5）同样判胜。</li>
+      <li><b>和棋</b>：棋盘下满仍无人连五，判和。</li>
+      <li><b>三模式</b>：
+        <ul>
+          <li>🌐 <b>互联网对战</b>：创建房间并把房间码发给好友，两人服务端权威同步。</li>
+          <li>👥 <b>面对面</b>：同一设备轮流落子（黑棋先）。</li>
+          <li>🤖 <b>和 AI 对战</b>：你执黑先手，电脑执白，AI 按棋型评分攻防。</li>
+        </ul>
+      </li>
+    </ol>
+    <div class="btn-row enter-row">
+      <a class="btn on" href="gomoku-play.html?mode=ai">我已知晓，开玩 →</a>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

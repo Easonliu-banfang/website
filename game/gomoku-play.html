@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>五子棋 · Gomoku</title>
+  <meta name="description" content="五子棋 Gomoku —— 经典 15 路">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="gomoku.html" class="back">← 选择模式</a>
+  <h1>五子棋</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden></span>
+</header>
+
+<div class="layout">
+
+  <div class="board-col">
+    <div class="board-box">
+      <div class="board-title" id="boardTitle">棋盘</div>
+      <div class="board-frame">
+        <canvas id="board"></canvas>
+        <div id="banner" class="banner"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel">
+
+    <div class="card turn-card">
+      <span class="cap">当前回合</span>
+      <span class="turn-val p1" id="turnLabel">黑棋落子</span>
+      <span class="phase-label" id="phaseLabel">对局进行中</span>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <button id="btnNew" class="btn ghost" type="button">新局</button>
+      </div>
+      <div class="meta">
+        <span class="keys">在交叉点落子 · N 新局</span>
+      </div>
+    </div>
+
+    <div class="status" id="onlineStatus" hidden></div>
+  </aside>
+</div>
+
+<!-- 联机：对方请求重开确认 -->
+<div id="reqModal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="reqText" class="req-text">对方请求</p>
+    <p id="reqSub" class="req-sub"></p>
+    <div class="btn-row">
+      <button id="btnReqOk" class="btn on" type="button">同意</button>
+      <button id="btnReqNo" class="btn ghost" type="button">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="gomoku-engine.js?v=g1"></script>
+<script src="gomoku-render.js?v=g1"></script>
+<script src="gomoku-ai.js?v=g1"></script>
+<script src="gomoku-online.js?v=g1"></script>
+<script src="gomoku-app.js?v=g1"></script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>围棋 · Go</title>
+  <meta name="description" content="围棋 Go —— 中国规则数子">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="go.html" class="back">← 选择模式</a>
+  <h1>围棋</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden></span>
+  <span id="sizeTag" class="mode-tag" hidden></span>
+</header>
+
+<div class="layout">
+
+  <div class="board-col">
+    <div class="board-box">
+      <div class="board-title" id="boardTitle">棋盘</div>
+      <div class="board-frame">
+        <canvas id="board"></canvas>
+        <div id="banner" class="banner"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel">
+
+    <div class="card turn-card">
+      <span class="cap">当前回合</span>
+      <span class="turn-val p1" id="turnLabel">黑棋落子</span>
+      <span class="phase-label" id="phaseLabel">对局进行中</span>
+    </div>
+
+    <!-- 非联机：可切换棋盘尺寸 -->
+    <div class="card" id="sizeCard">
+      <span class="cap">棋盘尺寸（仅本机对局）</span>
+      <div class="size-pick inline">
+        <button class="size-btn" data-size="9" type="button">9 路</button>
+        <button class="size-btn" data-size="13" type="button">13 路</button>
+        <button class="size-btn" data-size="19" type="button">19 路</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <button id="btnPass" class="btn" type="button">停一手</button>
+        <button id="btnNew" class="btn ghost" type="button">新局</button>
+      </div>
+      <div class="meta">
+        <span class="keys">交叉点落子 · P 停一手 · N 新局</span>
+      </div>
+    </div>
+
+    <!-- 终局数子 -->
+    <div class="card" id="scorePanel" hidden>
+      <span class="cap">数子结果（中国规则）</span>
+      <div id="scoreText" class="score-text"></div>
+      <div class="btn-row">
+        <button id="btnScore" class="btn on" type="button">确认数子</button>
+        <button id="btnRescore" class="btn ghost" type="button">重判死子</button>
+      </div>
+    </div>
+
+    <div class="status" id="onlineStatus" hidden></div>
+  </aside>
+</div>
+
+<!-- 联机：对方请求重开确认 -->
+<div id="reqModal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="reqText" class="req-text">对方请求</p>
+    <p id="reqSub" class="req-sub"></p>
+    <div class="btn-row">
+      <button id="btnReqOk" class="btn on" type="button">同意</button>
+      <button id="btnReqNo" class="btn ghost" type="button">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="go-engine.js?v=g1"></script>
+<script src="go-render.js?v=g1"></script>
+<script src="go-ai.js?v=g1"></script>
+<script src="go-online.js?v=g1"></script>
+<script src="go-app.js?v=g1"></script>
+</body>
+</html>
