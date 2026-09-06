@@ -64,15 +64,14 @@
   }
 
   function hideBanner() {
-    el.banner.classList.remove('show', 'big');
     if (winTimer) { clearTimeout(winTimer); winTimer = null; }
   }
+  // 棋盘横幅已取消：一律走顶部通知栏。big=胜负(常驻，按文案判 win/lose)；普通提示 info
   function showBanner(text, big, autoClose) {
-    el.banner.textContent = text;
-    el.banner.classList.toggle('big', !!big);
-    el.banner.classList.add('show');
+    var isWin = /胜利|获胜|你赢了|恭喜/.test(text) && !/失败/.test(text);
+    window.Notify.show(text, big ? (isWin ? 'win' : 'lose') : 'info', big ? { sticky: true } : undefined);
     if (winTimer) clearTimeout(winTimer);
-    if (autoClose) winTimer = setTimeout(hideBanner, 3200); else winTimer = null;
+    winTimer = null;
   }
 
   function newGame(ai) {
@@ -81,7 +80,7 @@
     reqPending = false; reqKind = null; incomingKind = null; wantNew = false; resetSent = false;
     hover = null;
     hideBanner();
-    el.phaseLabel.textContent = '对局进行中';
+    window.Notify.clearAll();        // 新局/重开：清上一局胜负常驻
     if (!onlineMode) {
       var bp = Math.random() < 0.5 ? 0 : 1;      // 抛硬币：0=玩家一(人类)执黑, 1=玩家二(AI)执黑
       if (ai) { humanColor = bp === 0 ? 1 : 2; aiSide = 3 - humanColor; }
@@ -295,6 +294,7 @@
       if (v.timing) { timer = v.timing; renderTimerUI(); }
       if (reqKind === 'undo') { reqKind = null; reqPending = false; undoPending = false; }
       if (v.history && v.history.length === 0) {
+        window.Notify.clearAll();                // 新一局：清上一局胜负常驻
         coinShown = false;                       // 新一局（含重开）复位，准备播硬币
         if (typeof v.blackPlayer === 'number') playCoin(v.blackPlayer, { mode: 'online' });
       }
@@ -384,6 +384,7 @@
     if (!state || state.history.length === 0) return;
     G.undo(state);
     hideBanner();
+    window.Notify.clearAll();
     syncUI();
   }
   function respondUndo(ok) {
@@ -401,14 +402,12 @@
   function syncUI() {
     if (!state) return;
     var cur = state.turn;
-    el.turnLabel.textContent = state.winner >= 0
-      ? '对局结束'
-      : (onlineMode
-          ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
-          : (vsAI
-              ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
-              : (state.turn === 1 ? '黑棋落子' : '白棋落子')));
-    el.turnLabel.className = 'turn-val p' + (state.winner >= 0 ? (state.winner === 0 ? 0 : state.winner) : cur);
+    if (state.winner < 0) {
+      window.Notify.setTurn(onlineMode
+        ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
+        : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
+                : (state.turn === 1 ? '黑棋落子' : '白棋落子')));
+    }
     el.btnNew.disabled = reqPending;
     if (el.btnUndo) el.btnUndo.disabled = undoPending || reqPending || !state || state.winner >= 0 || state.history.length === 0;
   }

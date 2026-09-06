@@ -75,17 +75,13 @@
   }
 
   /* ---------- 横幅 ---------- */
-  function hideBanner() {
-    el.banner.classList.remove('show', 'big');
-    if (winTimer) { clearTimeout(winTimer); winTimer = null; }
-  }
+  function hideBanner() { if (winTimer) { clearTimeout(winTimer); winTimer = null; } }
+  // 棋盘横幅已取消：一律走顶部通知栏。big=胜负(常驻，按文案判 win/lose)；普通提示 info
   function showBanner(text, big, autoClose) {
-    el.banner.textContent = text;
-    el.banner.classList.toggle('big', !!big);
-    el.banner.classList.add('show');
+    var isWin = /胜利|获胜|你赢了|恭喜/.test(text) && !/失败/.test(text);
+    window.Notify.show(text, big ? (isWin ? 'win' : 'lose') : 'info', big ? { sticky: true } : undefined);
     if (winTimer) clearTimeout(winTimer);
-    if (autoClose) winTimer = setTimeout(hideBanner, 3200);
-    else winTimer = null;
+    winTimer = null;
   }
 
   /* ---------- 局面初始化 ---------- */
@@ -103,11 +99,11 @@
     if (vsAI) {
       aiSide = 1;
       B.randomPlacement(state, aiSide);   // 电脑自动布阵
-      el.phaseLabel.textContent = '布阵阶段 · 摆放你的舰队';
+      window.Notify.setTurn('布阵阶段 · 摆放你的舰队');
       syncUI();
       // 人类布阵（带 pass 遮罩防偷看？同设备仅一人，不需遮罩）
     } else if (mode === 'local') {
-      el.phaseLabel.textContent = '布阵阶段 · 玩家一先摆';
+      window.Notify.setTurn('布阵阶段 · 玩家一先摆');
       showPass('玩家一 布阵中', '请把设备交给玩家一，布好舰队后点击「确认布阵」。其他人请勿偷看。', function () {
         el.passModal.hidden = true; syncUI();
       });
@@ -168,7 +164,7 @@
       online.sendPlace(B.layoutOf(state, vp));
       showBanner('已上报布阵，等待对手…', false);
       el.placePanel.hidden = true;
-      el.phaseLabel.textContent = '等待双方布阵…';
+      window.Notify.setTurn('等待双方布阵…');
       syncUI();
       return;
     }
@@ -178,7 +174,7 @@
         showPass('玩家二 布阵中', '请把设备交给玩家二，布好舰队后点击「确认布阵」。玩家一请勿偷看。', function () {
           el.passModal.hidden = true;
           placeTurn = 1; curShip = 0; horizontal = false;
-          el.phaseLabel.textContent = '布阵阶段 · 玩家二摆放';
+          window.Notify.setTurn('布阵阶段 · 玩家二摆放');
           syncUI(); updatePlacePanel();
         });
       } else {
@@ -196,7 +192,7 @@
     phase = 'fire';
     state.turn = Math.random() < 0.5 ? 0 : 1;   // 随机先手
     el.placePanel.hidden = true;
-    el.phaseLabel.textContent = '开火阶段';
+    window.Notify.setTurn('开火阶段');
     var first = state.turn === 0 ? (vsAI ? '玩家' : '玩家一') : (vsAI ? '电脑' : '玩家二');
     showBanner(first + ' 先手！', false);
     syncUI(); updateFleet();
@@ -352,7 +348,7 @@
     o.on('status', function (s) {
       if (s.state === 'connecting') { connOk = false; showOnlineStatus('连接中…', 'connecting'); }
       else if (s.state === 'connected') { connOk = true; if (myPlayer < 0) showOnlineStatus('已连接', 'connected'); }
-      else if (s.state === 'reconnecting') { connOk = false; showOnlineStatus(s.detail || '连接中断，重连中…', 'reconnecting'); if (state && state.winner < 0) showBanner('连接中断，正在重连…', false); }
+      else if (s.state === 'reconnecting') { connOk = false; showOnlineStatus(s.detail || '连接中断，重连中…', 'reconnecting'); }
       else if (s.state === 'disconnected') { connOk = false; showOnlineStatus(s.detail || '连接已断开', 'disconnected'); }
       syncUI();
     });
@@ -385,19 +381,18 @@
     if (!state) return;
     var vp = viewPlayer();
     if (onlineMode) {
-      el.turnLabel.textContent = phase === 'place'
+      window.Notify.setTurn(phase === 'place'
         ? (placedLocal ? '等待对手布阵…' : '布置你的舰队')
-        : (state.turn === myPlayer ? '你开火' : '对手开火');
+        : (state.turn === myPlayer ? '你开火' : '对手开火'));
     } else if (phase === 'place') {
-      el.turnLabel.textContent = mode === 'local'
+      window.Notify.setTurn(mode === 'local'
         ? ('玩家' + (placeTurn + 1) + ' 布阵')
-        : '布置你的舰队';
+        : '布置你的舰队');
     } else {
-      el.turnLabel.textContent = state.turn === 0
+      window.Notify.setTurn(state.turn === 0
         ? (vsAI ? '你开火' : '玩家一 开火')
-        : (vsAI ? '电脑开火' : '玩家二 开火');
+        : (vsAI ? '电脑开火' : '玩家二 开火'));
     }
-    el.turnLabel.className = 'turn-val p' + (state.winner >= 0 ? state.winner : (onlineMode ? myPlayer : state.turn));
     el.btnNew.disabled = reqPending;
     el.firePanel.hidden = (phase !== 'fire');
     updatePlacePanel();

@@ -51,26 +51,16 @@
 
   /* ---------- 横幅 / 抛硬币 ---------- */
 
-  function hideBanner() {
-    el.banner.classList.remove('show', 'big');
-    if (winTimer) { clearTimeout(winTimer); winTimer = null; }
-  }
+  function hideBanner() { if (winTimer) { clearTimeout(winTimer); winTimer = null; } }
+  // 棋盘横幅已取消：一律走顶部通知栏。胜负(sticky)按文案判 win/lose；提醒类走 warn/error(常驻)
   function showWinBanner(text, autoClose) {
-    el.banner.textContent = text;
-    el.banner.classList.remove('big');
-    el.banner.classList.add('show');
-    if (autoClose) {
-      if (winTimer) clearTimeout(winTimer);
-      winTimer = setTimeout(hideBanner, 3000);   // 3 秒后自动关闭
-    } else if (winTimer) {
-      clearTimeout(winTimer); winTimer = null;
-    }
+    var isWin = /胜利|获胜|你赢了|恭喜/.test(text) && !/失败/.test(text);
+    window.Notify.show(text, isWin ? 'win' : 'lose', { sticky: true });
+    hideBanner();
   }
   function flashBanner(text) {
-    if (winTimer) { clearTimeout(winTimer); winTimer = null; }
-    el.banner.textContent = text;
-    el.banner.classList.remove('big');
-    el.banner.classList.add('show');
+    window.Notify.show(text, 'warn', { sticky: true });
+    hideBanner();
   }
 
   // 抛硬币决定先手：first = 先手玩家(0 红 / 1 紫)
@@ -126,6 +116,7 @@
     R.hover = null;
     winTimer && clearTimeout(winTimer);
     hideBanner();
+    window.Notify.clearAll();        // 新局：清掉上一局胜负常驻通知
     el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? '对手' : '玩家二');
     coinShown = false;
     syncUI();
@@ -140,18 +131,15 @@
     el.w2.textContent = state.players[1].walls;
     el.stepCount.textContent = Math.ceil(state.history.length / 2);
 
-    if (state.winner >= 0) {
-      el.turnLabel.textContent = onlineMode
-        ? (state.winner === myPlayer ? '你赢了' : '对手获胜')
-        : (state.winner === 0 ? '玩家一' : '玩家二') + ' 获胜';
-    } else if (onlineMode) {
-      el.turnLabel.textContent = (state.turn === myPlayer ? '你' : '对手') + ' 行动';
-    } else if (aiThinking) {
-      el.turnLabel.textContent = '电脑思考中';
-    } else {
-      el.turnLabel.textContent = (state.turn === 0 ? '玩家一' : (vsAI ? '电脑' : '玩家二')) + ' 行动';
+    if (state.winner < 0) {
+      if (onlineMode) {
+        window.Notify.setTurn((state.turn === myPlayer ? '你' : '对手') + ' 行动');
+      } else if (aiThinking) {
+        window.Notify.setTurn('电脑思考中');
+      } else {
+        window.Notify.setTurn((state.turn === 0 ? '玩家一' : (vsAI ? '电脑' : '玩家二')) + ' 行动');
+      }
     }
-    el.turnLabel.className = 'turn-val p' + (state.winner >= 0 ? state.winner : state.turn);
 
     el.btnMove.classList.toggle('on', !placing);
     el.btnWall.classList.toggle('on', placing);
@@ -529,7 +517,7 @@
       roomStarted = true;
       if (lobby) lobby.hide();
       applyRemote(s);
-      if (s.history.length === 0) { wantNew = false; resetSent = false; }   // 新一局已下达，清除重开相关标记
+      if (s.history.length === 0) { wantNew = false; resetSent = false; window.Notify.clearAll(); }   // 新一局：清重开标记与上一局胜负常驻
       // 开局抛硬币：收到第一份「空棋盘」权威局面时播放一次
       if (!coinShown) {
         if (s.history.length === 0) { playCoin(s.turn, { mode: 'online' }); }
