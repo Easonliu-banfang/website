@@ -200,6 +200,7 @@ body::before {
   cursor: pointer;
   font-family: var(--sans);
   color: var(--text);
+  text-decoration: none;
   transition: all 0.2s ease;
 }
 .mode-card:hover {
