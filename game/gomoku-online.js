@@ -114,6 +114,7 @@
         else if (m.type === 'players') self._emit('players', m.players);
         else if (m.type === 'req_undo') self._emit('req_undo');
         else if (m.type === 'res_undo') self._emit('res_undo', m.ok);
+        else if (m.type === 'notify') self._emit('notify');
         else if (m.type === 'req_new') self._emit('req_new');
         else if (m.type === 'res_new') self._emit('res_new', m.ok);
         else if (m.type === 'dissolve') { self._intentionalClose = true; self._stopHeartbeat(); self._emit('dissolve'); }
@@ -177,6 +178,8 @@
   Online.prototype.sendReset = function () {
     this._wsSend({ type: 'reset', player: this.player });
   };
+  Online.prototype.sendNotify = function () { this._wsSend({ type: 'notify' }); };
+
   Online.prototype.sendLeave = function () {
     this._wsSend({ type: 'leave', player: this.player });
     this._intentionalClose = true;

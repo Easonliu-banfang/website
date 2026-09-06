@@ -6,7 +6,7 @@
   <title>步步为营 · Quoridor</title>
   <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b8">
+  <link rel="stylesheet" href="style.css?v=b9">
 </head>
 <body>
 
@@ -66,47 +66,46 @@
 </div>
 
 <!-- 联机等待室 -->
+
 <div id="lobby" class="lobby" hidden>
-  <div class="lobby-card">
-    <div class="lobby-head">
-      <div class="lobby-room">房间 <b id="lobbyCode">----</b></div>
-      <div id="lobbyStatus" class="lobby-status">连接中…</div>
+  <div class="room">
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="rgba(255,255,255,0.10)" stroke-width="1">
+            <line x1="54" y1="18" x2="54" y2="150"/><line x1="80" y1="18" x2="80" y2="150"/><line x1="106" y1="18" x2="106" y2="150"/><line x1="133" y1="18" x2="133" y2="150"/><line x1="159" y1="18" x2="159" y2="150"/><line x1="186" y1="18" x2="186" y2="150"/>
+            <line x1="54" y1="18" x2="186" y2="18"/><line x1="54" y1="44" x2="186" y2="44"/><line x1="54" y1="70" x2="186" y2="70"/><line x1="54" y1="97" x2="186" y2="97"/><line x1="54" y1="123" x2="186" y2="123"/><line x1="54" y1="150" x2="186" y2="150"/>
+          </g>
+          <rect x="119" y="44" width="9" height="53" rx="3" fill="#a78bfa" opacity="0.85"/>
+          <circle cx="106" cy="70" r="12" fill="#22d3ee"/>
+          <circle cx="106" cy="70" r="12" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5"/>
+        </svg></div>
+      <div class="room-name">步步为营</div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b></div>
     </div>
-    <div class="lobby-seats">
-      <div class="seat" id="seat0">
-        <div class="seat-dot"></div>
-        <div class="seat-name">玩家 1</div>
-        <div class="seat-ready">未准备</div>
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title">等待玩家加入</span>
+        <span class="room-caption-sub" id="lobbyStatus">连接中…</span>
       </div>
-      <div class="lobby-vs">VS</div>
-      <div class="seat" id="seat1">
-        <div class="seat-dot"></div>
-        <div class="seat-name">玩家 2</div>
-        <div class="seat-ready">未准备</div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1</span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
       </div>
     </div>
-    <div class="lobby-actions">
-      <button id="btnReady" class="btn on" type="button">准备</button>
-      <button id="btnStart" class="btn" type="button" disabled>开始游戏</button>
-    </div>
-    <div class="lobby-actions">
-      <button id="btnLeave" class="btn ghost" type="button">离开房间</button>
-    </div>
-    <div id="lobbyHint" class="lobby-hint"></div>
   </div>
 </div>
 
-<!-- 抛硬币：随机先手动画 -->
-<div id="coinModal" class="modal coin-modal" hidden>
-  <div class="coin-card">
-    <p class="coin-title" id="coinTitle">随机先手</p>
-    <div class="coin" id="coin"><span class="coin-face">🪙</span></div>
-    <p class="coin-result" id="coinResult"></p>
-    <p class="coin-sub" id="coinSub"></p>
-  </div>
-</div>
-
-<!-- 联机：对方请求悔棋 / 重开 时的确认弹窗 -->
 <div id="reqModal" class="modal" hidden>
   <div class="modal-card">
     <p id="reqText" class="req-text">对方请求</p>
@@ -120,11 +119,11 @@
 
 <script src="engine.js?v=g9"></script>
 <script src="render.js?v=g9"></script>
-<script src="online.js?v=g15"></script>
+<script src="online.js?v=g16"></script>
 <script src="ai.js?v=g9"></script>
-<script src="lobby.js?v=l3"></script>
+<script src="lobby.js?v=l4"></script>
 <script src="notify.js?v=n2"></script>
-<script src="app.js?v=g17"></script>
+<script src="app.js?v=g18"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

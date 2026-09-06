@@ -525,6 +525,7 @@
       }
     });
     o.on('players', function (ps) { applyOpponent(ps); });
+    o.on('notify', function () { window.Notify.show('🔔 房主提醒你准备', 'warn'); });
     o.on('req_undo', function () {
       if (!state || state.winner >= 0 || state.history.length === 0) { online.sendRelay('res_undo', false); return; }
       reqPending = true; incomingKind = 'undo';
@@ -622,6 +623,7 @@
     lobby = new window.GameLobby({
       onReady: function () { if (online) online.sendReady(); },
       onStart: function () { if (online) online.sendStart(); },
+        onNotify: function () { if (online) online.sendNotify(); window.Notify.show('已提醒对方准备', 'info'); },
       onLeave: function () { if (online) online.sendLeave(); location.href = 'online.html'; }
     });
     lobby.show(room);

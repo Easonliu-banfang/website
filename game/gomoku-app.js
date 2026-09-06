@@ -311,6 +311,7 @@
       if (!opp) showOnlineStatus('对手已退出/断开连接，对局暂停', 'disconnected');
       else showOnlineStatus('对局进行中', 'connected');
     });
+    o.on('notify', function () { window.Notify.show('🔔 房主提醒你准备', 'warn'); });
     o.on('req_undo', function () {
       reqPending = true; incomingKind = 'undo';
       if (el.reqText) el.reqText.textContent = '对方请求悔棋';
@@ -500,6 +501,7 @@
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
         onStart: function () { if (online) online.sendStart(timerCfg && timerCfg.mode !== 'off' ? timerCfg : null); },
+        onNotify: function () { if (online) online.sendNotify(); window.Notify.show('已提醒对方准备', 'info'); },
         onLeave: function () { if (online) online.sendLeave(); location.href = 'gomoku-online.html'; }
       });
       lobby.show(room);

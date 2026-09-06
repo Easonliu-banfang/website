@@ -6,7 +6,7 @@
   <title>海战棋 · Battleship</title>
   <meta name="description" content="海战棋 Battleship —— 经典版">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b8">
+  <link rel="stylesheet" href="style.css?v=b9">
 </head>
 <body>
 
@@ -73,47 +73,47 @@
 </div>
 
 <!-- 联机等待室 -->
+
 <div id="lobby" class="lobby" hidden>
-  <div class="lobby-card">
-    <div class="lobby-head">
-      <div class="lobby-room">房间 <b id="lobbyCode">----</b></div>
-      <div id="lobbyStatus" class="lobby-status">连接中…</div>
+  <div class="room">
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="rgba(255,255,255,0.10)" stroke-width="1">
+            <line x1="54" y1="26" x2="54" y2="142"/><line x1="76" y1="26" x2="76" y2="142"/><line x1="98" y1="26" x2="98" y2="142"/><line x1="120" y1="26" x2="120" y2="142"/><line x1="142" y1="26" x2="142" y2="142"/><line x1="164" y1="26" x2="164" y2="142"/><line x1="186" y1="26" x2="186" y2="142"/>
+            <line x1="54" y1="26" x2="186" y2="26"/><line x1="54" y1="48" x2="186" y2="48"/><line x1="54" y1="70" x2="186" y2="70"/><line x1="54" y1="92" x2="186" y2="92"/><line x1="54" y1="114" x2="186" y2="114"/><line x1="54" y1="142" x2="186" y2="142"/>
+          </g>
+          <rect x="68" y="48" width="98" height="28" rx="7" fill="rgba(34,211,238,0.10)" stroke="#22d3ee" stroke-width="2"/>
+          <circle cx="117" cy="62" r="6" fill="#fb7185"/>
+          <circle cx="160" cy="103" r="6" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
+          <circle cx="92" cy="115" r="6" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="2"/>
+        </svg></div>
+      <div class="room-name">海战棋</div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b></div>
     </div>
-    <div class="lobby-seats">
-      <div class="seat" id="seat0">
-        <div class="seat-dot"></div>
-        <div class="seat-name">玩家 1</div>
-        <div class="seat-ready">未准备</div>
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title">等待玩家加入</span>
+        <span class="room-caption-sub" id="lobbyStatus">连接中…</span>
       </div>
-      <div class="lobby-vs">VS</div>
-      <div class="seat" id="seat1">
-        <div class="seat-dot"></div>
-        <div class="seat-name">玩家 2</div>
-        <div class="seat-ready">未准备</div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1</span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
       </div>
     </div>
-    <div class="lobby-actions">
-      <button id="btnReady" class="btn on" type="button">准备</button>
-      <button id="btnStart" class="btn" type="button" disabled>开始游戏</button>
-    </div>
-    <div class="lobby-actions">
-      <button id="btnLeave" class="btn ghost" type="button">离开房间</button>
-    </div>
-    <div id="lobbyHint" class="lobby-hint"></div>
   </div>
 </div>
 
-<!-- 面对面：传递设备遮罩 -->
-<div id="passModal" class="modal" hidden>
-  <div class="modal-card">
-    <p id="passText" class="req-text">传给玩家</p>
-    <div class="btn-row">
-      <button id="btnPass" class="btn on" type="button">我准备好了，继续 →</button>
-    </div>
-  </div>
-</div>
-
-<!-- 联机：对方请求重开确认 -->
 <div id="reqModal" class="modal" hidden>
   <div class="modal-card">
     <p id="reqText" class="req-text">对方请求</p>
@@ -127,11 +127,11 @@
 
 <script src="battleship-engine.js?v=g2"></script>
 <script src="battleship-render.js?v=g2"></script>
-<script src="battleship-online.js?v=g7"></script>
+<script src="battleship-online.js?v=g8"></script>
 <script src="battleship-ai.js?v=g2"></script>
-<script src="lobby.js?v=l3"></script>
+<script src="lobby.js?v=l4"></script>
 <script src="notify.js?v=n2"></script>
-<script src="battleship-app.js?v=g10"></script>
+<script src="battleship-app.js?v=g11"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

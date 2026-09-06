@@ -6,7 +6,7 @@
   <title>五子棋 · Gomoku</title>
   <meta name="description" content="五子棋 Gomoku —— 经典 15 路" data-page-node-id="URXNRenR7YqdnzcC0U6P5I">
   <meta name="theme-color" content="#0a0e14" data-page-node-id="WKCXAIdXma7XwaVpfEMrL2">
-  <link rel="stylesheet" href="style.css?v=b8" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
+  <link rel="stylesheet" href="style.css?v=b9" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
 </head>
 <body>
 
@@ -66,44 +66,47 @@
 </div>
 
 <!-- 联机等待室 -->
-<div id="lobby" class="lobby" hidden data-page-node-id="o8EVRMreA5mH4MSt7dO8Dt">
-  <div class="lobby-card" data-page-node-id="vimnlHXLIuKwsyq5OsWSyU">
-    <div class="lobby-head" data-page-node-id="99pCUsBzziEOemHYkdrWOC">
-      <div class="lobby-room" data-page-node-id="wT386JBIPiK4SKWUoQHuBd">房间 <b id="lobbyCode" data-page-node-id="0YVl0gfDxrYKiTYNLYAA25">----</b></div>
-      <div id="lobbyStatus" class="lobby-status" data-page-node-id="oH3HdANMd7AtufAyLGXZ7v">连接中…</div>
-    </div>
-    <div class="lobby-seats" data-page-node-id="glksHD0j50kCVENzGi7y1x">
-      <div class="seat" id="seat0" data-page-node-id="b1FUyD3rlgNQgdyeVq6iyU">
-        <div class="seat-dot" data-page-node-id="7m8fY5UJ6OTQEeJvMj7bvz"></div>
-        <div class="seat-name" data-page-node-id="o03X1oBusp4ZCMvNePhUqI">玩家 1</div>
-        <div class="seat-ready" data-page-node-id="Kpl8WSdgrgLTwEalYjjYrb">未准备</div>
-      </div>
-      <div class="lobby-vs" data-page-node-id="hS7DWxr94O3rW4EEcXQyym">VS</div>
-      <div class="seat" id="seat1" data-page-node-id="d1FrmyocAFkKjaFRTKcfXb">
-        <div class="seat-dot" data-page-node-id="rdJpisMTtUv4EN0129BBGE"></div>
-        <div class="seat-name" data-page-node-id="1wAsSQkjdcwU9JMKTPtQLj">玩家 2</div>
-        <div class="seat-ready" data-page-node-id="42x4c7eIUXZhwewnE1HmSq">未准备</div>
-      </div>
-    </div>
-    <div class="lobby-actions" data-page-node-id="8Zr69pW3Qlr9qrr7kFHE1D">
-      <button id="btnReady" class="btn on" type="button" data-page-node-id="BcGGfCfxSKXuwBT4zii2bl">准备</button>
-      <button id="btnStart" class="btn" type="button" disabled data-page-node-id="q7gfvPelKs40dIRf4Oj0da">开始游戏</button>
-    </div>
-    <div class="lobby-actions" data-page-node-id="lXsPd3jiQ5X6xU6xdbZeHA">
-      <button id="btnLeave" class="btn ghost" type="button" data-page-node-id="VoNfnmVIjGF1b1QksJPGyQ">离开房间</button>
-    </div>
-    <div id="lobbyHint" class="lobby-hint" data-page-node-id="KgnxtSop1GHWrhhXPwWUCp"></div>
-  </div>
-</div>
 
-<!-- 联机：对方请求重开确认 -->
-<!-- 抛硬币：随机谁执黑（先手） -->
-<div id="coinModal" class="modal coin-modal" hidden>
-  <div class="coin-card">
-    <p class="coin-title" id="coinTitle">随机先手</p>
-    <div class="coin" id="coin"><span class="coin-face">🪙</span></div>
-    <p class="coin-result" id="coinResult"></p>
-    <p class="coin-sub" id="coinSub"></p>
+<div id="lobby" class="lobby" hidden>
+  <div class="room">
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="rgba(255,255,255,0.10)" stroke-width="1">
+            <line x1="54" y1="18" x2="54" y2="150"/><line x1="77" y1="18" x2="77" y2="150"/><line x1="100" y1="18" x2="100" y2="150"/><line x1="123" y1="18" x2="123" y2="150"/><line x1="146" y1="18" x2="146" y2="150"/><line x1="169" y1="18" x2="169" y2="150"/><line x1="192" y1="18" x2="192" y2="150"/>
+            <line x1="54" y1="18" x2="192" y2="18"/><line x1="54" y1="41" x2="192" y2="41"/><line x1="54" y1="64" x2="192" y2="64"/><line x1="54" y1="87" x2="192" y2="87"/><line x1="54" y1="110" x2="192" y2="110"/><line x1="54" y1="133" x2="192" y2="133"/><line x1="54" y1="156" x2="192" y2="156"/>
+          </g>
+          <circle cx="77" cy="87" r="10" fill="#0a0e14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <circle cx="100" cy="87" r="10" fill="#0a0e14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <circle cx="123" cy="87" r="10" fill="#0a0e14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <circle cx="146" cy="87" r="10" fill="#0a0e14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <circle cx="169" cy="87" r="10" fill="#0a0e14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <circle cx="169" cy="87" r="14" fill="none" stroke="#22d3ee" stroke-width="2"/>
+          <circle cx="192" cy="87" r="10" fill="#e6edf3" stroke="#0a0e14" stroke-width="1.5"/>
+        </svg></div>
+      <div class="room-name">五子棋</div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b></div>
+    </div>
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title">等待玩家加入</span>
+        <span class="room-caption-sub" id="lobbyStatus">连接中…</span>
+      </div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1</span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -121,11 +124,11 @@
 <script src="gomoku-engine.js?v=g2"></script>
 <script src="gomoku-render.js?v=g2"></script>
 <script src="gomoku-ai.js?v=g2"></script>
-<script src="gomoku-online.js?v=g8"></script>
-<script src="lobby.js?v=l3"></script>
+<script src="gomoku-online.js?v=g9"></script>
+<script src="lobby.js?v=l4"></script>
 <script src="timer.js?v=t1"></script>
 <script src="notify.js?v=n2"></script>
-<script src="gomoku-app.js?v=g13"></script>
+<script src="gomoku-app.js?v=g14"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

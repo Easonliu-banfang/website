@@ -328,6 +328,7 @@
       if (!opp) showOnlineStatus('对手已退出/断开连接，对局暂停', 'disconnected');
       else showOnlineStatus('对局进行中', 'connected');
     });
+    o.on('notify', function () { window.Notify.show('🔔 房主提醒你准备', 'warn'); });
     o.on('req_new', function () {
       reqPending = true; incomingKind = 'new';
       if (el.reqText) el.reqText.textContent = '对方请求重开一局';
@@ -554,6 +555,7 @@
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
         onStart: function () { if (online) online.sendStart(); },
+        onNotify: function () { if (online) online.sendNotify(); window.Notify.show('已提醒对方准备', 'info'); },
         onLeave: function () { if (online) online.sendLeave(); location.href = 'battleship-online.html'; }
       });
       lobby.show(room);
