@@ -40,7 +40,7 @@
     <div class="card timer-card" id="timerCard">
       <div class="timer-head">
         <span class="cap">计时（大赛规则）</span>
-        <span class="timer-tag" id="timerTag">不限时</span>
+        <span class="timer-tag" id="timerTag">包干 10 分钟</span>
       </div>
       <div class="clock-row" id="clockRow" hidden>
         <div class="clock p1" id="clock0">
@@ -54,12 +54,7 @@
           <span class="clock-byo" id="clockByo1"></span>
         </div>
       </div>
-      <div class="timer-pick" id="timerPick">
-        <button class="tpick" data-tm="off" type="button">不限时</button>
-        <button class="tpick on" data-tm="blitz" type="button">包干 10 分钟</button>
-        <button class="tpick" data-tm="byo" type="button">读秒 10分·3次×30秒</button>
       </div>
-    </div>
 
     <div class="card" data-page-node-id="SeqTGuODUDkc4v9UuRaTmK">
       <div class="btn-row" data-page-node-id="RgwskZ5Jwck8lKyOPi8xhV">
@@ -107,6 +102,16 @@
 </div>
 
 <!-- 联机：对方请求重开确认 -->
+<!-- 抛硬币：随机谁执黑（先手） -->
+<div id="coinModal" class="modal coin-modal" hidden>
+  <div class="coin-card">
+    <p class="coin-title" id="coinTitle">随机先手</p>
+    <div class="coin" id="coin"><span class="coin-face">🪙</span></div>
+    <p class="coin-result" id="coinResult"></p>
+    <p class="coin-sub" id="coinSub"></p>
+  </div>
+</div>
+
 <div id="reqModal" class="modal" hidden data-page-node-id="iVAkoB7WvhyhT3ZIXHtQx0">
   <div class="modal-card" data-page-node-id="yB3L2hiGZbQdP83nFbGpyP">
     <p id="reqText" class="req-text" data-page-node-id="5DgrFC3FDlc99UruDmkSgv">对方请求</p>
@@ -121,10 +126,10 @@
 <script src="gomoku-engine.js?v=g2"></script>
 <script src="gomoku-render.js?v=g2"></script>
 <script src="gomoku-ai.js?v=g2"></script>
-<script src="gomoku-online.js?v=g7"></script>
+<script src="gomoku-online.js?v=g8"></script>
 <script src="lobby.js?v=l2"></script>
 <script src="timer.js?v=t1"></script>
-<script src="gomoku-app.js?v=g9"></script>
+<script src="gomoku-app.js?v=g10"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

@@ -37,21 +37,27 @@
   var timerCfg = { mode: 'off', baseMs: 0, byoCount: 0, byoMs: 0 };
   var undoPending = false;   // 联机：悔棋请求进行中（锁输入）
   var atStart = false;       // 本地/ai：是否已落第一手（落子后锁定计时选择）
+  var coinLock = false;      // 抛硬币动画期间锁输入
+  var coinShown = false;     // 本局是否已播放过抛硬币（联机重开时复位）
 
   var el = {};
   ['turnLabel', 'phaseLabel', 'boardTitle', 'btnNew', 'btnUndo', 'onlineStatus', 'roomCodeTag',
    'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo', 'banner',
    'timerCard', 'timerTag', 'clockRow', 'clockName0', 'clockName1',
-   'clockTime0', 'clockTime1', 'clockByo0', 'clockByo1', 'timerPick'].forEach(function (id) {
+   'clockTime0', 'clockTime1', 'clockByo0', 'clockByo1',
+   'coinModal', 'coin', 'coinTitle', 'coinResult', 'coinSub'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
   function myColor() {
-    if (onlineMode) return myPlayer === 0 ? 1 : 2;
+    if (onlineMode) {
+      var bp = (state && typeof state.blackPlayer === 'number') ? state.blackPlayer : 0;
+      return myPlayer === bp ? 1 : 2;
+    }
     return humanColor;
   }
   function myTurn() {
-    if (!state || state.winner >= 0) return false;
+    if (!state || state.winner >= 0 || coinLock) return false;
     if (onlineMode) return connOk && !reqPending && state.turn === myColor();
     if (mode === 'local') return true;          // 热座：当前回合方就在本设备落子
     return state.turn === humanColor;  // ai：轮到人类
@@ -76,8 +82,51 @@
     hover = null;
     hideBanner();
     el.phaseLabel.textContent = '对局进行中';
+    if (!onlineMode) {
+      var bp = Math.random() < 0.5 ? 0 : 1;      // 抛硬币：0=玩家一(人类)执黑, 1=玩家二(AI)执黑
+      if (ai) { humanColor = bp === 0 ? 1 : 2; aiSide = 3 - humanColor; }
+      syncUI();
+      playCoin(bp, { ai: ai });
+    }
     syncUI();
     initTimer();
+  }
+
+  // 抛硬币决定先手（谁执黑）：first = 执黑方玩家序号 0/1
+  function playCoin(first, opts) {
+    opts = opts || {};
+    coinLock = true; coinShown = true;
+    if (!el.coinModal) { coinLock = false; return; }
+    el.coinModal.hidden = false;
+    el.coin.classList.remove('flip', 'settled');
+    el.coinTitle.textContent = '随机先手';
+    el.coinResult.textContent = '';
+    el.coinSub.textContent = '';
+    void el.coin.offsetWidth;                    // 强制重排重启动画
+    el.coin.classList.add('flip');
+    setTimeout(function () {
+      var firstLabel, sub;
+      if (opts.ai) {
+        firstLabel = first === 0 ? '⚫ 你（黑）先手' : '⚪ AI（白）先手';
+        sub = first === 0 ? '你执黑，开始！' : 'AI 执白，稍候…';
+      } else if (opts.mode === 'online') {
+        firstLabel = first === 0 ? '⚫ 玩家一（黑）先手' : '⚪ 玩家二（白）先手';
+        sub = (first === myPlayer) ? '你执黑，先手' : '对手执黑先手';
+      } else {
+        firstLabel = first === 0 ? '⚫ 玩家一（黑）先手' : '⚪ 玩家二（白）先手';
+        sub = first === 0 ? '玩家一执黑先行' : '玩家二执黑先行';
+      }
+      el.coinResult.textContent = firstLabel;
+      el.coinSub.textContent = sub;
+      el.coin.classList.add('settled');
+    }, 1100);
+    setTimeout(function () {
+      el.coinModal.hidden = true;
+      el.coin.classList.remove('flip', 'settled');
+      coinLock = false;
+      syncUI();
+      if (opts.ai && state && state.winner < 0 && state.turn === aiSide) maybeAI();
+    }, 2400);
   }
 
   function initTimer() {
@@ -96,10 +145,6 @@
     if (!el.timerCard) return;
     var cfgOn = !!(timerCfg && timerCfg.mode !== 'off');
     if (el.clockRow) el.clockRow.hidden = !(timer && timer.mode !== 'off');
-    if (el.timerPick) {
-      if (onlineMode) el.timerPick.hidden = roomStarted || myPlayer !== 0;
-      else el.timerPick.hidden = !!atStart;
-    }
     var names = ['黑', '白'];
     if (el.timerTag) {
       var t = timerCfg || null;
@@ -245,6 +290,10 @@
       if (lobby) lobby.hide();
       if (v.timing) { timer = v.timing; renderTimerUI(); }
       if (reqKind === 'undo') { reqKind = null; reqPending = false; undoPending = false; }
+      if (v.history && v.history.length === 0) {
+        coinShown = false;                       // 新一局（含重开）复位，准备播硬币
+        if (typeof v.blackPlayer === 'number') playCoin(v.blackPlayer, { mode: 'online' });
+      }
       if (state.winner >= 0) onWin(state.winner);
       syncUI();
     });
@@ -397,17 +446,6 @@
     if (incomingKind === 'new') respondNew(false);
     else if (incomingKind === 'undo') respondUndo(false);
   });
-  if (el.timerPick) el.timerPick.addEventListener('click', function (e) {
-    var b = e.target;
-    if (!b || b.tagName !== 'BUTTON' || !b.dataset.tm) return;
-    var tm = b.dataset.tm;
-    if (tm === 'blitz') timerCfg = { mode: 'blitz', baseMs: 10 * 60000 };
-    else if (tm === 'byo') timerCfg = { mode: 'byo', baseMs: 10 * 60000, byoCount: 3, byoMs: 30000 };
-    else timerCfg = { mode: 'off' };
-    Array.prototype.forEach.call(el.timerPick.querySelectorAll('.tpick'), function (x) { x.classList.remove('on'); });
-    b.classList.add('on');
-    renderTimerUI();
-  });
 
   document.addEventListener('keydown', function (e) {
     if (!state) return;
@@ -434,10 +472,7 @@
 
   /* ---------- 开局引导 ---------- */
   function boot() {
-    // 默认计时跟随页面选中项（gomoku 默认包干 10 分钟）
-    var def = document.querySelector('.tpick.on');
-    if (def && def.dataset.tm === 'blitz') timerCfg = { mode: 'blitz', baseMs: 10 * 60000 };
-    else if (def && def.dataset.tm === 'byo') timerCfg = { mode: 'byo', baseMs: 10 * 60000, byoCount: 3, byoMs: 30000 };
+    timerCfg = { mode: 'blitz', baseMs: 10 * 60000, byoCount: 3, byoMs: 30000 };  // 计时必须开启，规则固定不可改
     renderTimerUI();
     var params = new URLSearchParams(location.search);
     var m = params.get('mode');

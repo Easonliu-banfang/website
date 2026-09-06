@@ -110,6 +110,8 @@
         else if (m.type === 'started') self._emit('started');
         else if (m.type === 'state') self._emit('state', m.state);
         else if (m.type === 'players') self._emit('players', m.players);
+        else if (m.type === 'req_undo') self._emit('req_undo');
+        else if (m.type === 'res_undo') self._emit('res_undo', m.ok);
         else if (m.type === 'req_new') self._emit('req_new');
         else if (m.type === 'res_new') self._emit('res_new', m.ok);
         else if (m.type === 'dissolve') { self._intentionalClose = true; self._stopHeartbeat(); self._emit('dissolve'); }
