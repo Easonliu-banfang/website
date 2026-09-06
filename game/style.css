@@ -746,14 +746,16 @@ body::before {
 /* ---------- 四子棋（Connect Four） ---------- */
 .c4-layout { max-width: 860px; }
 .c4-frame { max-width: 480px; }
-#board {
+#c4board {
   display: block;
   width: 100%;
+  aspect-ratio: auto;
+  height: auto;
   border-radius: 14px;
   cursor: pointer;
   touch-action: manipulation;
 }
-#board:hover { cursor: pointer; }
+#c4board:hover { cursor: pointer; }
 .c4-play-body .layout { align-items: center; }
 
 .fleet-status { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }

@@ -6,7 +6,7 @@
   'use strict';
 
   var G = window.Connect4;
-  var boardCanvas = document.getElementById('board');
+  var boardCanvas = document.getElementById('c4board');
   var R = new window.C4Render(boardCanvas);
 
   var V = 'c1';
@@ -74,9 +74,8 @@
     if (!onlineMode) {
       var bp = Math.random() < 0.5 ? 0 : 1;      // 抛硬币：0=玩家一(人类)先, 1=玩家二(AI)先
       if (ai) { humanColor = bp === 0 ? 1 : 2; aiSide = 3 - humanColor; }
-      state.blackPlayer = bp;                     // 前端本地也记录先手方
-      syncUI();
-      playCoin(bp, { ai: ai });
+      state.blackPlayer = bp;
+      playCoin(bp, { ai: ai });                  // 先播硬币（coinLock=true 期间 syncUI 不弹回合提示）
     }
     syncUI();
   }

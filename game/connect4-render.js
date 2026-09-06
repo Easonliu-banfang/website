@@ -76,11 +76,11 @@
     var targetY = this.cy(targetR);
     this.fallers.push({
       col: col, p: p, x: x,
-      y0: startY, vy: 0,
+      y: startY, vy: 0,          // 注意：初始位置必须赋给 y（_step 用 y 积分），否则 NaN 永不落地
       targetY: targetY,
-      t0: performance.now(),
+      t0:  (global.performance || global.Date).now(),
       landed: false,
-      bounceVy: 0
+      bounced: false
     });
     this._ensureLoop();
   };
@@ -88,19 +88,19 @@
   Renderer.prototype._ensureLoop = function () {
     var self = this;
     if (this._raf) return;
-    this._lastTs = performance.now();
-    this._raf = requestAnimationFrame(function loop(ts) {
+    this._lastTs =  (global.performance || global.Date).now();
+    this._raf = (global.requestAnimationFrame || function (cb) { return setTimeout(function () { cb(Date.now()); }, 16); })(function loop(ts) {
       var dt = Math.min(0.05, (ts - self._lastTs) / 1000);
       self._lastTs = ts;
       self._step(dt);
       self._draw();
       // 清理已落定的动画（保留约 260ms 让落地光晕可见，再移除）
-      var now = performance.now();
+      var now =  (global.performance || global.Date).now();
       for (var i = self.fallers.length - 1; i >= 0; i--) {
         var f = self.fallers[i];
         if (f.landed && now - (f.impact || now) > 260) self.fallers.splice(i, 1);
       }
-      if (self.fallers.length) self._raf = requestAnimationFrame(loop);
+      if (self.fallers.length) self._raf = (global.requestAnimationFrame || function (cb) { return setTimeout(function () { cb(Date.now()); }, 16); })(loop);
       else self._raf = null;
     });
   };
@@ -118,7 +118,7 @@
             f.bounced = true;
             f.vy = -f.vy * 0.45;
             f.y = f.targetY;
-            f.impact = performance.now();
+            f.impact =  (global.performance || global.Date).now();
             f.bounceCount = 1;
           } else {
             // 反弹后再次触底：吸收速度，落定
@@ -201,7 +201,7 @@
     }
 
     // 下落动画棋子 + 落地光晕
-    var now = performance.now();
+    var now =  (global.performance || global.Date).now();
     for (var i = 0; i < this.fallers.length; i++) {
       var f = this.fallers[i];
       if (!f.landed) {
