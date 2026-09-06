@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>匹配卡牌 · 对局</title>
+  <meta name="description" content="匹配卡牌（UNO 官方规则）—— 与你朋友实时对战">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="../style.css?v=b9">
+  <link rel="stylesheet" href="uno.css?v=u1">
+</head>
+<body class="uno-play-body">
+
+  <!-- 竖屏遮罩：手机必须横屏才能玩 -->
+  <div id="landscapeOverlay" hidden>
+    <div class="lo-inner">
+      <div class="lo-phone">📱</div>
+      <h2>请横屏游玩</h2>
+      <p>旋转你的手机到横向</p>
+    </div>
+  </div>
+
+  <div id="gameRoot">
+
+    <!-- 顶部条：返回 + 房间信息 -->
+    <header class="uno-topbar">
+      <a href="uno.html?v=u1" class="back uno-back" id="btnLeave">← 离开</a>
+      <div class="uno-topinfo">
+        <span class="mode-tag" id="topMode">--</span>
+        <span class="mode-tag" id="topRoom">房间 ----</span>
+      </div>
+    </header>
+
+    <!-- 大厅（等待室） -->
+    <section id="lobbyView" class="uno-lobby" hidden>
+      <div class="uno-lobby-inner">
+        <h2 class="start-title">等待玩家加入</h2>
+        <div class="uno-seats" id="unoSeats"></div>
+        <div class="btn-row enter-row">
+          <button id="btnStart" class="btn on" type="button" hidden>开始游戏 →</button>
+        </div>
+        <p class="uno-lobby-tip" id="lobbyTip">将房间码发给好友，全员到齐后由房主开始</p>
+      </div>
+    </section>
+
+    <!-- 对局画面 -->
+    <section id="gameView" class="uno-table" hidden>
+
+      <!-- 顶部：对手区（1~3 人；2v2 时对手两人一队显示） -->
+      <div class="uo-opps" id="oppRow"></div>
+
+      <!-- 中央区：顶牌 + 当前色 + 抽牌 -->
+      <div class="uo-mid">
+        <div class="uo-board">
+          <div class="uo-topcard" id="topCardSlot">
+            <img id="topCardImg" class="uc" alt="上一张">
+          </div>
+          <div class="uo-colorzone">
+            <span class="uo-colortag">当前颜色</span>
+            <span class="uo-color-dot" id="colorDot"></span>
+          </div>
+          <button class="uo-deck" id="btnDraw" type="button" title="摸一张牌">
+            <span class="uo-deck-inner" id="deckInner">摸牌</span>
+            <span class="uo-deck-sub">🃏 牌堆</span>
+          </button>
+        </div>
+
+        <!-- 效果横幅 / 提示 -->
+        <div class="uo-banner" id="banner"></div>
+      </div>
+
+      <!-- 底部：我自己（+ 2v2 队友） -->
+      <div class="uo-me">
+        <div class="uo-me-head">
+          <span class="uo-me-label" id="meLabel">你</span>
+          <button class="uo-uno-btn" id="btnUno" type="button" hidden>UNO!</button>
+          <button class="uo-pass-btn" id="btnPass" type="button" hidden>过</button>
+        </div>
+        <div class="uo-hand" id="myHand"></div>
+        <!-- 队友手牌（2v2，缩小只读） -->
+        <div class="uo-mate" id="mateRow" hidden>
+          <span class="uo-mate-label" id="mateLabel">队友</span>
+          <div class="uo-hand uo-hand--mate" id="mateHand"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 万色选色弹窗 -->
+    <div class="uo-modal" id="colorModal" hidden>
+      <div class="uo-modal-inner">
+        <h3>选择颜色</h3>
+        <div class="uo-colorpick">
+          <button class="cp cp-r" data-c="r">红</button>
+          <button class="cp cp-b" data-c="b">蓝</button>
+          <button class="cp cp-g" data-c="g">绿</button>
+          <button class="cp cp-y" data-c="y">黄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 结果横幅 -->
+    <div class="uo-result" id="resultBanner" hidden></div>
+  </div>
+
+<script src="uno-engine.js?v=u1"></script>
+<script src="uno-online.js?v=u1"></script>
+<script src="uno-app.js?v=u1"></script>
+</body>
+</html>

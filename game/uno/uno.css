@@ -1,0 +1,416 @@
+/* ============ 匹配卡牌（UNO）============ */
+/* 深色极简风格：复用 style.css 变量，仅补充 UNO 专属组件 */
+
+.uno-modes { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.uno-modes .mode-badge {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--purple);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.uno-hint { margin-top: 18px; font-size: 13px; color: var(--dim); }
+.uno-hint b { color: var(--cyan); font-weight: 600; }
+
+/* 座位预演（2v2） */
+.seat-row { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; justify-content: center; }
+.seat { width: 42px; height: 58px; border-radius: 8px; border: 1px solid var(--card-edge); background: var(--card); display: inline-block; }
+.seat.top { border-color: rgba(62, 142, 247, 0.5); background: rgba(62, 142, 247, 0.10); }
+.seat.bottom { border-color: rgba(46, 189, 89, 0.5); background: rgba(46, 189, 89, 0.10); }
+.seat-tag { font-family: var(--mono); font-size: 12px; color: var(--dim); margin-left: 6px; }
+
+/* ============ 对局页（全屏） ============ */
+.uno-play-body {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+#gameRoot {
+  position: relative;
+  z-index: 1;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 竖屏遮罩 */
+#landscapeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+#landscapeOverlay[hidden] { display: none; }
+.lo-inner { padding: 24px; }
+.lo-phone { font-size: 56px; margin-bottom: 18px; transform: rotate(90deg); opacity: 0.9; }
+.lo-inner h2 { font-family: var(--mono); font-size: 24px; margin-bottom: 10px; color: var(--text); }
+.lo-inner p { color: var(--dim); font-size: 15px; }
+
+/* 顶部条 */
+.uno-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--card-edge);
+  flex: 0 0 auto;
+}
+.uno-back { margin: 0; font-size: 13px; }
+.uno-topinfo { display: flex; gap: 8px; align-items: center; }
+.uno-topinfo .mode-tag { margin: 0; font-size: 12px; padding: 5px 10px; cursor: default; }
+
+/* 大厅 */
+.uno-lobby {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  overflow: auto;
+}
+.uno-lobby-inner { width: 100%; max-width: 560px; }
+.uno-seats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 22px 0; }
+.uoseat {
+  border: 1px solid var(--card-edge);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  min-height: 74px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.uoseat.on { border-color: rgba(34, 211, 238, 0.45); }
+.uoseat.me { background: rgba(34, 211, 238, 0.07); }
+.uoseat-n { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.uoseat-name { font-size: 14px; color: var(--text); }
+.uoseat-team { font-size: 11px; border-radius: 999px; padding: 1px 8px; align-self: flex-start; color: var(--text); }
+.uoseat-team.ta { background: rgba(46, 189, 89, 0.16); color: #6fdc8e; }
+.uoseat-team.tb { background: rgba(62, 142, 247, 0.16); color: #6db5ff; }
+.uoseat-host { font-size: 11px; color: var(--purple); }
+.uno-lobby-tip { text-align: center; font-size: 13px; color: var(--dim); margin-top: 16px; }
+
+/* 对局表布局：对手区 / 中央 / 自己 */
+.uno-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px 12px;
+  gap: 6px;
+}
+.uno-table[hidden] { display: none; }
+
+/* 对手区 */
+.uo-opps {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  flex: 0 1 auto;
+  max-height: 30%;
+}
+.uocard-opp {
+  border: 1px solid var(--card-edge);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 92px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.uocard-opp.turn {
+  border-color: var(--cyan);
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
+}
+.uo-opp-top { display: flex; align-items: center; gap: 6px; }
+.uo-opp-name { font-size: 12px; color: var(--text); }
+.uo-opp-team { font-size: 10px; border-radius: 999px; padding: 1px 7px; }
+.uo-opp-team.ta { background: rgba(46, 189, 89, 0.16); color: #6fdc8e; }
+.uo-opp-team.tb { background: rgba(62, 142, 247, 0.16); color: #6db5ff; }
+.uo-opp-uno { font-size: 10px; color: #ffd166; border: 1px solid rgba(255, 209, 102, 0.5); border-radius: 999px; padding: 1px 7px; }
+.uo-opp-body { position: relative; }
+/* CSS 牌背（无需额外素材） */
+.uo-back {
+  width: 42px;
+  height: 59px;
+  border-radius: 7px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.16) 0 30%, transparent 31%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 6px, transparent 6px 12px),
+    #151c26;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: rgba(34, 211, 238, 0.75);
+  font-weight: 700;
+}
+.uo-opp-cnt {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  background: var(--bg-elev);
+  border: 1px solid var(--card-edge);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 12px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 999px;
+  padding: 0 5px;
+}
+.uo-opp-foot { font-size: 11px; color: var(--dim); }
+
+/* 卡牌通用 */
+.uc {
+  display: block;
+  width: 62px;
+  aspect-ratio: 5 / 7;
+  object-fit: contain;
+  border-radius: 7px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
+  background: transparent;
+}
+.uc-back {
+  opacity: 0.92;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45)) brightness(0.9);
+}
+.uc-hand { width: 60px; transition: transform 0.16s ease, filter 0.16s ease; }
+.uc-hand.no { filter: brightness(0.55) saturate(0.5); }
+.uc-hand.glow { box-shadow: 0 0 10px rgba(34, 211, 238, 0.65); }
+.ucmate { width: 34px; cursor: default; }
+
+/* 中央区 */
+.uo-mid {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+}
+.uo-board {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.uo-topcard .uc { width: 92px; }
+.uo-colorzone { text-align: center; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.uo-colortag { font-size: 11px; color: var(--faint); font-family: var(--mono); }
+.uo-color-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.uo-deck {
+  border: 1px dashed var(--card-edge);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--dim);
+  transition: all 0.2s ease;
+  min-width: 92px;
+}
+.uo-deck:disabled { cursor: not-allowed; opacity: 0.45; }
+.uo-deck.on { border-color: rgba(34, 211, 238, 0.6); color: var(--cyan); }
+.uo-deck .uo-deck-inner { display: block; font-size: 16px; font-weight: 600; font-family: var(--mono); }
+.uo-deck-sub { font-size: 11px; margin-top: 4px; display: block; }
+
+/* 横幅 */
+.uo-banner {
+  text-align: center;
+  font-size: 14px;
+  color: var(--dim);
+  padding: 8px 16px;
+  border-radius: 999px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+}
+.uo-banner.mine { color: var(--cyan); border-color: rgba(34, 211, 238, 0.4); }
+.uo-banner.warn { color: #ffd166; border-color: rgba(255, 209, 102, 0.4); }
+.uo-banner.win { color: #6fdc8e; font-size: 17px; border-color: rgba(46, 189, 89, 0.5); }
+.uo-banner.shake { animation: uoShake 0.4s; }
+@keyframes uoShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* 底部：我 + 队友 */
+.uo-me {
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 10px;
+  max-height: 44%;
+}
+.uo-me-head { display: flex; align-items: center; gap: 10px; }
+.uo-me-label { font-size: 13px; color: var(--dim); font-family: var(--mono); }
+.uo-uno-btn {
+  border: 1px solid rgba(255, 209, 102, 0.6);
+  color: #ffd166;
+  background: rgba(255, 209, 102, 0.1);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  animation: uoPulse 1.2s infinite;
+}
+.uo-pass-btn {
+  border: 1px solid var(--card-edge);
+  color: var(--dim);
+  background: var(--card);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.uo-pass-btn:hover { color: var(--text); border-color: rgba(34, 211, 238, 0.45); }
+@keyframes uoPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.uo-hand {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 62px;
+}
+.uo-hand.act .uc-wrap.ok { cursor: pointer; }
+.uo-hand.act .uc-wrap.ok:hover .uc-hand { transform: translateY(-10px); }
+.uo-hand.act .uc-wrap.ok:hover .uc-hand.glow { filter: brightness(1.15); }
+.uo-empty { color: var(--faint); font-size: 13px; line-height: 62px; }
+.uo-mate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.uo-mate-label { font-size: 11px; color: var(--faint); white-space: nowrap; }
+.uo-hand--mate {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  max-width: 92%;
+  padding: 2px;
+  min-height: 0;
+}
+.uo-hand--mate::-webkit-scrollbar { height: 3px; }
+
+/* 万色弹窗 */
+.uo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(5, 8, 12, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.uo-modal[hidden] { display: none; }
+.uo-modal-inner {
+  background: var(--bg-elev);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 22px 26px;
+  text-align: center;
+}
+.uo-modal-inner h3 { font-family: var(--mono); font-size: 17px; margin-bottom: 16px; }
+.uo-colorpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cp {
+  width: 92px;
+  height: 54px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.cp:hover { transform: scale(1.06); }
+.cp-r { background: #e5484d; }
+.cp-b { background: #3e8ef7; }
+.cp-g { background: #2ebd59; }
+.cp-y { background: #d9a414; }
+
+/* 结果横幅 */
+.uo-result {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 110;
+  background: rgba(10, 14, 20, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  padding: 30px 44px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+.uo-result.big { font-size: 30px; color: #6fdc8e; border-color: rgba(46, 189, 89, 0.5); }
+.uo-again { margin-top: 4px; }
+
+/* 断线横幅 */
+.uo-connnote {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  background: rgba(229, 72, 77, 0.16);
+  border: 1px solid rgba(229, 72, 77, 0.55);
+  color: #ff8f92;
+  border-radius: 999px;
+  padding: 6px 18px;
+  font-size: 13px;
+}
+
+/* 小屏 / 竖屏容器自适应 */
+@media (max-width: 640px) {
+  .uc-hand { width: 46px; }
+  .uc { width: 48px; }
+  .uo-topcard .uc { width: 72px; }
+  .uocard-opp { min-width: 74px; padding: 6px 8px; }
+  .uo-opp-name { font-size: 11px; }
+  .uo-deck { min-width: 74px; padding: 10px 10px; }
+  .uo-color-dot { width: 38px; height: 38px; font-size: 12px; }
+  .cp { width: 76px; }
+}
