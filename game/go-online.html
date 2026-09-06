@@ -53,9 +53,9 @@
 
       <!-- 加入：输入框 + 加入游戏 -->
       <div id="joinView" hidden>
-        <span class="cap">输入 6 位房间码</span>
+        <span class="cap">输入 4 位房间码</span>
         <div class="join-row">
-          <input id="inputCode" class="code-input" maxlength="6" placeholder="房间码" autocomplete="off" spellcheck="false" />
+          <input id="inputCode" class="code-input" maxlength="4" placeholder="房间码" autocomplete="off" spellcheck="false" />
         </div>
         <div class="btn-row enter-row">
           <button id="btnJoinGo" class="btn on" type="button">加入游戏</button>
@@ -128,7 +128,7 @@
 
   function tryJoin() {
     var code = (inputCode.value || '').trim().toUpperCase();
-    if (code.length !== 6) { setStatus('请输入 6 位房间码', 'disconnected'); return; }
+    if (code.length !== 4) { setStatus('请输入 4 位房间码', 'disconnected'); return; }
     setStatus('加入房间中…', 'connecting');
     fetch(WORKER + '/api/room/' + code + '?game=' + GAME)
       .then(function (r) { return r.json(); })

@@ -83,7 +83,7 @@
     });
   }
 
-  // 创建房间：返回 6 位房间码
+  // 创建房间：返回 4 位数字房间码
   Online.prototype.createRoom = function () {
     var self = this;
     return fetchJSON(WORKER_BASE + '/api/room', { method: 'POST' })

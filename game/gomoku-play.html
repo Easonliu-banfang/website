@@ -1,93 +1,93 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN" data-page-node-id="htGkaEwgwOBbmCyUliHrVC">
+<head data-page-node-id="HcT9KWn8EVxjGrzDAEF5TF">
+  <meta charset="UTF-8" data-page-node-id="BXJ9Qv4N6Gj9sBUiv4EA6d">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="B2Afno6ZXbXXQ4gkAULGAS">
   <title>五子棋 · Gomoku</title>
-  <meta name="description" content="五子棋 Gomoku —— 经典 15 路">
-  <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b4">
+  <meta name="description" content="五子棋 Gomoku —— 经典 15 路" data-page-node-id="URXNRenR7YqdnzcC0U6P5I">
+  <meta name="theme-color" content="#0a0e14" data-page-node-id="WKCXAIdXma7XwaVpfEMrL2">
+  <link rel="stylesheet" href="style.css?v=b4" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
 </head>
-<body>
+<body data-page-node-id="E14bzVXW1RdqZu68B5ilPi">
 
-<header class="head">
-  <a href="gomoku.html?v=b4" class="back">← 选择模式</a>
-  <h1>五子棋</h1>
-  <span id="roomCodeTag" class="mode-tag" hidden></span>
+<header class="head" data-page-node-id="hg5HAwc8srLcvN7nyVW897">
+  <a href="gomoku.html?v=b4" class="back" data-page-node-id="cplecyaRcourx3tfJ14CIs">← 选择模式</a>
+  <h1 data-page-node-id="vC3UPdEIiunAFxJ8ImanrZ">五子棋</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden data-page-node-id="7tQdFrBngntVxrAXzovy1e"></span>
 </header>
 
-<div class="layout">
+<div class="layout" data-page-node-id="Yrzq2fVu1rYdhY7wweBLon">
 
-  <div class="board-col">
-    <div class="board-box">
-      <div class="board-title" id="boardTitle">棋盘</div>
-      <div class="board-frame">
-        <canvas id="board"></canvas>
-        <div id="banner" class="banner"></div>
+  <div class="board-col" data-page-node-id="3D5dsXsQUormuzCAsYFo2R">
+    <div class="board-box" data-page-node-id="VZzrtR6FemVqz7HHBiyyBG">
+      <div class="board-title" id="boardTitle" data-page-node-id="DvaT3jzubRo70DNhG8ks6z">棋盘</div>
+      <div class="board-frame" data-page-node-id="aKM0EcMBNv3VvYLxQTA9JA">
+        <canvas id="board" data-page-node-id="ZBCcqbIFjFkYTneXkZrtMl"></canvas>
+        <div id="banner" class="banner" data-page-node-id="VPvOj3keJejFAj77UB5sg2"></div>
       </div>
     </div>
   </div>
 
-  <aside class="panel">
+  <aside class="panel" data-page-node-id="RjqNjrRx4tfhUOXZjcrAA9">
 
-    <div class="card turn-card">
-      <span class="cap">当前回合</span>
-      <span class="turn-val p1" id="turnLabel">黑棋落子</span>
-      <span class="phase-label" id="phaseLabel">对局进行中</span>
+    <div class="card turn-card" data-page-node-id="Mdd1y04jMPUhyRGhotMBjI">
+      <span class="cap" data-page-node-id="5azTYajjwVQlMYn66iCg7z">当前回合</span>
+      <span class="turn-val p1" id="turnLabel" data-page-node-id="saC871eV4NQZZ9Y5RQj7fC">黑棋落子</span>
+      <span class="phase-label" id="phaseLabel" data-page-node-id="S1TkK4Bi4LqevH0tM13Smk">对局进行中</span>
     </div>
 
-    <div class="card">
-      <div class="btn-row">
-        <button id="btnNew" class="btn ghost" type="button">新局</button>
+    <div class="card" data-page-node-id="SeqTGuODUDkc4v9UuRaTmK">
+      <div class="btn-row" data-page-node-id="RgwskZ5Jwck8lKyOPi8xhV">
+        <button id="btnNew" class="btn ghost" type="button" data-page-node-id="QU0hf7qpmt4Gq9fEknMM95">新局</button>
       </div>
-      <div class="meta">
-        <span class="keys">在交叉点落子 · N 新局</span>
+      <div class="meta" data-page-node-id="qh3VB4V0PyjzJT8TNHoPJ7">
+        <span class="keys" data-page-node-id="NpqAsJhCqNX6X4cKhyKJgE">在交叉点落子 · N 新局</span>
       </div>
     </div>
 
-    <div class="status" id="onlineStatus" hidden></div>
+    <div class="status" id="onlineStatus" hidden data-page-node-id="nSjHW2SpHaiSIbpLtRdmoI"></div>
   </aside>
 </div>
 
 <!-- 联机等待室 -->
-<div id="lobby" class="lobby" hidden>
-  <div class="lobby-card">
-    <div class="lobby-head">
-      <div class="lobby-room">房间 <b id="lobbyCode">----</b></div>
-      <div id="lobbyStatus" class="lobby-status">连接中…</div>
+<div id="lobby" class="lobby" hidden data-page-node-id="o8EVRMreA5mH4MSt7dO8Dt">
+  <div class="lobby-card" data-page-node-id="vimnlHXLIuKwsyq5OsWSyU">
+    <div class="lobby-head" data-page-node-id="99pCUsBzziEOemHYkdrWOC">
+      <div class="lobby-room" data-page-node-id="wT386JBIPiK4SKWUoQHuBd">房间 <b id="lobbyCode" data-page-node-id="0YVl0gfDxrYKiTYNLYAA25">----</b></div>
+      <div id="lobbyStatus" class="lobby-status" data-page-node-id="oH3HdANMd7AtufAyLGXZ7v">连接中…</div>
     </div>
-    <div class="lobby-seats">
-      <div class="seat" id="seat0">
-        <div class="seat-dot"></div>
-        <div class="seat-name">玩家 1</div>
-        <div class="seat-ready">未准备</div>
+    <div class="lobby-seats" data-page-node-id="glksHD0j50kCVENzGi7y1x">
+      <div class="seat" id="seat0" data-page-node-id="b1FUyD3rlgNQgdyeVq6iyU">
+        <div class="seat-dot" data-page-node-id="7m8fY5UJ6OTQEeJvMj7bvz"></div>
+        <div class="seat-name" data-page-node-id="o03X1oBusp4ZCMvNePhUqI">玩家 1</div>
+        <div class="seat-ready" data-page-node-id="Kpl8WSdgrgLTwEalYjjYrb">未准备</div>
       </div>
-      <div class="lobby-vs">VS</div>
-      <div class="seat" id="seat1">
-        <div class="seat-dot"></div>
-        <div class="seat-name">玩家 2</div>
-        <div class="seat-ready">未准备</div>
+      <div class="lobby-vs" data-page-node-id="hS7DWxr94O3rW4EEcXQyym">VS</div>
+      <div class="seat" id="seat1" data-page-node-id="d1FrmyocAFkKjaFRTKcfXb">
+        <div class="seat-dot" data-page-node-id="rdJpisMTtUv4EN0129BBGE"></div>
+        <div class="seat-name" data-page-node-id="1wAsSQkjdcwU9JMKTPtQLj">玩家 2</div>
+        <div class="seat-ready" data-page-node-id="42x4c7eIUXZhwewnE1HmSq">未准备</div>
       </div>
     </div>
-    <div class="lobby-actions">
-      <button id="btnReady" class="btn on" type="button">准备</button>
-      <button id="btnStart" class="btn" type="button" disabled>开始游戏</button>
+    <div class="lobby-actions" data-page-node-id="8Zr69pW3Qlr9qrr7kFHE1D">
+      <button id="btnReady" class="btn on" type="button" data-page-node-id="BcGGfCfxSKXuwBT4zii2bl">准备</button>
+      <button id="btnStart" class="btn" type="button" disabled data-page-node-id="q7gfvPelKs40dIRf4Oj0da">开始游戏</button>
     </div>
-    <div class="lobby-actions">
-      <button id="btnLeave" class="btn ghost" type="button">离开房间</button>
+    <div class="lobby-actions" data-page-node-id="lXsPd3jiQ5X6xU6xdbZeHA">
+      <button id="btnLeave" class="btn ghost" type="button" data-page-node-id="VoNfnmVIjGF1b1QksJPGyQ">离开房间</button>
     </div>
-    <div id="lobbyHint" class="lobby-hint"></div>
+    <div id="lobbyHint" class="lobby-hint" data-page-node-id="KgnxtSop1GHWrhhXPwWUCp"></div>
   </div>
 </div>
 
 <!-- 联机：对方请求重开确认 -->
-<div id="reqModal" class="modal" hidden>
-  <div class="modal-card">
-    <p id="reqText" class="req-text">对方请求</p>
-    <p id="reqSub" class="req-sub"></p>
-    <div class="btn-row">
-      <button id="btnReqOk" class="btn on" type="button">同意</button>
-      <button id="btnReqNo" class="btn ghost" type="button">拒绝</button>
+<div id="reqModal" class="modal" hidden data-page-node-id="iVAkoB7WvhyhT3ZIXHtQx0">
+  <div class="modal-card" data-page-node-id="yB3L2hiGZbQdP83nFbGpyP">
+    <p id="reqText" class="req-text" data-page-node-id="5DgrFC3FDlc99UruDmkSgv">对方请求</p>
+    <p id="reqSub" class="req-sub" data-page-node-id="AUfFjKWebJ0JBgeyB603Cp"></p>
+    <div class="btn-row" data-page-node-id="akKdQeasVYihPGbZW450sj">
+      <button id="btnReqOk" class="btn on" type="button" data-page-node-id="cDDaxWTkWMhYJZ72527xGn">同意</button>
+      <button id="btnReqNo" class="btn ghost" type="button" data-page-node-id="eznV9flMqzd2TVvTJmPMzy">拒绝</button>
     </div>
   </div>
 </div>

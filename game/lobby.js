@@ -53,7 +53,12 @@
       if (nameEl) nameEl.textContent = (isYou ? '我' : '对手') + '（玩家' + (i + 1) + '）';
       if (readyEl) readyEl.textContent = !online ? '离线' : (ready ? '已准备 ✓' : '未准备');
     });
-    if (this.btnReady) this.btnReady.textContent = d.ready[you] ? '取消准备' : '准备';
+    var connected = (you >= 0);   // 未收到真实 lobby（you=-1）前禁用按钮，避免点击把服务端自动准备态误 toggle 掉
+    if (this.btnReady) {
+      this.btnReady.textContent = d.ready[you] ? '取消准备' : '准备';
+      this.btnReady.disabled = !connected;
+      if (!connected) this.btnReady.textContent = '连接中…';
+    }
     var canStart = (you === d.host) && d.players[0] && d.players[1] && d.ready[0] && d.ready[1];
     if (this.btnStart) {
       this.btnStart.disabled = !canStart;
