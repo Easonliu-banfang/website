@@ -296,7 +296,7 @@
       myPlayer = d.you; connOk = true;
       roomStarted = !!d.started;
       if (lobby) {
-        if (d.started) lobby.hide();
+        if (d.started) { window.Notify.clear('🔔 房主提醒你准备'); lobby.hide(); }
         else { lobby.show(currentRoom); lobby.render(d); }
       }
     });

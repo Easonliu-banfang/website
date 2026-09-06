@@ -20,12 +20,18 @@
     this.btnNotify = document.getElementById('btnNotify');
     this.btnLeave = document.getElementById('btnLeave');
     this.you = -1;
+    this.readyState = false;   // 本地已知准备态（render 同步，点击乐观切换）
     this.onReady = opts.onReady || function () {};
     this.onStart = opts.onStart || function () {};
     this.onNotify = opts.onNotify || function () {};
     this.onLeave = opts.onLeave || function () {};
     var self = this;
-    if (this.btnReady) this.btnReady.addEventListener('click', function () { self.onReady(); });
+    if (this.btnReady) this.btnReady.addEventListener('click', function () {
+      // 乐观更新：点击立即切换文字（服务端广播随后 render 校正，双保险避免“点了文字不变”）
+      self.readyState = !self.readyState;
+      if (!self.btnReady.hidden) self.btnReady.textContent = self.readyState ? '取消准备' : '准备';
+      self.onReady();
+    });
     if (this.btnStart) this.btnStart.addEventListener('click', function () { self.onStart(); });
     if (this.btnNotify) this.btnNotify.addEventListener('click', function () { self.onNotify(); });
     if (this.btnLeave) this.btnLeave.addEventListener('click', function () { self.onLeave(); });
@@ -93,7 +99,8 @@
     if (self.btnReady) {
       self.btnReady.hidden = isHost;
       if (!isHost) {
-        self.btnReady.textContent = d.ready[you] ? '取消准备' : '准备';
+        self.readyState = !!d.ready[you];
+        self.btnReady.textContent = self.readyState ? '取消准备' : '准备';
         self.btnReady.disabled = !connected;
         if (!connected) self.btnReady.textContent = '连接中…';
       }
