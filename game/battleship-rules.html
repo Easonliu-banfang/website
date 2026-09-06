@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>海战棋 · 玩法规则</title>
+  <meta name="description" content="海战棋 Battleship 玩法规则">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="room-head">
+    <a href="index.html" class="back">← 返回游戏室</a>
+    <h1>玩法规则</h1>
+  </header>
+
+  <div class="rules-card">
+    <h3>🎯 目标</h3>
+    <p>在 10×10 的战场上，<b>抢先击沉对手的全部 5 艘战舰</b>就赢。你也有 5 艘要守护。</p>
+
+    <h3>🚢 你的舰队</h3>
+    <p>航母 5 格 · 战列舰 4 格 · 巡洋舰 3 格 · 潜艇 3 格 · 驱逐舰 2 格。<br>
+       开局把每艘船拖到棋盘上（可横放或竖放，不能重叠、不能出界），也可以一键随机布阵。</p>
+
+    <h3>💥 每回合开火</h3>
+    <p>轮到你时，在右侧「你的攻击」棋盘上点一格开火：<br>
+       <b>💧 未命中</b>（蓝点）· <b>🔥 命中</b>（红心）· 击沉后整艘船轮廓变红。</p>
+
+    <h3>🧠 小技巧</h3>
+    <p>命中后沿着那条线继续追打，往往能更快击沉一整艘；击沉后再回到「撒网」模式找下一艘。电脑也用同样的策略。</p>
+
+    <h3>🔁 新局</h3>
+    <p>联机模式下「新局」会向对手发起请求，<b>双方都同意</b>才重置并重新布阵；面对面 / 人机则直接重开。</p>
+
+    <div class="btn-row enter-row">
+      <a id="btnKnown" class="btn on" href="battleship.html">我已知晓，开始游戏 →</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

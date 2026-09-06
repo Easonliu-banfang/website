@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>海战棋 · Battleship</title>
+  <meta name="description" content="海战棋 Battleship —— 经典版">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="head">
+  <a href="battleship.html" class="back">← 选择模式</a>
+  <h1>海战棋</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden></span>
+</header>
+
+<div class="layout">
+
+  <div class="board-col">
+    <div class="boards">
+      <div class="board-box">
+        <div class="board-title" id="oceanTitle">你的舰队</div>
+        <div class="board-frame">
+          <canvas id="ocean"></canvas>
+          <div id="banner" class="banner"></div>
+        </div>
+      </div>
+      <div class="board-box">
+        <div class="board-title" id="trackTitle">你的攻击</div>
+        <div class="board-frame">
+          <canvas id="tracking"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel">
+
+    <div class="card turn-card">
+      <span class="cap">当前阶段 / 回合</span>
+      <span class="turn-val p0" id="turnLabel">布置舰队</span>
+      <span class="phase-label" id="phaseLabel">布阵阶段</span>
+    </div>
+
+    <!-- 放船面板 -->
+    <div class="card" id="placePanel" hidden>
+      <span class="cap">舰队清单（点击棋盘摆放，R 旋转）</span>
+      <div class="fleet-status" id="fleetStatus"></div>
+      <div class="btn-row">
+        <button id="btnRandom" class="btn" type="button">随机布阵</button>
+        <button id="btnRotate" class="btn" type="button">旋转</button>
+      </div>
+      <div class="rotate-hint" id="rotateHint">当前：纵向 ▯</div>
+      <div class="btn-row enter-row">
+        <button id="btnConfirm" class="btn on" type="button">确认布阵</button>
+      </div>
+    </div>
+
+    <!-- 交火阶段：舰队状态 -->
+    <div class="card" id="firePanel">
+      <span class="cap">战况</span>
+      <div class="fleet-status" id="fleetStatus2"></div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <button id="btnNew" class="btn ghost" type="button">新局</button>
+      </div>
+      <div class="meta">
+        <span class="keys">R 旋转 · N 新局</span>
+      </div>
+    </div>
+
+    <div class="status" id="onlineStatus" hidden></div>
+  </aside>
+</div>
+
+<!-- 面对面：传递设备遮罩 -->
+<div id="passModal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="passText" class="req-text">传给玩家</p>
+    <div class="btn-row">
+      <button id="btnPass" class="btn on" type="button">我准备好了，继续 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 联机：对方请求重开确认 -->
+<div id="reqModal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="reqText" class="req-text">对方请求</p>
+    <p id="reqSub" class="req-sub"></p>
+    <div class="btn-row">
+      <button id="btnReqOk" class="btn on" type="button">同意</button>
+      <button id="btnReqNo" class="btn ghost" type="button">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="battleship-engine.js?v=g1"></script>
+<script src="battleship-render.js?v=g1"></script>
+<script src="battleship-online.js?v=g1"></script>
+<script src="battleship-ai.js?v=g1"></script>
+<script src="battleship-app.js?v=g1"></script>
+</body>
+</html>

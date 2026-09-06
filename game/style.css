@@ -550,3 +550,84 @@ body::before {
 }
 .modal-card .btn-row { gap: 12px; }
 .modal-card .btn { padding: 12px 10px; }
+
+/* ---------- 海战棋 ---------- */
+
+.boards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  width: 100%;
+}
+.board-box { width: 100%; }
+.board-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--dim);
+  margin-bottom: 8px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+.board-frame {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+}
+#ocean, #tracking {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  background: var(--bg-elev);
+  touch-action: manipulation;
+}
+.phase-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--dim);
+  margin-top: 6px;
+}
+
+.fleet-status { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.fleet-col { }
+.fleet-title {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+.ship-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.ship-row + .ship-row { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.ship-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.ship-name { flex: 1; color: var(--text); }
+.ship-size { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+.ship-state { font-family: var(--mono); font-size: 11.5px; color: var(--dim); }
+.ship-row.active {
+  background: rgba(34, 211, 238, 0.08);
+  border-radius: 6px;
+  padding-left: 6px; padding-right: 6px;
+}
+.ship-row.done .ship-state { color: var(--cyan); }
+.ship-row.sunk { opacity: 0.55; }
+.ship-row.sunk .ship-name { text-decoration: line-through; }
+
+.rotate-hint {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--faint);
+  margin-top: 10px;
+  text-align: center;
+}
+
+@media (max-width: 880px) {
+  .boards { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; }
+}
