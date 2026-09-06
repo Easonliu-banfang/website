@@ -855,3 +855,31 @@ body::before {
   color: var(--faint);
   min-height: 14px;
 }
+
+/* ---------- 大赛计时（五子棋/围棋） ---------- */
+.timer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.timer-tag {
+  font-family: var(--mono); font-size: 11px; color: var(--cyan);
+  border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 4px; padding: 2px 8px;
+}
+.clock-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.clock {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 6px; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+  background: rgba(255,255,255,0.03); transition: all 0.2s ease;
+}
+.clock.run { border-color: var(--cyan); background: rgba(56, 189, 248, 0.07); box-shadow: 0 0 0 1px rgba(56,189,248,0.25); }
+.clock.out { border-color: rgba(255,122,122,0.45); background: rgba(255,122,122,0.06); }
+.clock-name { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+.clock-time { font-family: var(--mono); font-size: 21px; font-weight: 600; color: var(--text); letter-spacing: 1px; }
+.clock.run .clock-time { color: var(--cyan); }
+.clock.out .clock-time { color: #ff7a7a; }
+.clock-byo { font-family: var(--mono); font-size: 10.5px; color: var(--dim); min-height: 13px; }
+.timer-pick { display: flex; gap: 8px; }
+.tpick {
+  flex: 1; font-family: var(--mono); font-size: 11px; color: var(--dim);
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; padding: 7px 4px; cursor: pointer; transition: all 0.15s ease;
+}
+.tpick:hover { border-color: var(--cyan); color: var(--text); }
+.tpick.on { border-color: var(--cyan); color: var(--cyan); background: rgba(56,189,248,0.08); }

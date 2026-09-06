@@ -6,7 +6,7 @@
   <title>五子棋 · Gomoku</title>
   <meta name="description" content="五子棋 Gomoku —— 经典 15 路" data-page-node-id="URXNRenR7YqdnzcC0U6P5I">
   <meta name="theme-color" content="#0a0e14" data-page-node-id="WKCXAIdXma7XwaVpfEMrL2">
-  <link rel="stylesheet" href="style.css?v=b5" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
+  <link rel="stylesheet" href="style.css?v=b6" data-page-node-id="zYzwFfFHSaDYfeceQwDgHo">
 </head>
 <body data-page-node-id="E14bzVXW1RdqZu68B5ilPi">
 
@@ -36,12 +36,38 @@
       <span class="phase-label" id="phaseLabel" data-page-node-id="S1TkK4Bi4LqevH0tM13Smk">对局进行中</span>
     </div>
 
+    <!-- 计时（大赛规则） -->
+    <div class="card timer-card" id="timerCard">
+      <div class="timer-head">
+        <span class="cap">计时（大赛规则）</span>
+        <span class="timer-tag" id="timerTag">不限时</span>
+      </div>
+      <div class="clock-row" id="clockRow" hidden>
+        <div class="clock p1" id="clock0">
+          <span class="clock-name" id="clockName0">黑</span>
+          <span class="clock-time" id="clockTime0">10:00</span>
+          <span class="clock-byo" id="clockByo0"></span>
+        </div>
+        <div class="clock p1" id="clock1">
+          <span class="clock-name" id="clockName1">白</span>
+          <span class="clock-time" id="clockTime1">10:00</span>
+          <span class="clock-byo" id="clockByo1"></span>
+        </div>
+      </div>
+      <div class="timer-pick" id="timerPick">
+        <button class="tpick" data-tm="off" type="button">不限时</button>
+        <button class="tpick on" data-tm="blitz" type="button">包干 10 分钟</button>
+        <button class="tpick" data-tm="byo" type="button">读秒 10分·3次×30秒</button>
+      </div>
+    </div>
+
     <div class="card" data-page-node-id="SeqTGuODUDkc4v9UuRaTmK">
       <div class="btn-row" data-page-node-id="RgwskZ5Jwck8lKyOPi8xhV">
+        <button id="btnUndo" class="btn ghost" type="button" disabled data-page-node-id="Mdd1y04jMPUhyRGhotMBjI">悔棋</button>
         <button id="btnNew" class="btn ghost" type="button" data-page-node-id="QU0hf7qpmt4Gq9fEknMM95">新局</button>
       </div>
       <div class="meta" data-page-node-id="qh3VB4V0PyjzJT8TNHoPJ7">
-        <span class="keys" data-page-node-id="NpqAsJhCqNX6X4cKhyKJgE">在交叉点落子 · N 新局</span>
+        <span class="keys" data-page-node-id="NpqAsJhCqNX6X4cKhyKJgE">在交叉点落子 · N 新局 · U 悔棋</span>
       </div>
     </div>
 
@@ -95,8 +121,10 @@
 <script src="gomoku-engine.js?v=g2"></script>
 <script src="gomoku-render.js?v=g2"></script>
 <script src="gomoku-ai.js?v=g2"></script>
-<script src="gomoku-online.js?v=g6"></script>
+<script src="gomoku-online.js?v=g7"></script>
 <script src="lobby.js?v=l2"></script>
-<script src="gomoku-app.js?v=g7"></script>
+<script src="timer.js?v=t1"></script>
+<script src="gomoku-app.js?v=g8"></script>
+  <script src="device.js?v=d1"></script>
 </body>
 </html>

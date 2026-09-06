@@ -35,8 +35,21 @@
       passes: 0,
       winner: -1,
       history: [],
-      score: null
+      score: null,
+      snapshots: []      // 悔棋用：每手（含停一手）落子前保存局面快照
     };
+  }
+
+  // 落子前保存快照（悔棋时恢复上一步完整局面）
+  function pushSnapshot(s) {
+    s.snapshots.push({
+      board: s.board.map(function (row) { return row.slice(); }),
+      ko: s.ko,
+      captures: { 1: s.captures[1], 2: s.captures[2] },
+      passes: s.passes,
+      winner: s.winner,
+      turn: s.turn
+    });
   }
 
   function inBoard(s, r, c) { return r >= 0 && r < s.size && c >= 0 && c < s.size; }
@@ -73,6 +86,7 @@
     if (!inBoard(s, r, c) || s.board[r][c] !== 0) return false;
     if (s.ko && s.ko[0] === r && s.ko[1] === c) return false;   // 劫禁着
 
+    pushSnapshot(s);           // 落子前保存（悔棋用）；自杀/非法时下面弹回
     s.board[r][c] = p;
     var opp = 3 - p;
     var captured = [];
@@ -96,8 +110,9 @@
     // 自杀判定（此时若无提子，自身气必为 0）
     var my = group(s, r, c);
     if (my.libs.length === 0) {
-      s.board[r][c] = 0;          // 撤回
-      return false;                // 自杀（无提子）
+      s.board[r][c] = 0;       // 撤回
+      s.snapshots.pop();        // 弹回刚存的快照（这手并未生效）
+      return false;             // 自杀（无提子）
     }
 
     // 设置劫：单子提单子
@@ -115,11 +130,27 @@
   function pass(s, p) {
     if (s.winner >= 0) return false;
     if (s.turn !== p) return false;
+    pushSnapshot(s);           // 停一手也保存快照（悔棋可撤销停一手）
     s.ko = null;
     s.passes++;
     s.turn = 3 - p;
     s.history.push({ pass: p });
     if (s.passes >= 2) s.winner = -2;   // 双方 pass → 进入终局数子阶段（winner=-2 表示待数子）
+    return true;
+  }
+
+  // 悔棋：恢复上一手之前完整局面（含提子/劫/停一手）。返回 true/false
+  function undo(s) {
+    if (s.snapshots.length === 0) return false;
+    var snap = s.snapshots.pop();
+    s.board = snap.board;
+    s.ko = snap.ko;
+    s.captures = snap.captures;
+    s.passes = snap.passes;
+    s.winner = snap.winner;
+    s.turn = snap.turn;
+    s.history.pop();
+    s.score = null;
     return true;
   }
 
@@ -220,6 +251,7 @@
     createState: createState,
     place: place,
     pass: pass,
+    undo: undo,
     group: group,
     autoDead: autoDead,
     score: score,

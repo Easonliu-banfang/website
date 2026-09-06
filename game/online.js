@@ -196,7 +196,7 @@
   };
 
   Online.prototype.sendReady = function () { this._wsSend({ type: 'ready', player: this.player }); };
-  Online.prototype.sendStart = function () { this._wsSend({ type: 'start', player: this.player }); };
+  Online.prototype.sendStart = function (timing) { this._wsSend({ type: 'start', player: this.player, timing: timing || null }); };
   Online.prototype.sendMove = function (r, c) {
     this._wsSend({ type: 'move', player: this.player, r: r, c: c });
   };

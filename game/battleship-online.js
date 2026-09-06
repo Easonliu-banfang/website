@@ -168,7 +168,7 @@
   // 等待室：切换准备状态
   Online.prototype.sendReady = function () { this._wsSend({ type: 'ready', player: this.player }); };
   // 等待室：房主开始游戏
-  Online.prototype.sendStart = function () { this._wsSend({ type: 'start', player: this.player }); };
+  Online.prototype.sendStart = function (timing) { this._wsSend({ type: 'start', player: this.player, timing: timing || null }); };
 
   // 上报布阵（layout = 5 艘船的 cells 数组）
   Online.prototype.sendPlace = function (layout) {

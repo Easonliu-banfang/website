@@ -77,6 +77,18 @@
     return out;
   }
 
+  // 悔棋：撤回最后一手（服务端权威悔棋也用此函数）。返回 true/false
+  function undo(state) {
+    if (state.history.length === 0) return false;
+    var last = state.history.pop();
+    state.board[last.r][last.c] = 0;
+    state.winner = -1;
+    state.turn = last.p;   // 回合回到落子方
+    var prev = state.history.length ? state.history[state.history.length - 1] : null;
+    state.last = prev ? [prev.r, prev.c] : null;
+    return true;
+  }
+
   // 重置时随机先手（五子棋传统黑先，但保留随机以消先手优势，可选）
   function reset(state) {
     var s = createState();
@@ -89,6 +101,7 @@
     place: place,
     checkWin: checkWin,
     legalMoves: legalMoves,
+    undo: undo,
     reset: reset,
     inBoard: inBoard
   };

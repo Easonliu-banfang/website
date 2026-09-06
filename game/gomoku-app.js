@@ -33,10 +33,16 @@
   var winTimer = null;
   var aiTimer = null;
   var hover = null;
+  var timer = null;          // GameTimer 状态（local/ai 客户端权威；online 用服务端下达 timing）
+  var timerCfg = { mode: 'off', baseMs: 0, byoCount: 0, byoMs: 0 };
+  var undoPending = false;   // 联机：悔棋请求进行中（锁输入）
+  var atStart = false;       // 本地/ai：是否已落第一手（落子后锁定计时选择）
 
   var el = {};
-  ['turnLabel', 'phaseLabel', 'boardTitle', 'btnNew', 'onlineStatus', 'roomCodeTag',
-   'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo', 'banner'].forEach(function (id) {
+  ['turnLabel', 'phaseLabel', 'boardTitle', 'btnNew', 'btnUndo', 'onlineStatus', 'roomCodeTag',
+   'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo', 'banner',
+   'timerCard', 'timerTag', 'clockRow', 'clockName0', 'clockName1',
+   'clockTime0', 'clockTime1', 'clockByo0', 'clockByo1', 'timerPick'].forEach(function (id) {
     el[id] = document.getElementById(id);
   });
 
@@ -71,19 +77,85 @@
     hideBanner();
     el.phaseLabel.textContent = '对局进行中';
     syncUI();
+    initTimer();
+  }
+
+  function initTimer() {
+    if (!onlineMode && timerCfg && timerCfg.mode !== 'off') {
+      timer = window.GameTimer.create(timerCfg, 0);   // 黑（玩家0）先手
+      window.GameTimer.start(timer, Date.now());
+    } else if (onlineMode) {
+      timer = (state && state.timing) ? state.timing : null;
+    } else {
+      timer = null;
+    }
+    renderTimerUI();
+  }
+
+  function renderTimerUI() {
+    if (!el.timerCard) return;
+    var cfgOn = !!(timerCfg && timerCfg.mode !== 'off');
+    if (el.clockRow) el.clockRow.hidden = !(timer && timer.mode !== 'off');
+    if (el.timerPick) el.timerPick.hidden = onlineMode || !!atStart;   // 对局开始后锁定
+    var names = ['黑', '白'];
+    if (el.timerTag) {
+      var t = timerCfg || null;
+      if (!t || t.mode === 'off') el.timerTag.textContent = '不限时';
+      else if (t.mode === 'blitz') el.timerTag.textContent = '包干 ' + Math.round(t.baseMs / 60000) + ' 分钟';
+      else el.timerTag.textContent = '读秒 ' + Math.round(t.baseMs / 60000) + ' 分 + ' + t.byoCount + '×' + Math.round(t.byoMs / 1000) + ' 秒';
+    }
+    if (el.clockName0) el.clockName0.textContent = (onlineMode && myPlayer === 0) ? '你' : names[0];
+    if (el.clockName1) el.clockName1.textContent = (onlineMode && myPlayer === 1) ? '你' : names[1];
+  }
+
+  function renderClock() {
+    if (!timer || timer.mode === 'off') return;
+    var snap = window.GameTimer.snapshot(timer, Date.now());
+    var defs = [el.clockTime0, el.clockByo0, el.clockTime1, el.clockByo1];
+    for (var i = 0; i < 2; i++) {
+      var tEl = el['clockTime' + i], bEl = el['clockByo' + i], cEl = el['clock' + i];
+      if (!tEl) continue;
+      tEl.textContent = window.GameTimer.fmt(snap['t' + i].remaining);
+      if (timer.mode === 'byo') {
+        bEl.textContent = snap['t' + i].byo > 0 ? '读秒 ×' + snap['t' + i].byo : (snap['t' + i].byo === 0 ? '读秒最后' : '');
+      } else if (bEl) bEl.textContent = '';
+      if (cEl) {
+        cEl.classList.toggle('run', !!snap['t' + i].running);
+        cEl.classList.toggle('out', snap.winner === i);
+      }
+    }
+    if (snap.winner >= 0) {
+      timer.winner = snap.winner;
+      onTimeOut(snap.winner);
+    }
+  }
+
+  function onTimeOut(loser) {
+    if (!state || state.winner >= 0 || timer.winner < 0) return;
+    var winnerColor = loser === 0 ? 2 : 1;   // 超时方判负，对方获胜（棋子色）
+    state.winner = winnerColor;
+    if (timer) timer.active = false;
+    syncUI();
+    if (el.onlineStatus) showOnlineStatus('对方超时，' + (winnerColor === 1 ? '黑' : '白') + '获胜', 'connected');
+    onWin(winnerColor);
   }
 
   function placeAt(r, c) {
-    if (!myTurn()) return;
-    if (onlineMode) {
-      online.sendMove(r, c);
-      return;
-    }
+    if (!myTurn() || undoPending) return;
+    if (onlineMode) { online.sendMove(r, c); return; }
     // 本地热座：用当前回合方颜色落子（不绑定人类身份）
     var color = (mode === 'local') ? state.turn : myColor();
+    var beatTimer = timer;               // 结算用当前（黑=0/白=1）
     var res = G.place(state, color, r, c);
     if (!res) return;
+    var moved = (color === 1) ? 0 : 1;
+    if (timer && timer.mode !== 'off') {
+      var over = window.GameTimer.onMove(timer, moved, Date.now());
+      if (over >= 0) { timer.winner = over; onTimeOut(over); }
+    }
+    if (!atStart) { atStart = true; renderTimerUI(); }
     afterMove();
+    syncUI();
   }
 
   function afterMove() {
@@ -163,6 +235,8 @@
       state = fromView(v);
       myPlayer = v.you; connOk = true; roomStarted = true;
       if (lobby) lobby.hide();
+      if (v.timing) { timer = v.timing; renderTimerUI(); }
+      if (reqKind === 'undo') { reqKind = null; reqPending = false; undoPending = false; }
       if (state.winner >= 0) onWin(state.winner);
       syncUI();
     });
@@ -175,6 +249,18 @@
       // 对局中：对手离线/退出 → 明确提示（修复「对手退出无感知」）
       if (!opp) showOnlineStatus('对手已退出/断开连接，对局暂停', 'disconnected');
       else showOnlineStatus('对局进行中', 'connected');
+    });
+    o.on('req_undo', function () {
+      reqPending = true; incomingKind = 'undo';
+      if (el.reqText) el.reqText.textContent = '对方请求悔棋';
+      if (el.reqSub) el.reqSub.textContent = '同意后回退上一步';
+      if (el.reqModal) el.reqModal.hidden = false;
+      syncUI();
+    });
+    o.on('res_undo', function (ok) {
+      reqPending = false; undoPending = false; reqKind = null;
+      showOnlineStatus(ok ? '对方已同意悔棋' : '对方拒绝了悔棋', ok ? 'connected' : 'disconnected');
+      syncUI();
     });
     o.on('req_new', function () {
       reqPending = true; incomingKind = 'new';
@@ -221,6 +307,35 @@
     newGame(vsAI);
   }
 
+  function requestUndo() {
+    if (!state || state.winner >= 0 || undoPending || reqPending) return;
+    if (state.history.length === 0) return;
+    if (onlineMode) {
+      undoPending = true; reqKind = 'undo';
+      online.sendRelay('req_undo');
+      showOnlineStatus('已请求悔棋，等待对方确认…', 'connecting');
+    } else {
+      doUndoLocal();
+    }
+    syncUI();
+  }
+  function doUndoLocal() {
+    if (!state || state.history.length === 0) return;
+    G.undo(state);
+    hideBanner();
+    syncUI();
+  }
+  function respondUndo(ok) {
+    incomingKind = null;
+    if (el.reqModal) el.reqModal.hidden = true;
+    if (onlineMode) {
+      undoPending = false; reqPending = false; reqKind = null;
+      online.sendRelay('res_undo', ok);
+      showOnlineStatus(ok ? '已同意悔棋' : '已拒绝悔棋', ok ? 'connected' : 'disconnected');
+    }
+    syncUI();
+  }
+
   /* ---------- UI ---------- */
   function syncUI() {
     if (!state) return;
@@ -232,6 +347,7 @@
           : (state.turn === 1 ? '黑棋落子' : '白棋落子'));
     el.turnLabel.className = 'turn-val p' + (state.winner >= 0 ? (state.winner === 0 ? 0 : state.winner) : cur);
     el.btnNew.disabled = reqPending;
+    if (el.btnUndo) el.btnUndo.disabled = undoPending || reqPending || !state || state.winner >= 0 || state.history.length === 0;
   }
 
   /* ---------- 指针事件 ---------- */
@@ -264,19 +380,39 @@
 
   /* ---------- 按钮 ---------- */
   el.btnNew.addEventListener('click', requestNew);
-  if (el.btnReqOk) el.btnReqOk.addEventListener('click', function () { if (incomingKind === 'new') respondNew(true); });
-  if (el.btnReqNo) el.btnReqNo.addEventListener('click', function () { if (incomingKind === 'new') respondNew(false); });
+  if (el.btnUndo) el.btnUndo.addEventListener('click', requestUndo);
+  if (el.btnReqOk) el.btnReqOk.addEventListener('click', function () {
+    if (incomingKind === 'new') respondNew(true);
+    else if (incomingKind === 'undo') respondUndo(true);
+  });
+  if (el.btnReqNo) el.btnReqNo.addEventListener('click', function () {
+    if (incomingKind === 'new') respondNew(false);
+    else if (incomingKind === 'undo') respondUndo(false);
+  });
+  if (el.timerPick) el.timerPick.addEventListener('click', function (e) {
+    var b = e.target;
+    if (!b || b.tagName !== 'BUTTON' || !b.dataset.tm) return;
+    var tm = b.dataset.tm;
+    if (tm === 'blitz') timerCfg = { mode: 'blitz', baseMs: 10 * 60000 };
+    else if (tm === 'byo') timerCfg = { mode: 'byo', baseMs: 10 * 60000, byoCount: 3, byoMs: 30000 };
+    else timerCfg = { mode: 'off' };
+    Array.prototype.forEach.call(el.timerPick.querySelectorAll('.tpick'), function (x) { x.classList.remove('on'); });
+    b.classList.add('on');
+    renderTimerUI();
+  });
 
   document.addEventListener('keydown', function (e) {
     if (!state) return;
     if (e.target.tagName === 'INPUT') return;
     if (e.key.toLowerCase() === 'n') el.btnNew.click();
+    if (e.key.toLowerCase() === 'u') requestUndo();
   });
 
   /* ---------- 循环 ---------- */
   function loop() {
     if (state) {
       R.draw(state, { interactive: myTurn(), hover: hover, previewColor: (mode === 'local' ? state.turn : myColor()) });
+      renderClock();
     }
     requestAnimationFrame(loop);
   }
@@ -290,6 +426,11 @@
 
   /* ---------- 开局引导 ---------- */
   function boot() {
+    // 默认计时跟随页面选中项（gomoku 默认包干 10 分钟）
+    var def = document.querySelector('.tpick.on');
+    if (def && def.dataset.tm === 'blitz') timerCfg = { mode: 'blitz', baseMs: 10 * 60000 };
+    else if (def && def.dataset.tm === 'byo') timerCfg = { mode: 'byo', baseMs: 10 * 60000, byoCount: 3, byoMs: 30000 };
+    renderTimerUI();
     var params = new URLSearchParams(location.search);
     var m = params.get('mode');
     if (m === 'ai') { mode = 'ai'; onlineMode = false; humanColor = 1; aiSide = 2; newGame(true); }
@@ -311,11 +452,13 @@
       online.code = room;               // 必须设置房间码，否则 WS 连到 /api/room/null/ws 永远收不到 welcome
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
-        onStart: function () { if (online) online.sendStart(); },
+        onStart: function () { if (online) online.sendStart(timerCfg && timerCfg.mode !== 'off' ? timerCfg : null); },
         onLeave: function () { if (online) online.sendLeave(); location.href = 'gomoku-online.html'; }
       });
       lobby.show(room);
       lobby.setStatus('连接中…', 'connecting');
+      if (el.timerPick) el.timerPick.hidden = (role !== 'host');   // 联机仅房主可选计时
+      renderTimerUI();
       bindOnline(online);
       online.connect(role === 'host' ? 0 : 1);
     } else {
