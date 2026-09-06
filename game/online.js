@@ -182,6 +182,12 @@
   Online.prototype._scheduleReconnect = function () {
     var self = this;
     if (this._intentionalClose) return;
+    if (this._reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+      // 多次重连失败 → 放弃并通知 UI 返回房间
+      this._status('disconnected', '连接已断开，重试多次仍失败');
+      this._emit('giveup');
+      return;
+    }
     this._reconnectAttempts++;
     var delay = Math.min(RECONNECT_MAX, RECONNECT_BASE * Math.pow(2, this._reconnectAttempts - 1));
     this._status('reconnecting', '连接中断，' + (delay / 1000) + ' 秒后第 ' + this._reconnectAttempts + ' 次重连…');

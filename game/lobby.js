@@ -86,11 +86,11 @@
     this.you = d.you;
     var you = d.you, other = 1 - you, self = this;
 
-    // 双人游戏：seat0/1 活跃；seat2/3 由 HTML 固定 disabled（未开放）
-    for (var i = 0; i < 2; i++) {
+    // 渲染全部座位（最多 4 人）；HTML disabled 的座位保持「未开放」
+    for (var i = 0; i < self.seatEls.length; i++) {
       if (!self.seatEls[i]) continue;
       if (self.seatEls[i].classList.contains('disabled')) continue;
-      renderSeat(self.seatEls[i], i, !!d.players[i], !!d.ready[i]);
+      renderSeat(self.seatEls[i], i, !!(d.players && d.players[i]), !!(d.ready && d.ready[i]));
     }
 
     var connected = (you >= 0);
@@ -100,7 +100,10 @@
     if (self.btnStart) {
       self.btnStart.hidden = !isHost;
       if (isHost) {
-        var canStart = d.players[0] && d.players[1] && d.ready[0] && d.ready[1];
+        // 开始条件：在线人数 ≥2 且所有在线玩家都已准备（支持 4 人）
+        var onlineIdx = [];
+        for (var k = 0; k < 4; k++) if (d.players && d.players[k]) onlineIdx.push(k);
+        var canStart = onlineIdx.length >= 2 && onlineIdx.every(function (x) { return !!(d.ready && d.ready[x]); });
         self.btnStart.disabled = !canStart;
         self.btnStart.textContent = '开始游戏';
       }
