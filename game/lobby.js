@@ -19,6 +19,7 @@
     this.btnStart = document.getElementById('btnStart');
     this.btnNotify = document.getElementById('btnNotify');
     this.btnLeave = document.getElementById('btnLeave');
+    this.btnShareLink = document.getElementById('btnShareLink');
     this.you = -1;
     this.readyState = false;   // 本地已知准备态（render 同步，点击乐观切换）
     this.onReady = opts.onReady || function () {};
@@ -35,6 +36,15 @@
     if (this.btnStart) this.btnStart.addEventListener('click', function () { self.onStart(); });
     if (this.btnNotify) this.btnNotify.addEventListener('click', function () { self.onNotify(); });
     if (this.btnLeave) this.btnLeave.addEventListener('click', function () { self.onLeave(); });
+    if (this.btnShareLink) this.btnShareLink.addEventListener('click', function () {
+      // 分享加入链接：当前页 ?mode=online&room=ROOM&role=guest，对方点开直接以加入方进入
+      var code = self.codeEl ? self.codeEl.textContent : '';
+      var url = location.origin + location.pathname + '?mode=online&room=' + encodeURIComponent(code) + '&role=guest';
+      function done() { if (window.Notify) window.Notify.show('邀请链接已复制，发给朋友即可直接加入', 'success'); }
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(function () { fallbackCopy(url); done(); });
+      else { fallbackCopy(url); done(); }
+      function fallbackCopy(v) { var ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta); }
+    });
   }
 
   GameLobby.prototype.show = function (code) {

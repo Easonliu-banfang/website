@@ -404,7 +404,7 @@
     if (!state) return;
     var cur = state.turn;
     // 仅开局后（联机 roomStarted / 本地人机直接）提示回合；等待室阶段不提示
-    if (state.winner < 0 && (roomStarted || !onlineMode)) {
+    if (state.winner < 0 && !coinLock && (roomStarted || !onlineMode)) {
       window.Notify.setTurn(onlineMode
         ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
         : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')

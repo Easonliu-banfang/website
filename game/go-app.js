@@ -463,7 +463,7 @@
       if (el.btnPass) el.btnPass.disabled = true;
       return;
     }
-    if (roomStarted || !onlineMode) {
+    if (!coinLock && (roomStarted || !onlineMode)) {
       window.Notify.setTurn(onlineMode
         ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
         : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')

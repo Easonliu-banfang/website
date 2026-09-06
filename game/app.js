@@ -131,7 +131,7 @@
     el.w2.textContent = state.players[1].walls;
     el.stepCount.textContent = Math.ceil(state.history.length / 2);
 
-    if (state.winner < 0 && (roomStarted || !onlineMode)) {
+    if (state.winner < 0 && !coinLock && (roomStarted || !onlineMode)) {
       if (onlineMode) {
         window.Notify.setTurn((state.turn === myPlayer ? '你' : '对手') + ' 行动');
       } else if (aiThinking) {

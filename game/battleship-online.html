@@ -32,6 +32,7 @@
         <div class="code-box">
           <b id="roomCode">------</b>
           <button id="btnCopy" class="btn ghost" type="button">复制</button>
+          <button id="btnShare" class="btn ghost" type="button">🔗 复制分享链接</button>
         </div>
         <div class="btn-row enter-row">
           <a id="btnEnter" class="btn on" href="#">进入游戏 →</a>
@@ -118,6 +119,22 @@
     if (navigator.clipboard && pendingCode) navigator.clipboard.writeText(pendingCode).catch(function () {});
     setStatus('房间码已复制：' + pendingCode, 'connected');
   });
+  var btnShare = document.getElementById('btnShare');
+  if (btnShare) btnShare.addEventListener('click', function () {
+    if (!pendingCode) return;
+    var shareUrl = location.origin + location.pathname.replace('online.html', 'battleship-play.html') + '?mode=online&room=' + encodeURIComponent(pendingCode) + '&role=guest';
+    copyShare(shareUrl);
+  });
+  function copyShare(url) {
+    function done() { setStatus('分享链接已复制，发给朋友即可直接加入', 'connected'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(function () { fallbackCopy(url); done(); });
+    else { fallbackCopy(url); done(); }
+  }
+  function fallbackCopy(url) {
+    var ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
+  }
+
 
   btnBackCreate.addEventListener('click', showMenu);
   btnBackJoin.addEventListener('click', showMenu);

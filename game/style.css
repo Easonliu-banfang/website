@@ -952,3 +952,4 @@ body::before {
 .notify-error   { --nt: #ff7a7a; color: #ffd7d7; }
 .notify-win     { --nt: #fcd34d; color: #fdf3d0; }
 .notify-lose    { --nt: #ff9da0; color: #ffe0e1; }
+.btn-share { font-family: var(--mono); font-size: 11.5px; padding: 5px 10px; margin-left: 8px; vertical-align: middle; }
