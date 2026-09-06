@@ -6,7 +6,7 @@
   var boardCanvas = document.getElementById('board');
   var R = new window.GoRender(boardCanvas);
 
-  var V = 'g1';
+  var V = 'g2';
 
   var state = null;
   var mode = 'local';
@@ -67,14 +67,17 @@
   function placeAt(r, c) {
     if (!myTurn()) return;
     if (onlineMode) { online.sendMove(r, c); return; }
-    if (!G.place(state, myColor(), r, c)) return;
+    // 本地热座：用当前回合方颜色落子（不绑定人类身份）
+    var color = (mode === 'local') ? state.turn : myColor();
+    if (!G.place(state, color, r, c)) return;
     afterMove();
   }
 
   function doPass() {
     if (!myTurn()) return;
     if (onlineMode) { online.sendPass(); return; }
-    if (!G.pass(state, myColor())) return;
+    var color = (mode === 'local') ? state.turn : myColor();
+    if (!G.pass(state, color)) return;
     afterMove();
   }
 
@@ -324,7 +327,7 @@
   /* ---------- 循环 ---------- */
   function loop() {
     if (state) {
-      R.draw(state, { interactive: myTurn(), hover: hover, previewColor: myColor(), deadSet: deadSet, scoring: scoringMode });
+      R.draw(state, { interactive: myTurn(), hover: hover, previewColor: (mode === 'local' ? state.turn : myColor()), deadSet: deadSet, scoring: scoringMode });
     }
     requestAnimationFrame(loop);
   }

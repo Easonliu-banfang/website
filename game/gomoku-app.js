@@ -8,7 +8,7 @@
   var boardCanvas = document.getElementById('board');
   var R = new window.GRender(boardCanvas);
 
-  var V = 'g1';
+  var V = 'g2';
 
   var state = null;
   var mode = 'local';
@@ -44,7 +44,7 @@
   function myTurn() {
     if (!state || state.winner >= 0) return false;
     if (onlineMode) return connOk && !reqPending && state.turn === myColor();
-    if (mode === 'local') return !el.passModal.hidden ? false : state.turn === humanColor;
+    if (mode === 'local') return true;          // 热座：当前回合方就在本设备落子
     return state.turn === humanColor;  // ai：轮到人类
   }
 
@@ -76,7 +76,9 @@
       online.sendMove(r, c);
       return;
     }
-    var res = G.place(state, myColor(), r, c);
+    // 本地热座：用当前回合方颜色落子（不绑定人类身份）
+    var color = (mode === 'local') ? state.turn : myColor();
+    var res = G.place(state, color, r, c);
     if (!res) return;
     afterMove();
   }
@@ -247,7 +249,7 @@
   /* ---------- 循环 ---------- */
   function loop() {
     if (state) {
-      R.draw(state, { interactive: myTurn(), hover: hover, previewColor: myColor() });
+      R.draw(state, { interactive: myTurn(), hover: hover, previewColor: (mode === 'local' ? state.turn : myColor()) });
     }
     requestAnimationFrame(loop);
   }
