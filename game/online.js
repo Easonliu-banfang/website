@@ -47,7 +47,10 @@
   Online.prototype._wsSend = function (obj) {
     if (this.ws && this.ws.readyState === 1) {
       try { this.ws.send(JSON.stringify(obj)); } catch (e) {}
+      return;
     }
+    // 连接已断开：不再静默丢弃（否则按钮点了没反应），通知 UI 显示断线提示
+    this._status('disconnected', '连接已断开，请重试');
   };
 
   // 带超时的 JSON 请求：超时/不可达时给出中文原因，而不是让界面一直转圈
@@ -192,6 +195,8 @@
     this._open();
   };
 
+  Online.prototype.sendReady = function () { this._wsSend({ type: 'ready', player: this.player }); };
+  Online.prototype.sendStart = function () { this._wsSend({ type: 'start', player: this.player }); };
   Online.prototype.sendMove = function (r, c) {
     this._wsSend({ type: 'move', player: this.player, r: r, c: c });
   };
@@ -205,6 +210,11 @@
   // 重开：通知服务端重置权威棋局并广播
   Online.prototype.sendReset = function () {
     this._wsSend({ type: 'reset', player: this.player });
+  };
+  Online.prototype.sendLeave = function () {
+    this._wsSend({ type: 'leave', player: this.player });
+    this._intentionalClose = true;
+    try { if (this.ws) this.ws.close(); } catch (e) {}
   };
   Online.prototype.close = function () {
     this._intentionalClose = true;

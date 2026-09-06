@@ -37,7 +37,12 @@
   Online.prototype._emit = function (type, data) { if (this.h[type]) this.h[type](data); };
   Online.prototype._status = function (state, detail) { this._emit('status', { state: state, detail: detail || '' }); };
   Online.prototype._wsSend = function (obj) {
-    if (this.ws && this.ws.readyState === 1) { try { this.ws.send(JSON.stringify(obj)); } catch (e) {} }
+    if (this.ws && this.ws.readyState === 1) {
+      try { this.ws.send(JSON.stringify(obj)); } catch (e) {}
+      return;
+    }
+    // 连接已断开：不再静默丢弃（否则按钮点了没反应），通知 UI 显示断线提示
+    this._status('disconnected', '连接已断开，请重试');
   };
 
   function fetchJSON(url, opts) {
@@ -157,6 +162,11 @@
   Online.prototype.sendPass = function () { this._wsSend({ type: 'pass', player: this.player }); };
   Online.prototype.sendRelay = function (type, ok) { this._wsSend({ type: type, player: this.player, ok: ok }); };
   Online.prototype.sendReset = function () { this._wsSend({ type: 'reset', player: this.player }); };
+  Online.prototype.sendLeave = function () {
+    this._wsSend({ type: 'leave', player: this.player });
+    this._intentionalClose = true;
+    try { if (this.ws) this.ws.close(); } catch (e) {}
+  };
   Online.prototype.close = function () {
     this._intentionalClose = true; this._stopHeartbeat();
     if (this._reconnectTimer) { clearTimeout(this._reconnectTimer); this._reconnectTimer = null; }

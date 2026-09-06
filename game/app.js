@@ -631,7 +631,7 @@
     lobby = new window.GameLobby({
       onReady: function () { if (online) online.sendReady(); },
       onStart: function () { if (online) online.sendStart(); },
-      onLeave: function () { if (online) online._intentionalClose = true; location.href = 'online.html'; }
+      onLeave: function () { if (online) online.sendLeave(); location.href = 'online.html'; }
     });
     lobby.show(room);
     lobby.setStatus('连接中…', 'connecting');
