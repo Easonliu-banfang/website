@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>四子棋 · 玩法规则</title>
+  <meta name="description" content="四子棋 Connect Four 玩法规则">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css?v=b11">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="room-head">
+    <a href="connect4.html?v=b10" class="back">← 返回选择对战方式</a>
+    <h1>四子棋 · 玩法规则</h1>
+  </header>
+
+  <div class="rules-card">
+    <h3>🎯 目标</h3>
+    <p>在 7 列 × 6 行的竖立棋盘上，<b>率先把四个同色棋子连成一线</b>（横、竖、斜均可）就赢。</p>
+
+    <h3>🎯 怎么落子</h3>
+    <p>轮到你时，点击白色棋架上方<b>某一列</b>的投放口，棋子会在<b>重力作用下落到该列最低的空位</b>——和真正的四子棋一样，不能凭空把棋子放在半空。</p>
+
+    <h3>🔴🔵 双方棋子</h3>
+    <p>红方与蓝方轮流落子，<b>红方先手</b>（联机/人机的先手由抛硬币随机决定，更公平）。</p>
+
+    <h3>🎉 判胜</h3>
+    <p>横、竖、两条对角线任一方向出现<b>连续四个同色棋子</b>即获胜。棋盘下满且无人四连则为平局。</p>
+
+    <h3>🤖 人机提示</h3>
+    <p>电脑 AI 习惯<b>从中心列开局</b>——中心列最有机会让你连成多向组合，记得盯紧。</p>
+
+    <h3>🔁 悔棋 / 新局</h3>
+    <p>面对面 / 人机模式直接生效；联机模式下会向对方发起请求，<b>双方同意</b>才执行。</p>
+  </div>
+
+  <div class="btn-row enter-row">
+    <a class="btn on" href="connect4.html?v=b10">我已知晓，去选模式 →</a>
+  </div>
+</div>
+
+  <script src="device.js?v=d1"></script>
+</body>
+</html>

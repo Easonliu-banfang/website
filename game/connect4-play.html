@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="cozEnhm43qiQTvJ4jmWfAV">
+<head data-page-node-id="37v7zYEDeNYmDcfdO03UkM">
+  <meta charset="UTF-8" data-page-node-id="41SZ7H0DwnzY0cqBpsdWKi">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="Ch0lB1o5Dde7Iby10h1LRz">
+  <title>四子棋 · 对局</title>
+  <meta name="description" content="四子棋 Connect Four —— 连成四子即胜" data-page-node-id="OhhChI0VqDuHp1wgySzCe8">
+  <meta name="theme-color" content="#0a0e14" data-page-node-id="IQAm5NUpOf2jBRfuGAo2sF">
+  <link rel="stylesheet" href="style.css?v=b11" data-page-node-id="cqRvZEQDUWhrIZDb94eC6s">
+</head>
+<body class="c4-play-body" data-page-node-id="eBKhDqweNytfcSSRe6A2LE">
+
+<!-- 全局通知栏 -->
+<div id="notifyBar" class="notify-bar" hidden data-page-node-id="sdr7JXgInw3wt6LjqWXP72"></div>
+
+<header class="head" data-page-node-id="HzzQIFi4kQviJ33MGyg7hb">
+  <a href="connect4.html?v=b10" class="back" data-page-node-id="u1lMEAVxgYAPwNtAbEDXRF">← 选择模式</a>
+  <h1 data-page-node-id="BTRO1opr6ZrpvXZAWiNkvT">四子棋</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden data-page-node-id="AE0e7vzLpGCHebvdMU0mXE"></span>
+</header>
+
+<div class="layout c4-layout" data-page-node-id="KdGYCrOFvCGqUNcwMuBBBb">
+
+  <div class="board-col" data-page-node-id="SQq9WTFVyGzgZAsA4bX3pd">
+    <div class="board-box" data-page-node-id="HpSOo0ZwSOhWtEPEpiiS2T">
+      <div class="board-title" id="boardTitle" data-page-node-id="VXBRndar7Ez9ENqU3nVuxG">棋盘</div>
+      <div class="board-frame c4-frame" data-page-node-id="jD5Wu7NCX0sq6txn4qIiRv">
+        <canvas id="board" data-page-node-id="H7e4qT32zhYIFYPRwREz7d"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel" data-page-node-id="Y0hXsfodYxb9qwGTuSbj76">
+    <div class="card" data-page-node-id="HsCbqBNcSHVwKMU3yQqmUR">
+      <div class="btn-row" data-page-node-id="gEEoaOJRBcWyQtLwFRuPp7">
+        <button id="btnUndo" class="btn ghost" type="button" disabled data-page-node-id="ZfLmJZjEbKeh4J69WBK33D">悔棋</button>
+        <button id="btnNew" class="btn ghost" type="button" data-page-node-id="b3jVBZMKJ5Dye2Uz4tAx2o">新局</button>
+      </div>
+      <div class="meta" data-page-node-id="5LdTdE3DQYUJZDNmdLKhDG">
+        <span class="keys" data-page-node-id="u5qK0y60XbP3o1DY40MBCb">点击上方白架上的某一列投放棋子 · 连成四子即胜</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 联机等待室（与全部游戏统一） -->
+<div id="lobby" class="lobby" hidden data-page-node-id="riCd8CUAeV5gYROhP3U7wT">
+  <div class="room" data-page-node-id="8CuNEZQH9qHK2hEvUr298Z">
+    <div class="room-preview" data-page-node-id="5Kn61GbP8bVfdD7eFDuxbt">
+      <div class="room-art" data-page-node-id="CNrJDm1ohaErZHsa9Xu6x3"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" data-page-node-id="V6xTUKGYzn254ooYe5vXcx">
+          <rect x="30" y="18" width="180" height="132" rx="10" fill="#f2f2f0" data-page-node-id="8ZiHlv1ltj7T4FDfOoARNb"/>
+          <g fill="#101418" data-page-node-id="sRBYRqDlPd3yllk1czyhxN">
+            <circle cx="48" cy="52" r="11" data-page-node-id="sEIkWZuBWEMipHNC5j37NB"/><circle cx="82" cy="52" r="11" data-page-node-id="dwdPf65FP9cglktnMDWnaf"/><circle cx="116" cy="52" r="11" data-page-node-id="7ut3jR6ZEs2Yfbbcj6BcAs"/><circle cx="150" cy="52" r="11" data-page-node-id="9jiMP6uH5oVLV4ByEfPPeY"/><circle cx="184" cy="52" r="11" data-page-node-id="mC6jLPauK7Ge4dNvvmpoCc"/>
+            <circle cx="48" cy="86" r="11" data-page-node-id="2SchwMZAppllklM9yFsJzb"/><circle cx="82" cy="86" r="11" data-page-node-id="kpJtFDGyKgNixGEr35FXt9"/><circle cx="116" cy="86" r="11" data-page-node-id="PghqI5Eo3Ls8AAFQ8AC9MU"/><circle cx="150" cy="86" r="11" data-page-node-id="fkMwxWzRk1tmC2hbuX1zQA"/><circle cx="184" cy="86" r="11" data-page-node-id="C7YhhDjauQDJgWtUs8BXTX"/>
+            <circle cx="48" cy="120" r="11" data-page-node-id="ZW2yFZiCUEOYE2TGq1i78q"/><circle cx="82" cy="120" r="11" data-page-node-id="RPDLa9n9eUU3dH06urnagx"/><circle cx="116" cy="120" r="11" data-page-node-id="eWFUGYDO4GMPC8hr2qYkMv"/><circle cx="150" cy="120" r="11" data-page-node-id="oGO4ELgcJwiZssSUWHrxC2"/><circle cx="184" cy="120" r="11" data-page-node-id="f8RDc2hSYF7GmjYOX8qY0H"/>
+          </g>
+          <circle cx="48" cy="52" r="8" fill="#e63946" data-page-node-id="pQfuYf4RyAO84DxSnMqGDi"/>
+          <circle cx="82" cy="52" r="8" fill="#2f6ff7" data-page-node-id="pjefbdQJaWYSz1qHXyrwbX"/>
+          <circle cx="116" cy="52" r="8" fill="#e63946" data-page-node-id="7WAs1cjsgYHc7bZIPa0u6L"/>
+          <circle cx="150" cy="52" r="8" fill="#2f6ff7" data-page-node-id="qp7NM3ANX20FyxJwDbEMIt"/>
+          <circle cx="82" cy="86" r="8" fill="#e63946" data-page-node-id="aoGQHFaorS2E8vDvATgWed"/>
+          <circle cx="116" cy="86" r="8" fill="#2f6ff7" data-page-node-id="46QOVWX66m73RPRYw7L1Wj"/>
+          <circle cx="150" cy="86" r="8" fill="#e63946" data-page-node-id="EFB8kd5mqFXHA5ydRXHs2C"/>
+          <circle cx="116" cy="120" r="8" fill="#e63946" data-page-node-id="5dlmlnh6iweTfbt9XiGdXk"/>
+        </svg></div>
+      <div class="room-name" data-page-node-id="Wnm70fpALnBkWYrOo6Pxsp">四子棋</div>
+      <div class="room-code" data-page-node-id="x2PRqDfhMdGQJ3pxMndzWx">房间 <b id="lobbyCode" data-page-node-id="QGxhjcLaYrzF4JkmRCVZ2l">----</b> <button id="btnShareLink" class="btn ghost btn-share" type="button" data-page-node-id="sBrD58gkW0k0g1D6zHEGdn">🔗 分享链接</button></div>
+    </div>
+    <div class="room-main" data-page-node-id="l0nSS3gC8akDTfB2Dv9XuU">
+      <div class="room-caption" data-page-node-id="Auq1f38kcbsQkOF7iMSxEY">
+        <span class="room-caption-title" data-page-node-id="oK5dlqSpAobmd0lAWjeHTr">等待玩家加入</span>
+        <span class="room-caption-sub" id="lobbyStatus" data-page-node-id="UOByBRRCXM9EawqW711vgf">连接中…</span>
+      </div>
+      <div class="room-seats" data-page-node-id="nt1eudUTXCNvIs9NaOK0Hl">
+        <div class="seat-card" id="seat0" data-page-node-id="Nb8Ft5xdvQkrMwrC50JzPr"><span class="seat-name" data-page-node-id="X8VhCAbwFHyrZficmCgu1V">玩家 1</span><span class="seat-tag" data-page-node-id="rg91XtTjmdST7CAhz9Comg"></span><span class="seat-dot" data-page-node-id="sCy30DQH7QEfEHfcJaLGao"></span></div>
+        <div class="seat-card" id="seat1" data-page-node-id="1WlY2iHV60hXU5CaJ8gHrF"><span class="seat-name" data-page-node-id="0MpBeL7R3J37TXROnYAMbr">玩家 2</span><span class="seat-tag" data-page-node-id="OjFJmfgNQqlOfE7CiEdhdA"></span><span class="seat-dot" data-page-node-id="8RslCu4KTBtqARsLfURNyG"></span></div>
+        <div class="seat-card disabled" id="seat2" data-page-node-id="IjAKm8rg19TyezexN3pDRp"><span class="seat-name" data-page-node-id="QlAj4zKd8dQzPpIivd9Od9">未开放</span><span class="seat-tag" data-page-node-id="M9Cc4PoWHvspdGu4ea8C48"></span><span class="seat-dot" data-page-node-id="C9whCMF9W8X4pa46AOQMSK"></span></div>
+        <div class="seat-card disabled" id="seat3" data-page-node-id="VD7i76rBSXX2XxrC107qrq"><span class="seat-name" data-page-node-id="YE4R0gOtxRFgkAA7NwSUfY">未开放</span><span class="seat-tag" data-page-node-id="lvJUp2NeIWsqVGqHDFwlIP"></span><span class="seat-dot" data-page-node-id="UAxgcS4XHaD4wrucZE4MeR"></span></div>
+      </div>
+      <div class="room-foot" data-page-node-id="8JH3QqBTQSAVONq57FgMad">
+        <div class="room-hint" id="lobbyHint" data-page-node-id="92uODGVoFpybbTK7qhCuLu"></div>
+        <div class="room-btns" data-page-node-id="0kqyRTUUa3linADphu8hvZ">
+          <button id="btnNotify" class="btn ghost" hidden data-page-node-id="YH8onkLYIo63lqsa9L7EbW">🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden data-page-node-id="1dlGCQFYKneMS842cYClKu">开始游戏</button>
+          <button id="btnReady" class="btn on" hidden data-page-node-id="rqABWAWyJ9o5sWAB4nUSGq">准备</button>
+          <button id="btnLeave" class="btn ghost" data-page-node-id="Q4GYapB8VLfafOVFvXMaYe">离开房间</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 抛硬币：随机谁执红（先手） -->
+<div id="coinModal" class="modal coin-modal" hidden data-page-node-id="4LdusV0RjYuJf11UGBemPb">
+  <div class="coin-card" data-page-node-id="UHtB1CZDzLB2GJbzCGFURB">
+    <p class="coin-title" id="coinTitle" data-page-node-id="ca4GYURXs9nM1Pj7NFLDCy">随机先手</p>
+    <div class="coin" id="coin" data-page-node-id="eTqpG6TFNK71JaWZ5oHoeb"><span class="coin-face" data-page-node-id="sCd058VdBzDmTuSZ8AUENE">🪙</span></div>
+    <p class="coin-result" id="coinResult" data-page-node-id="meQKNdXOsfmubTVVEeAry1"></p>
+    <p class="coin-sub" id="coinSub" data-page-node-id="Sl8La2zIdYiE4HFZGYGfN3"></p>
+  </div>
+</div>
+
+<div id="reqModal" class="modal" hidden data-page-node-id="BxKFw7U3YBf89PagAN8lIQ">
+  <div class="modal-card" data-page-node-id="R0Tasgd8w0BD9c7LadfhY6">
+    <p id="reqText" class="req-text" data-page-node-id="0ki7pCLw61QOZjU3NGBxh2">对方请求</p>
+    <p id="reqSub" class="req-sub" data-page-node-id="PBBGaHJt1CBhzJunP3kdUb"></p>
+    <div class="btn-row" data-page-node-id="B0jW48WALqDsLjyVbCxELV">
+      <button id="btnReqOk" class="btn on" type="button" data-page-node-id="rADAxJ9FFlCg01E8ef5BO4">同意</button>
+      <button id="btnReqNo" class="btn ghost" type="button" data-page-node-id="RfJAhtlDLQGkE3W4DhAHPZ">拒绝</button>
+    </div>
+  </div>
+</div>
+
+<script src="connect4-engine.js?v=c1"></script>
+<script src="connect4-ai.js?v=c1"></script>
+<script src="connect4-render.js?v=c1"></script>
+<script src="connect4-online.js?v=c1"></script>
+<script src="lobby.js?v=l8"></script>
+<script src="notify.js?v=n3"></script>
+<script src="connect4-app.js?v=c1"></script>
+  <script src="device.js?v=d1"></script>
+</body>
+</html>
