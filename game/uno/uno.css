@@ -29,14 +29,20 @@
   display: flex;
   flex-direction: column;
 }
+.uno-head {
+  flex: 0 0 auto;
+  padding: 16px 24px 10px;
+}
 #gameRoot {
   position: relative;
   z-index: 1;
-  height: 100dvh;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+#gameRoot[hidden] { display: none; }
 
 /* 竖屏遮罩 */
 #landscapeOverlay {

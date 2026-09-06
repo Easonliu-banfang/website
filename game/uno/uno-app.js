@@ -1,4 +1,6 @@
-/* 匹配卡牌（UNO）游戏前端：URL 驱动开局、渲染裁剪视图、出牌/摸牌/选色交互 */
+/* 匹配卡牌（UNO）游戏前端：统一等待室(GameLobby)→开始→对局
+ *  URL 驱动开局(mode=online&room&role&gm)、渲染裁剪视图、出牌/摸牌/选色交互
+ */
 (function () {
   'use strict';
 
@@ -13,9 +15,10 @@
   var me = -1;                     // 我的座次
   var isHost = false;
   var state = null;                // 最近一次裁剪视图
-  var lobby = null;                // 最近一次 lobby
-  var offlineMsgShown = false;
+  var roomStarted = false;
+  var lobby = null;                // GameLobby 实例
   var mode = q.gm || '2';
+  var currentRoom = q.room || '';
 
   var el = {};
   function $(id) { return document.getElementById(id); }
@@ -35,18 +38,7 @@
     el.landscapeOverlay.hidden = landscape;
   }
 
-  /* ---------- 引擎辅助：我的可出牌 ---------- */
-  function playableCards() {
-    if (!state || state.awaitColor || state.nextDraw > 0 || me !== state.turn || state.winner >= 0) return [];
-    var out = [];
-    var h = state.hand || [];
-    for (var i = 0; i < h.length; i++) {
-      var c = h[i];
-      if (kindOk(c, state.top, state.topColor) && w4RuleOk(c, h, state.topColor)) out.push(c);
-    }
-    return out;
-  }
-
+  /* ---------- 规则辅助（本地预检，服务端仍权威） ---------- */
   function kindOf(c) { if (c === 'w' || c === 'w4') return 'w'; return c.charAt(0); }
   function kindOk(c, top, color) {
     if (kindOf(c) === 'w') return true;
@@ -58,38 +50,29 @@
     if (c !== 'w4') return true;
     return !hand.some(function (x) { var k = kindOf(x); return k !== 'w' && x.charAt(0) === color; });
   }
+  function playableCards() {
+    if (!state || state.awaitColor || state.nextDraw > 0 || me !== state.turn || state.winner >= 0) return [];
+    var out = [];
+    var h = state.hand || [];
+    for (var i = 0; i < h.length; i++) {
+      var c = h[i];
+      if (kindOk(c, state.top, state.topColor) && w4RuleOk(c, h, state.topColor)) out.push(c);
+    }
+    return out;
+  }
   function canDrawNow() {
     if (!state || state.winner >= 0 || me !== state.turn || state.awaitColor) return false;
     if (state.justDrew) return false;   // 主动摸 1 后只能出或过
-    return true;   // 有可出牌也能摸（摸后可过）+ 无牌可出必摸
+    return true;
   }
   function passAllowed() { return !!state && !state.awaitColor && me === state.turn && state.justDrew && state.nextDraw === 0 && state.winner < 0; }
-
-  /* ---------- 渲染：大厅座位 ---------- */
-  function renderLobby() {
-    var capacity = capacityOf();
-    var l = lobby || { players: [], ready: [], host: 0 };
-    var html = '';
-    for (var s = 0; s < capacity; s++) {
-      var occupied = !!l.players[s];
-      var isMe = s === me;
-      html += '<div class="uoseat' + (occupied ? ' on' : '') + (isMe ? ' me' : '') + '" data-slot="' + s + '">' +
-        '<span class="uoseat-n">' + (s + 1) + '</span>' +
-        '<span class="uoseat-name">' + (occupied ? ('玩家 ' + (s + 1)) + (isMe ? '（你）' : '') : '等待加入…') + '</span>' +
-        (mode === '2v2' ? '<span class="uoseat-team t' + (s < 2 ? 'a' : 'b') + '">' + (s < 2 ? '下排' : '上排') + '</span>' : '') +
-        (isMe && (l.host === me) ? '<span class="uoseat-host">房主</span>' : '') +
-        '</div>';
-    }
-    el.unoSeats.innerHTML = html;
-    el.btnStart.hidden = !isHost || (lobby && lobby.started);
-    var joined = (l.players || []).filter(Boolean).length;
-    el.lobbyTip.textContent = '将房间码发给好友（' + joined + '/' + capacity + '）' + (mode === '2v2' ? '，下排/上排各一队' : '') + '，全员到齐后由房主开始';
-  }
   function capacityOf() {
     if (mode === '2v2') return 4;
     var n = parseInt(mode, 10);
     return (n === 3 || n === 4) ? n : 2;
   }
+  function teamOf(s) { return state && state.teams ? state.teams[s] : 0; }
+  function teamOfMe() { return teamOf(me); }
 
   /* ---------- 渲染：对手条 ---------- */
   function opponentsList() {
@@ -102,24 +85,20 @@
     }
     return list;
   }
-
   function renderOpps() {
     var opps = opponentsList();
-    // opponentsList 需要 state.mate 存在；2v2 之前 state 没到时直接全列
     var html = '';
     for (var i = 0; i < opps.length; i++) {
       var s = opps[i];
       if (s >= 4) continue;
       html += oppCard(s, mode === '2v2');
     }
-    // 双人：只有一个对手对面
     el.oppRow.innerHTML = html;
   }
   function oppCard(s, isTeamMode) {
     var cnt = state ? state.counts[s] : 0;
     var isTurn = state && state.turn === s;
     var uno = state && state.uno && state.uno[s];
-    var online = lobby && lobby.players && lobby.players[s];
     var teamTag = '';
     if (isTeamMode && state && state.teams) {
       var sameTeam = state.teams[s] === state.teams[me];
@@ -130,27 +109,19 @@
       teamTag +
       (uno ? '<span class="uo-opp-uno">UNO!</span>' : '') + '</div>' +
       '<div class="uo-opp-body"><div class="uo-back">UNO</div><span class="uo-opp-cnt">' + cnt + '</span></div>' +
-      '<div class="uo-opp-foot">' + (isTurn ? '◆ 出牌中' : (online === false ? '离线' : '待命中')) + '</div>' +
+      '<div class="uo-opp-foot">' + (isTurn ? '◆ 出牌中' : '待命中') + '</div>' +
       '</div>';
-  }
-  function teamOf(s) { return state && state.teams ? state.teams[s] : 0; }
-  function teamOfMe() { return teamOf(me); }
-  function opponentTeamTag(s) {
-    if (state && state.teams) return state.teams[s] === state.teams[me] ? 'a' : 'b';
-    return (s < 2 ? 'a' : 'b');
   }
 
   /* ---------- 渲染：中央区 ---------- */
   function renderBoard() {
     if (!state) return;
-    // 顶牌
     if (state.top) {
       el.topCardImg.src = cardImg(state.top);
       el.topCardImg.style.display = '';
     } else {
       el.topCardImg.style.display = 'none';
     }
-    // 当前色
     var dot = el.colorDot;
     if (state.topColor && COLOR_NAMES[state.topColor]) {
       dot.style.background = colorCss(state.topColor);
@@ -161,14 +132,11 @@
       dot.style.background = 'transparent';
       dot.style.boxShadow = 'none';
     }
-    // 回合提示 + 效果横幅
     renderBanner();
-    // 摸牌按钮状态
     var myDraw = canDrawNow();
     el.btnDraw.disabled = !myDraw;
     el.btnDraw.classList.toggle('on', myDraw);
     el.deckInner.textContent = (state.nextDraw > 0 ? '摸 ' + state.nextDraw : '摸牌');
-    // 过按钮
     el.btnPass.hidden = !passAllowed();
   }
   function colorCss(c) { return { r: '#e5484d', b: '#3e8ef7', g: '#2ebd59', y: '#f5c542' }[c] || '#888'; }
@@ -193,15 +161,11 @@
       msg = '轮到你出牌' + (state.justDrew ? '（摸牌后可出刚摸的牌或点「过」）' : '');
       cls = ' mine';
     } else {
-      msg = '轮到玩家 ' + (state.turn + 1) + (dirLabel());
+      msg = '轮到玩家 ' + (state.turn + 1) + (state.dir < 0 ? '（逆向）' : '');
       cls = '';
     }
     b.textContent = msg;
     b.className = 'uo-banner' + cls;
-  }
-  function dirLabel() {
-    if (state && state.dir < 0) return '（逆向）';
-    return '';
   }
 
   /* ---------- 渲染：自己手牌 + 队友 ---------- */
@@ -221,7 +185,6 @@
     el.myHand.innerHTML = html;
     if (h.length === 0) el.myHand.innerHTML = '<div class="uo-empty">已出完</div>';
 
-    // 队友手牌（2v2）
     if (state.mate != null && state.mateHand) {
       el.mateLabel.textContent = '队友（玩家 ' + (state.mate + 1) + '）';
       var mh = '';
@@ -234,9 +197,7 @@
       el.mateRow.hidden = true;
     }
 
-    // 自己的 UNO 状态（剩 1 张高亮）
     el.btnUno.hidden = !(h.length === 1 && state.winner < 0);
-    // 出牌高亮
     var meTurn = me === state.turn && state.awaitColor === false && state.nextDraw === 0 && state.winner < 0;
     el.myHand.classList.toggle('act', meTurn);
   }
@@ -263,12 +224,15 @@
     r.textContent = winnerText();
     r.className = 'uo-result show' + ((mode !== '2v2' && state.winner === me) ? ' big' : '');
     r.hidden = false;
+    if (window.Notify) {
+      window.Notify.show(winnerText(), state.winner === (mode === '2v2' ? teamOfMe() : me) ? 'win' : 'lose', { sticky: true });
+    }
     if (isHost) {
       setTimeout(function () {
         var again = document.createElement('button');
         again.className = 'btn on uo-again';
         again.textContent = '再来一局 →';
-        again.addEventListener('click', function () { o.send({ type: 'reset' }); });
+        again.addEventListener('click', function () { if (o) o.sendReset(); });
         r.appendChild(again);
       }, 800);
     }
@@ -284,47 +248,36 @@
     });
     el.btnDraw.addEventListener('click', function () {
       if (!canDrawNow()) return;
-      o.send({ type: 'draw' });
+      if (o) o.sendDraw();
     });
     el.btnPass.addEventListener('click', function () {
       if (!passAllowed()) return;
-      o.send({ type: 'pass' });
+      if (o) o.sendPass();
     });
     el.btnUno.addEventListener('click', function () {
-      o.send({ type: 'callUno' });
+      if (o) o.sendCallUno();
       el.btnUno.hidden = true;
     });
     el.colorModal.addEventListener('click', function (e) {
       var b = e.target.closest('.cp');
       if (!b) return;
       var color = b.getAttribute('data-c');
-      o.send({ type: 'setColor', color: color });
+      if (o) o.sendSetColor(color);
       el.colorModal.hidden = true;
-    });
-    el.btnStart.addEventListener('click', function () {
-      o.send({ type: 'start' });
-      el.btnStart.hidden = true;
-    });
-    el.btnLeave.addEventListener('click', function (e) {
-      if (!confirm('确定离开当前对局吗？')) e.preventDefault();
-      else { try { o && o.close(); } catch (err) {} }
     });
   }
 
   function tryPlay(card) {
     if (!state || me !== state.turn || state.winner >= 0) return;
-    if (state.awaitColor) return;
-    if (state.nextDraw > 0) return;
-    var E = window.Uno;
+    if (state.awaitColor || state.nextDraw > 0) return;
     var hand = state.hand || [];
     if (hand.indexOf(card) < 0) return;
     var k = kindOf(card);
-    // 本地预检（服务端仍权威）
     if (!kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
     if (k === 'w4' && !w4RuleOk(card, hand, state.topColor)) { flash('有可出的同色牌时不能出 万色+4'); return; }
-    o.send({ type: 'play', card: card });
+    if (o) o.sendPlay(card);
     // 出剩 1 张自动喊 UNO（4 秒宽容窗口内免罚）
-    if (hand.length === 2) setTimeout(function () { o.send({ type: 'callUno' }); }, 120);
+    if (hand.length === 2) setTimeout(function () { if (o) o.sendCallUno(); }, 120);
   }
 
   function flash(msg) {
@@ -337,35 +290,79 @@
   function applyState(s) {
     state = s;
     if (s.you != null) me = s.you;
-    if (s.winner >= 0) { showResult(); }
-    else if (el.resultBanner) el.resultBanner.hidden = true;   // 重开/进入后复位
-    el.gameView.hidden = false;
-    el.lobbyView.hidden = true;
+    roomStarted = true;
+    if (s.winner >= 0) showResult();
+    else if (el.resultBanner) el.resultBanner.hidden = true;
+    el.gameRoot.hidden = false;
+    if (lobby) lobby.hide();
     renderOpps();
     renderBoard();
     renderMe();
-    // 若我轮到选色，弹窗
     if (me === s.turn && s.awaitColor && s.winner < 0) {
       el.colorModal.hidden = false;
     }
   }
 
-  function applyPlayers(players) {
-    if (!lobby) lobby = { players: [], ready: [], host: -1, started: true };
-    lobby.players = players;
-    if (!state) renderLobby();
-    else renderOpps();
+  /* ---------- 联机绑定 ---------- */
+  function bindOnline(online) {
+    // 连接状态 → 通知栏（与其他游戏一致）
+    online.onStatus(function (phase) {
+      if (!window.Notify) return;
+      if (phase === 'connected') window.Notify.show('已连接', 'success');
+      else if (phase === 'reconnecting') window.Notify.show('连接中断，正在重连…', 'warn', { sticky: true });
+      else if (phase === 'disconnected') window.Notify.show('连接已断开', 'error', { sticky: true });
+    });
+    online.on('welcome', function () {
+      if (lobby) { lobby.show(currentRoom); lobby.setStatus('已连接，等待准备开始', 'connected'); }
+    });
+    online.on('lobby', function (d) {
+      me = d.you;
+      var fromGame = roomStarted;
+      roomStarted = !!d.started;
+      if (lobby) {
+        if (d.started) { window.Notify.clear('🔔 房主提醒你准备'); lobby.hide(); }
+        else {
+          // 对局结束回房（对手退出/掉线）
+          if (fromGame && state) {
+            state = null;
+            window.Notify.clearAll();
+            window.Notify.show('对局已结束（对方退出/掉线），返回房间', 'warn', { sticky: true });
+          }
+          lobby.show(currentRoom);
+          lobby.render(d);
+        }
+      }
+    });
+    online.on('started', function () { roomStarted = true; if (lobby) lobby.hide(); });
+    online.on('state', function (s) { applyState(s); });
+    online.on('players', function () { if (roomStarted && state) renderOpps(); });
+    online.on('notify', function () { if (window.Notify) window.Notify.show('🔔 房主提醒你准备', 'warn', { sticky: true }); });
+    online.on('error', function (msg) { if (msg) flash(msg); });
+    online.on('dissolve', function () {
+      roomStarted = false;
+      if (online) online._intentionalClose = true;
+      if (lobby) lobby.hide();
+      if (window.Notify) {
+        window.Notify.clearAll();
+        window.Notify.show('房间已解散（有玩家离开），即将返回大厅…', 'error', { sticky: true });
+      }
+      setTimeout(function () { location.href = 'uno-online.html?mode=' + encodeURIComponent(mode) + '&v=u2'; }, 1800);
+    });
+    online.on('giveup', function () {
+      if (window.Notify) {
+        window.Notify.clearAll();
+        window.Notify.show('多次重连失败，返回房间…', 'warn', { sticky: true });
+      }
+      if (online) online._intentionalClose = true;
+      setTimeout(function () { location.href = 'uno-online.html?mode=' + encodeURIComponent(mode) + '&v=u2'; }, 1500);
+    });
   }
 
   /* ---------- 启动 ---------- */
   function boot() {
-    ['landscapeOverlay', 'topMode', 'topRoom', 'lobbyView', 'unoSeats', 'btnStart', 'lobbyTip',
-     'gameView', 'oppRow', 'topCardImg', 'colorDot', 'btnDraw', 'deckInner', 'banner',
-     'meLabel', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
-     'colorModal', 'resultBanner', 'btnLeave'].forEach(function (id) { el[id] = $(id); });
-
-    el.topMode.textContent = MODE_LABEL[mode] || '';
-    el.topRoom.textContent = '房间 ' + (q.room || '----');
+    ['landscapeOverlay', 'gameRoot', 'gameView', 'oppRow', 'topCardImg', 'colorDot', 'btnDraw', 'deckInner',
+     'banner', 'meLabel', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
+     'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
 
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
@@ -374,32 +371,33 @@
 
     if (q.mode !== 'online' || !q.room) {
       // 非联机（本地/AI 暂未开放）→ 提示返回
-      el.banner.textContent = '匹配卡牌目前仅支持互联网对战（双人/三人/四人/2v2）';
-      setTimeout(function () { location.href = 'uno.html'; }, 1600);
+      if (window.Notify) window.Notify.show('匹配卡牌目前仅支持互联网对战（双人/三人/四人/2v2）', 'error', { sticky: true });
+      setTimeout(function () { location.href = 'uno.html'; }, 1800);
       return;
     }
 
+    currentRoom = q.room;
+    if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + currentRoom; el.roomCodeTag.hidden = false; }
+
     o = new window.UnoOnline();
-    o.code = q.room;
+    o.code = currentRoom;
 
-    o.on('welcome', function (m) {
-      me = m.player;
-      isHost = me === 0;
+    // 统一等待室（与四款游戏同构）
+    lobby = new window.GameLobby({
+      onReady: function () { if (o) o.sendReady(); },
+      onStart: function () { if (o) o.sendStart(); },
+      onNotify: function () { if (o) o.sendNotify(); if (window.Notify) window.Notify.show('已提醒对方准备', 'info'); },
+      onLeave: function () { if (o) o.sendLeave(); location.href = 'uno.html'; },
+      shareExtra: '&gm=' + encodeURIComponent(mode)
     });
-    o.on('lobby', function (m) {
-      lobby = m;
-      if (!state) renderLobby();
-      if (m.started && !state) { /* 进场时已开始，等 state */ }
-    });
-    o.on('players', function (m) { applyPlayers(m.players); });
-    o.on('state', function (m) { applyState(m.state); });
-    o.on('error', function (m) {
-      if (m && m.msg) flash(m.msg);
-    });
+    lobby.setCapacity(capacityOf());
+    if (mode === '2v2') lobby.setSeatTags(['下排', '下排', '上排', '上排']);
+    lobby.show(currentRoom);
+    lobby.setStatus('连接中…', 'connecting');
 
-    var preferred = (q.role === 'host') ? 0 : -1;
-    o.connect(preferred).catch(function (err) {
-      el.banner.textContent = '连接失败，正在重连…';
+    bindOnline(o);
+    o.connect(q.role === 'host' ? 0 : 1).catch(function () {
+      if (window.Notify) window.Notify.show('连接失败，正在重连…', 'warn', { sticky: true });
     });
   }
 

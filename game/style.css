@@ -834,6 +834,20 @@ body::before {
 .seat-card.ready .seat-dot { background: rgba(95,211,138,0.15); color: #5fd38a; border-color: rgba(95,211,138,0.5); }
 .seat-card.notready .seat-dot { background: rgba(255,122,122,0.15); color: #ff7a7a; border-color: rgba(255,122,122,0.5); }
 .seat-card .seat-name { font-size: 15px; }
+/* 座位队伍标签（2v2 上下两排一队；匹配卡牌用） */
+.seat-card .seat-tag {
+  position: absolute;
+  bottom: 8px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  padding: 1px 8px;
+  border-radius: 999px;
+  color: var(--faint);
+  display: none;
+}
+.seat-card .seat-tag:not(:empty) { display: inline-block; }
+.seat-card .seat-tag.team-a { color: #6fdc8e; background: rgba(46,189,89,0.14); }
+.seat-card .seat-tag.team-b { color: #6db5ff; background: rgba(62,142,247,0.14); }
 /* 底部：提示 + 按钮 */
 .room-foot { display: flex; flex-direction: column; gap: 10px; }
 .room-hint { font-size: 13px; color: var(--dim); min-height: 18px; }
@@ -860,6 +874,7 @@ body::before {
   .seat-card { font-size: 13px; }
   .seat-card .seat-name { font-size: 12.5px; }
   .seat-card .seat-dot { width: 22px; height: 22px; font-size: 12px; }
+  .seat-card .seat-tag { bottom: 5px; font-size: 9.5px; padding: 0 6px; }
   .room-btns { justify-content: center; }
   .room-btns .btn { min-width: 96px; padding: 10px 8px; }
   .room-hint { text-align: center; }
