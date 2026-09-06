@@ -167,9 +167,14 @@
       syncUI();
     });
     o.on('players', function (ps) {
-      if (roomStarted) return;
       var opp = !!(ps[1 - myPlayer]);
-      if (lobby) lobby.setStatus(opp ? '双方已就位，准备开始' : '等待对手加入…', opp ? 'connected' : 'connecting');
+      if (!roomStarted) {
+        if (lobby) lobby.setStatus(opp ? '双方已就位，准备开始' : '等待对手加入…', opp ? 'connected' : 'connecting');
+        return;
+      }
+      // 对局中：对手离线/退出 → 明确提示（修复「对手退出无感知」）
+      if (!opp) showOnlineStatus('对手已退出/断开连接，对局暂停', 'disconnected');
+      else showOnlineStatus('对局进行中', 'connected');
     });
     o.on('req_new', function () {
       reqPending = true; incomingKind = 'new';
@@ -303,6 +308,7 @@
       if (el.onlineStatus) el.onlineStatus.hidden = false;
       syncUI();
       online = new window.GomokuOnline();
+      online.code = room;               // 必须设置房间码，否则 WS 连到 /api/room/null/ws 永远收不到 welcome
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
         onStart: function () { if (online) online.sendStart(); },
