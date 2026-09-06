@@ -518,8 +518,11 @@
       syncUI();
     });
     o.on('res_undo', function (ok) {
+      // 悔棋的权威回退由服务端完成（Q.undo + 广播 state），客户端不再本地回退，
+      // 否则请求方会先收到 state 广播（已退一步）再收到 res_undo（又退一步）→ 双重回退、双方不同步。
+      // 这里只清除输入锁；真正的局面变更由下方 state 广播的 applyRemote 整体替换落地。
       reqPending = false;
-      if (ok) { doUndoCore(); showOnlineStatus('悔棋成功', 'connected'); }
+      if (ok) { showOnlineStatus('悔棋成功', 'connected'); }
       else { showOnlineStatus('对方拒绝了悔棋', 'disconnected'); }
       syncUI();
     });
