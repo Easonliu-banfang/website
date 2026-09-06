@@ -100,62 +100,137 @@ body::before {
 }
 .room-head .sub { color: var(--dim); margin: 10px 0 0; font-size: 15px; }
 
-.room-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 18px;
+/* ---------- 游戏室 Hero ---------- */
+
+.hero {
+  position: relative;
+  z-index: 1;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 14px 24px 36px;
+  text-align: center;
+}
+.hero .eyebrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 7px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.hero h1 {
+  font-family: var(--sans);
+  font-size: clamp(40px, 8vw, 66px);
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  line-height: 1.04;
+  background: linear-gradient(180deg, #ffffff 0%, #9fb0c2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero .lede {
+  margin: 18px auto 0;
+  max-width: 420px;
+  color: var(--dim);
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-.gcard {
+/* ---------- 游戏卡片网格 ---------- */
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 4px 24px 72px;
+}
+
+.game-card {
   display: block;
-  padding: 24px;
-  background: var(--bg-elev);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 14px;
   text-decoration: none;
-  transition: all 0.22s ease;
-  position: relative;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--card-edge);
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, background 0.28s ease;
+  will-change: transform;
 }
-.gcard.playable:hover {
-  border-color: var(--cyan);
+.game-card:hover {
   transform: translateY(-4px);
-  background: #18212e;
+  border-color: rgba(34,211,238,0.5);
+  box-shadow: 0 20px 44px -20px rgba(0,0,0,0.75);
+  background: rgba(255,255,255,0.05);
 }
-.gcard.locked { opacity: 0.55; }
-.gcard-top {
+
+.gc-preview {
+  position: relative;
+  height: 184px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
+  justify-content: center;
+  background:
+    radial-gradient(120% 130% at 50% 0%, rgba(34,211,238,0.09), transparent 58%),
+    var(--bg-elev);
+  border-bottom: 1px solid var(--card-edge);
+  overflow: hidden;
 }
-.gcard-top .gico { font-size: 22px; color: var(--purple); }
-.gcard.playable .gico { color: var(--cyan); }
-.gcard-top .garrow { font-family: var(--mono); color: var(--faint); }
-.gcard.playable:hover .garrow { color: var(--cyan); transform: translate(3px,-3px); }
-.gcard-top .glock {
+.gc-preview svg { width: 76%; height: 76%; display: block; }
+
+.gc-body { padding: 22px 22px 24px; }
+.gc-head { display: flex; align-items: center; gap: 13px; margin-bottom: 13px; }
+.gc-icon {
+  width: 42px; height: 42px;
+  flex: 0 0 42px;
+  display: grid; place-items: center;
+  font-size: 21px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--card-edge);
+}
+.gc-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gc-name {
+  font-family: var(--sans);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+.gc-type {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--faint);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 4px;
-  padding: 2px 7px;
+  letter-spacing: 0.4px;
 }
-.gcard h3 {
-  font-family: var(--mono);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 8px;
+.gc-desc {
+  color: var(--dim);
+  font-size: 14px;
+  line-height: 1.65;
+  margin-bottom: 16px;
 }
-.gcard p { font-size: 14px; color: var(--dim); line-height: 1.6; margin-bottom: 14px; }
-.gtags { display: flex; flex-wrap: wrap; gap: 7px; }
-.gtag {
+.gc-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.gc-tag {
   font-family: var(--mono);
   font-size: 11.5px;
-  color: var(--faint);
-  padding: 3px 9px;
-  border-radius: 4px;
-  background: rgba(255,255,255,0.04);
+  color: var(--cyan);
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(34,211,238,0.25);
+  background: rgba(34,211,238,0.06);
+}
+.gc-tag.alt {
+  color: var(--purple);
+  border-color: rgba(167,139,250,0.25);
+  background: rgba(167,139,250,0.06);
+}
+
+@media (max-width: 760px) {
+  .game-grid { grid-template-columns: 1fr; gap: 16px; padding: 4px 18px 56px; }
+  .gc-preview { height: 152px; }
+  .hero { padding-bottom: 28px; }
 }
 
 /* ---------- 开始界面：模式选择 ---------- */
