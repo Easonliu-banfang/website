@@ -393,6 +393,84 @@ body::before {
 .status--reconnecting { color: #fbbf24; }
 .status--disconnected { color: #f87171; }
 
+/* ---------- 联机大厅：创建/加入 双卡片入口 ---------- */
+.lobby-choose {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 4px;
+}
+.lc-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 16px 26px;
+  border-radius: 16px;
+  border: 1px solid var(--card-edge);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.lc-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0.7;
+}
+.lc-card.create::before { background: linear-gradient(90deg, #22d3ee, #38bdf8); }
+.lc-card.join::before { background: linear-gradient(90deg, #a78bfa, #c084fc); }
+.lc-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+}
+.lc-card.create:hover { border-color: rgba(34, 211, 238, 0.55); background: rgba(34, 211, 238, 0.05); }
+.lc-card.join:hover { border-color: rgba(167, 139, 250, 0.55); background: rgba(167, 139, 250, 0.05); }
+.lc-ico { font-size: 34px; line-height: 1; margin-top: 6px; }
+.lc-name { font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+.lc-desc { font-size: 12.5px; color: var(--dim); text-align: center; line-height: 1.5; }
+.lc-go {
+  margin-top: 6px;
+  padding: 6px 20px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-family: var(--mono);
+}
+.lc-card.create .lc-go { color: var(--cyan); border: 1px solid rgba(34, 211, 238, 0.45); }
+.lc-card.join .lc-go { color: var(--purple); border: 1px solid rgba(167, 139, 250, 0.5); }
+.lc-card:active { transform: translateY(-1px); }
+/* 获取房间码中：卡片内 loading */
+.lc-loading {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--cyan);
+  margin-top: 18px;
+  justify-content: center;
+}
+.lc-loading.show { display: flex; }
+.lc-spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(34, 211, 238, 0.25);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: lcRotate 0.8s linear infinite;
+}
+@keyframes lcRotate { to { transform: rotate(360deg); } }
+@media (max-width: 560px) {
+  .lobby-choose { grid-template-columns: 1fr; }
+}
+
 /* ---------- 游戏布局 ---------- */
 
 .layout {

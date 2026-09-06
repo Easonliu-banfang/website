@@ -6,23 +6,22 @@
   <title>围棋 · 互联网对战</title>
   <meta name="description" content="围棋 Go —— 创建或加入联机房间">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b9">
+  <link rel="stylesheet" href="style.css?v=b11">
 </head>
 <body>
 
 <header class="head">
-  <a href="go.html?v=b4" class="back">← 选择模式</a>
+  <a href="go.html?v=b10" class="back">← 选择模式</a>
   <h1>互联网对战</h1>
 </header>
 
 <section class="start">
   <div class="start-inner">
-    <p class="start-sub">和好友联机对决</p>
     <h2 class="start-title">创建或加入房间</h2>
 
     <div class="online-panel">
 
-      <!-- 围棋：棋盘尺寸（仅本机创建时选择，加入方沿用房主尺寸） -->
+      <!-- 围棋：棋盘尺寸（创建前选择，加入方沿用房主尺寸） -->
       <div class="card" id="sizeCard">
         <span class="cap">棋盘尺寸</span>
         <div class="size-pick inline">
@@ -32,39 +31,41 @@
         </div>
       </div>
 
-      <!-- 初始：两个入口 -->
-      <div class="btn-row" id="menuRow">
-        <button id="btnCreate" class="btn" type="button">创建房间</button>
-        <button id="btnJoin" class="btn" type="button">加入房间</button>
+      <!-- 初始：创建 / 加入 双卡片 -->
+      <div class="lobby-choose" id="menuRow">
+        <button class="lc-card create" id="btnCreate" type="button">
+          <span class="lc-ico">🎮</span>
+          <span class="lc-name">创建房间</span>
+          <span class="lc-desc">新开一局，把房间码发给好友</span>
+          <span class="lc-go">立即创建 →</span>
+        </button>
+        <button class="lc-card join" id="btnJoin" type="button">
+          <span class="lc-ico">🔑</span>
+          <span class="lc-name">加入房间</span>
+          <span class="lc-desc">输入好友发来的 4 位房间码</span>
+          <span class="lc-go">前往加入 →</span>
+        </button>
       </div>
 
-      <!-- 创建后：只显示房间码 + 进入游戏 -->
-      <div id="createView" hidden>
-        <span class="cap">房间码（发给朋友）</span>
-        <div class="code-box">
-          <b id="roomCode">------</b>
-          <button id="btnCopy" class="btn ghost" type="button">复制</button>
-          <button id="btnShare" class="btn ghost" type="button">🔗 复制分享链接</button>
-        </div>
-        <div class="btn-row enter-row">
-          <a id="btnEnter" class="btn on" href="#">进入游戏 →</a>
-        </div>
-        <button class="back-link" id="btnBackCreate" type="button">← 返回</button>
+      <!-- 获取房间码中 -->
+      <div class="lc-loading" id="creatingView">
+        <span class="lc-spin"></span>
+        <span>正在获取房间码…</span>
       </div>
 
-      <!-- 加入：输入框 + 加入游戏 -->
+      <!-- 加入：输入框 + 加入游戏（原逻辑） -->
       <div id="joinView" hidden>
         <span class="cap">输入 4 位房间码</span>
         <div class="join-row">
           <input id="inputCode" class="code-input" maxlength="4" placeholder="房间码" autocomplete="off" spellcheck="false" />
         </div>
         <div class="btn-row enter-row">
-          <button id="btnJoinGo" class="btn on" type="button">加入游戏</button>
+          <button id="btnJoinGo" class="btn on" type="button">进入房间</button>
         </div>
         <button class="back-link" id="btnBackJoin" type="button">← 返回</button>
       </div>
 
-      <div class="status" id="status">未连接</div>
+      <div class="status" id="status"></div>
     </div>
   </div>
 </section>
@@ -81,17 +82,12 @@
   var menuRow = document.getElementById('menuRow');
   var btnCreate = document.getElementById('btnCreate');
   var btnJoin = document.getElementById('btnJoin');
-  var createView = document.getElementById('createView');
-  var roomCode = document.getElementById('roomCode');
-  var btnCopy = document.getElementById('btnCopy');
-  var btnEnter = document.getElementById('btnEnter');
-  var btnBackCreate = document.getElementById('btnBackCreate');
+  var creatingView = document.getElementById('creatingView');
   var joinView = document.getElementById('joinView');
   var inputCode = document.getElementById('inputCode');
   var btnJoinGo = document.getElementById('btnJoinGo');
   var btnBackJoin = document.getElementById('btnBackJoin');
   var sizeCard = document.getElementById('sizeCard');
-  var pendingCode = null;
 
   document.querySelectorAll('#sizeCard .size-btn').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -105,24 +101,33 @@
     status.textContent = m;
     status.className = 'status' + (cls ? ' status--' + cls : '');
   }
-  // 棋盘尺寸仅房主选择：加入方隐藏尺寸卡，由其沿用房主设定的尺寸
-  function showMenu() { if (sizeCard) sizeCard.hidden = false; menuRow.hidden = false; createView.hidden = true; joinView.hidden = true; }
-  function showCreate() { if (sizeCard) sizeCard.hidden = false; menuRow.hidden = true; createView.hidden = false; joinView.hidden = true; }
-  function showJoin() { if (sizeCard) sizeCard.hidden = true; menuRow.hidden = true; createView.hidden = true; joinView.hidden = false; inputCode.focus(); }
+  // 尺寸卡仅在初始/创建时显示；加入方隐藏（沿用房主尺寸）
+  function showMenu() {
+    if (sizeCard) sizeCard.hidden = false;
+    menuRow.hidden = false;
+    creatingView.classList.remove('show');
+    joinView.hidden = true;
+  }
+  function showJoin() {
+    if (sizeCard) sizeCard.hidden = true;
+    menuRow.hidden = true;
+    creatingView.classList.remove('show');
+    joinView.hidden = false;
+    inputCode.focus();
+  }
 
   btnCreate.addEventListener('click', function () {
-    setStatus('创建房间中…', 'connecting');
+    menuRow.hidden = true;
+    creatingView.classList.add('show');
+    setStatus('申请房间码中…', 'connecting');
     fetch(WORKER + '/api/room?game=' + GAME + '&size=' + size, { method: 'POST' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.code) throw new Error('未返回房间码');
-        pendingCode = d.code;
-        roomCode.textContent = d.code;
-        btnEnter.href = 'go-play.html?mode=online&room=' + encodeURIComponent(d.code) + '&role=host&size=' + size;
-        showCreate();
-        setStatus('房间已创建，把房间码发给朋友', 'connected');
+        // 获取到房间码后直接进入房间（无需再点「进入游戏」）
+        location.href = 'go-play.html?mode=online&room=' + encodeURIComponent(d.code) + '&role=host&size=' + size;
       })
-      .catch(function (e) { setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected'); });
+      .catch(function (e) { showMenu(); setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected'); });
   });
 
   btnJoin.addEventListener('click', function () { showJoin(); setStatus('输入朋友发来的房间码', 'connecting'); });
@@ -136,7 +141,6 @@
       .then(function (d) {
         if (!d.state && !d.hasSpace) throw new Error('房间不存在');
         if (d.error === 'full' || d.error === 'started') throw new Error('房间已满或已开始');
-        // 加入方沿用房主创建时的棋盘尺寸
         var sz = (d.state && d.state.size) ? d.state.size : size;
         location.href = 'go-play.html?mode=online&room=' + encodeURIComponent(code) + '&role=guest&size=' + sz;
       })
@@ -146,28 +150,6 @@
   btnJoinGo.addEventListener('click', tryJoin);
   inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryJoin(); });
 
-  btnCopy.addEventListener('click', function () {
-    if (navigator.clipboard && pendingCode) navigator.clipboard.writeText(pendingCode).catch(function () {});
-    setStatus('房间码已复制：' + pendingCode, 'connected');
-  });
-  var btnShare = document.getElementById('btnShare');
-  if (btnShare) btnShare.addEventListener('click', function () {
-    if (!pendingCode) return;
-    var shareUrl = location.origin + location.pathname.replace('online.html', 'go-play.html') + '?mode=online&room=' + encodeURIComponent(pendingCode) + '&role=guest' + '&size=' + size;
-    copyShare(shareUrl);
-  });
-  function copyShare(url) {
-    function done() { setStatus('分享链接已复制，发给朋友即可直接加入', 'connected'); }
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(function () { fallbackCopy(url); done(); });
-    else { fallbackCopy(url); done(); }
-  }
-  function fallbackCopy(url) {
-    var ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta);
-  }
-
-
-  btnBackCreate.addEventListener('click', showMenu);
   btnBackJoin.addEventListener('click', showMenu);
 
   showMenu();
