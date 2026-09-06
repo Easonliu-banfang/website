@@ -17,6 +17,7 @@
   var HEARTBEAT_MS = 15000;
   var RECONNECT_BASE = 1000;
   var RECONNECT_MAX = 30000;
+  var RECONNECT_MAX_ATTEMPTS = 8;   // 重连上限：达到后停止自动重连，提示手动重试，避免一直显示"正在重连"
 
   function Online() {
     this.code = null;
@@ -104,10 +105,13 @@
       ws.onmessage = function (e) {
         var m; try { m = JSON.parse(e.data); } catch (err) { return; }
         if (m.type === 'welcome') { self.player = m.player; self._emit('welcome', m.player); if (!settled) { settled = true; resolve(m.player); } }
+        else if (m.type === 'lobby') { self._emit('lobby', m); if (m.started) self._emit('started'); }
+        else if (m.type === 'started') self._emit('started');
         else if (m.type === 'state') self._emit('state', m.state);
         else if (m.type === 'players') self._emit('players', m.players);
         else if (m.type === 'req_new') self._emit('req_new');
         else if (m.type === 'res_new') self._emit('res_new', m.ok);
+        else if (m.type === 'dissolve') { self._intentionalClose = true; self._stopHeartbeat(); self._emit('dissolve'); }
         else if (m.type === 'error') self._emit('error', m.msg);
         else if (m.type === 'pong') { /* 心跳回包 */ }
         else if (m.type === 'ping') { self._wsSend({ type: 'pong' }); }
@@ -138,6 +142,11 @@
   Online.prototype._scheduleReconnect = function () {
     var self = this;
     if (this._intentionalClose) return;
+    if (this._reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+      this._status('disconnected', '连接已断开，请点击「重新连接」重试');
+      this._emit('giveup');
+      return;
+    }
     this._reconnectAttempts++;
     var delay = Math.min(RECONNECT_MAX, RECONNECT_BASE * Math.pow(2, this._reconnectAttempts - 1));
     this._status('reconnecting', '连接中断，' + (delay / 1000) + ' 秒后第 ' + this._reconnectAttempts + ' 次重连…');
@@ -148,6 +157,11 @@
   Online.prototype.reconnect = function () {
     this._reconnectAttempts = 0; this._intentionalClose = false; this._open();
   };
+
+  // 等待室：切换准备状态
+  Online.prototype.sendReady = function () { this._wsSend({ type: 'ready', player: this.player }); };
+  // 等待室：房主开始游戏
+  Online.prototype.sendStart = function () { this._wsSend({ type: 'start', player: this.player }); };
 
   Online.prototype.sendMove = function (r, c) {
     this._wsSend({ type: 'move', player: this.player, r: r, c: c });

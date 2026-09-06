@@ -6,12 +6,12 @@
   <title>步步为营 · Quoridor</title>
   <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b3">
+  <link rel="stylesheet" href="style.css?v=b4">
 </head>
 <body>
 
 <header class="head">
-  <a href="quoridor.html?v=b2" class="back">← 选择模式</a>
+  <a href="quoridor.html?v=b4" class="back">← 选择模式</a>
   <h1>步步为营</h1>
   <span id="roomCodeTag" class="mode-tag" hidden></span>
 </header>
@@ -69,6 +69,37 @@
   </aside>
 </div>
 
+<!-- 联机等待室 -->
+<div id="lobby" class="lobby" hidden>
+  <div class="lobby-card">
+    <div class="lobby-head">
+      <div class="lobby-room">房间 <b id="lobbyCode">----</b></div>
+      <div id="lobbyStatus" class="lobby-status">连接中…</div>
+    </div>
+    <div class="lobby-seats">
+      <div class="seat" id="seat0">
+        <div class="seat-dot"></div>
+        <div class="seat-name">玩家 1</div>
+        <div class="seat-ready">未准备</div>
+      </div>
+      <div class="lobby-vs">VS</div>
+      <div class="seat" id="seat1">
+        <div class="seat-dot"></div>
+        <div class="seat-name">玩家 2</div>
+        <div class="seat-ready">未准备</div>
+      </div>
+    </div>
+    <div class="lobby-actions">
+      <button id="btnReady" class="btn on" type="button">准备</button>
+      <button id="btnStart" class="btn" type="button" disabled>开始游戏</button>
+    </div>
+    <div class="lobby-actions">
+      <button id="btnLeave" class="btn ghost" type="button">离开房间</button>
+    </div>
+    <div id="lobbyHint" class="lobby-hint"></div>
+  </div>
+</div>
+
 <!-- 抛硬币：随机先手动画 -->
 <div id="coinModal" class="modal coin-modal" hidden>
   <div class="coin-card">
@@ -93,8 +124,9 @@
 
 <script src="engine.js?v=g9"></script>
 <script src="render.js?v=g9"></script>
-<script src="online.js?v=g9"></script>
+<script src="online.js?v=g12"></script>
 <script src="ai.js?v=g9"></script>
-<script src="app.js?v=g10"></script>
+<script src="lobby.js?v=l1"></script>
+<script src="app.js?v=g12"></script>
 </body>
 </html>

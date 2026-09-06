@@ -23,6 +23,9 @@
   var reqPending = false;
   var incomingKind = null;
   var resetSent = false;
+  var roomStarted = false;
+  var currentRoom = '';
+  var lobby = null;
 
   var winTimer = null, aiTimer = null;
   var hover = null;
@@ -176,21 +179,39 @@
   function bindOnline(o) {
     o.on('welcome', function (p) {
       welcomed = true; myPlayer = p; connOk = true; humanColor = p === 0 ? 1 : 2;
-      boardSize = state.size;
-      el.phaseLabel.textContent = '对局进行中';
-      showOnlineStatus(p === 0 ? '你是黑棋（先手），等待对手加入…' : '成功进入房间（你是白棋）', 'connected');
+      if (!roomStarted) {
+        if (lobby) { lobby.show(currentRoom); lobby.setStatus('已连接，等待双方准备', 'connected'); }
+        showOnlineStatus('已进入房间，等待准备开始', 'connected');
+      }
       syncUI();
     });
+    o.on('lobby', function (d) {
+      myPlayer = d.you; connOk = true;
+      roomStarted = !!d.started;
+      if (lobby) {
+        if (d.started) lobby.hide();
+        else { lobby.show(currentRoom); lobby.render(d); }
+      }
+    });
+    o.on('started', function () { roomStarted = true; if (lobby) lobby.hide(); });
+    o.on('dissolve', function () {
+      roomStarted = false;
+      if (online) online._intentionalClose = true;
+      if (lobby) lobby.hide();
+      showOnlineStatus('房间已解散（有玩家离开），即将返回大厅…', 'disconnected');
+      setTimeout(function () { location.href = 'go-online.html'; }, 1800);
+    });
     o.on('state', function (v) {
-      state = fromView(v); myPlayer = v.you; connOk = true; boardSize = state.size;
+      state = fromView(v); myPlayer = v.you; connOk = true; boardSize = state.size; roomStarted = true;
+      if (lobby) lobby.hide();
       if (state.winner === -2 && !scoringMode) enterScoring();
       else if (state.winner >= 0) onWin(state.winner, state.score);
       syncUI();
     });
     o.on('players', function (ps) {
+      if (roomStarted) return;
       var opp = !!(ps[1 - myPlayer]);
-      if (opp) showOnlineStatus('双方已就位', 'connected');
-      else showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
+      if (lobby) lobby.setStatus(opp ? '双方已就位，准备开始' : '等待对手加入…', opp ? 'connected' : 'connecting');
     });
     o.on('req_new', function () {
       reqPending = true; incomingKind = 'new';
@@ -348,11 +369,19 @@
       var role = params.get('role') || 'guest';
       if (!room) { if (el.onlineStatus) { el.onlineStatus.hidden = false; showOnlineStatus('缺少房间码，请从「互联网对战」页进入'); } return; }
       mode = 'online'; onlineMode = true; myPlayer = role === 'host' ? 0 : 1; humanColor = role === 'host' ? 1 : 2;
+      roomStarted = false; currentRoom = room;
       state = G.createState(boardSize); welcomed = false; reqPending = false; resetSent = false; scoringMode = false;
       if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + room; el.roomCodeTag.hidden = false; }
       if (el.onlineStatus) el.onlineStatus.hidden = false;
       syncUI();
       online = new window.GoOnline(boardSize);
+      lobby = new window.GameLobby({
+        onReady: function () { if (online) online.sendReady(); },
+        onStart: function () { if (online) online.sendStart(); },
+        onLeave: function () { if (online) online._intentionalClose = true; location.href = 'go-online.html'; }
+      });
+      lobby.show(room);
+      lobby.setStatus('连接中…', 'connecting');
       bindOnline(online);
       online.connect(role === 'host' ? 0 : 1);
     } else {

@@ -6,12 +6,12 @@
   <title>五子棋 · Gomoku</title>
   <meta name="description" content="五子棋 Gomoku —— 经典 15 路">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b3">
+  <link rel="stylesheet" href="style.css?v=b4">
 </head>
 <body>
 
 <header class="head">
-  <a href="gomoku.html?v=b2" class="back">← 选择模式</a>
+  <a href="gomoku.html?v=b4" class="back">← 选择模式</a>
   <h1>五子棋</h1>
   <span id="roomCodeTag" class="mode-tag" hidden></span>
 </header>
@@ -49,6 +49,37 @@
   </aside>
 </div>
 
+<!-- 联机等待室 -->
+<div id="lobby" class="lobby" hidden>
+  <div class="lobby-card">
+    <div class="lobby-head">
+      <div class="lobby-room">房间 <b id="lobbyCode">----</b></div>
+      <div id="lobbyStatus" class="lobby-status">连接中…</div>
+    </div>
+    <div class="lobby-seats">
+      <div class="seat" id="seat0">
+        <div class="seat-dot"></div>
+        <div class="seat-name">玩家 1</div>
+        <div class="seat-ready">未准备</div>
+      </div>
+      <div class="lobby-vs">VS</div>
+      <div class="seat" id="seat1">
+        <div class="seat-dot"></div>
+        <div class="seat-name">玩家 2</div>
+        <div class="seat-ready">未准备</div>
+      </div>
+    </div>
+    <div class="lobby-actions">
+      <button id="btnReady" class="btn on" type="button">准备</button>
+      <button id="btnStart" class="btn" type="button" disabled>开始游戏</button>
+    </div>
+    <div class="lobby-actions">
+      <button id="btnLeave" class="btn ghost" type="button">离开房间</button>
+    </div>
+    <div id="lobbyHint" class="lobby-hint"></div>
+  </div>
+</div>
+
 <!-- 联机：对方请求重开确认 -->
 <div id="reqModal" class="modal" hidden>
   <div class="modal-card">
@@ -64,7 +95,8 @@
 <script src="gomoku-engine.js?v=g2"></script>
 <script src="gomoku-render.js?v=g2"></script>
 <script src="gomoku-ai.js?v=g2"></script>
-<script src="gomoku-online.js?v=g2"></script>
-<script src="gomoku-app.js?v=g2"></script>
+<script src="gomoku-online.js?v=g4"></script>
+<script src="lobby.js?v=l1"></script>
+<script src="gomoku-app.js?v=g4"></script>
 </body>
 </html>

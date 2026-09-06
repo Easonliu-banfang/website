@@ -25,6 +25,9 @@
   var oppConnected = false;
   var connOk = false;
   var welcomed = false;
+  var roomStarted = false;     // 联机：等待室是否已开始（false=等待室，true=对局中）
+  var currentRoom = '';
+  var lobby = null;
   var lastPlayers = null;   // 最近一次收到的双方在线状态，welcome 后用于补算对手在线情况
   var connBanner = false;   // 当前是否因「我方连接中断」而显示横幅
 
@@ -492,16 +495,35 @@
       vsAI = false;                                  // 联机不是人机，否则会误判玩家2为AI而吞掉提示
       R.flip = (p === 1);
       connOk = true;
-      if (first) {
-        showOnlineStatus(p === 0 ? '你是红方（先手），等待对手加入…' : '成功进入房间（你是紫方·后手）', 'connected');
-      } else {
+      if (!roomStarted && first) {
+        if (lobby) { lobby.show(currentRoom); lobby.setStatus('已连接，等待双方准备', 'connected'); }
+        showOnlineStatus('已进入房间，等待准备开始', 'connected');
+      } else if (roomStarted) {
         showOnlineStatus('已重新连接，继续对战', 'connected');
       }
       if (lastPlayers) applyOpponent(lastPlayers);   // 补算对手在线状态，消除 myPlayer<0 竞态
       syncUI();
       updateHints();
     });
+    o.on('lobby', function (d) {
+      myPlayer = d.you; connOk = true;
+      roomStarted = !!d.started;
+      if (lobby) {
+        if (d.started) lobby.hide();
+        else { lobby.show(currentRoom); lobby.render(d); }
+      }
+    });
+    o.on('started', function () { roomStarted = true; if (lobby) lobby.hide(); });
+    o.on('dissolve', function () {
+      roomStarted = false;
+      if (online) online._intentionalClose = true;
+      if (lobby) lobby.hide();
+      showOnlineStatus('房间已解散（有玩家离开），即将返回大厅…', 'disconnected');
+      setTimeout(function () { location.href = 'online.html'; }, 1800);
+    });
     o.on('state', function (s) {
+      roomStarted = true;
+      if (lobby) lobby.hide();
       applyRemote(s);
       if (s.history.length === 0) { wantNew = false; resetSent = false; }   // 新一局已下达，清除重开相关标记
       // 开局抛硬币：收到第一份「空棋盘」权威局面时播放一次
@@ -598,6 +620,7 @@
     state = Q.createState();
     el.p2name.textContent = '对手';
     started = true;
+    roomStarted = false; currentRoom = room;
     if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + room; el.roomCodeTag.hidden = false; }
     if (el.onlineStatus) el.onlineStatus.hidden = false;
     syncUI();
@@ -605,6 +628,13 @@
 
     online = new window.QuoridorOnline();
     online.code = room;
+    lobby = new window.GameLobby({
+      onReady: function () { if (online) online.sendReady(); },
+      onStart: function () { if (online) online.sendStart(); },
+      onLeave: function () { if (online) online._intentionalClose = true; location.href = 'online.html'; }
+    });
+    lobby.show(room);
+    lobby.setStatus('连接中…', 'connecting');
     bindOnlineEvents(online);
     online.connect(role === 'host' ? 0 : 1);
   }

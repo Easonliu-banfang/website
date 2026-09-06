@@ -20,7 +20,8 @@
 
   var HEARTBEAT_MS = 15000;   // 心跳间隔，远小于 Cloudflare 100s 空闲断开；同时作为服务端死连接检测的「存活信号」
   var RECONNECT_BASE = 1000;  // 退避基数（毫秒）
-  var RECONNECT_MAX = 30000;  // 单次最大退避（封顶 30s，之后无限重试，不再放弃）
+  var RECONNECT_MAX = 30000;  // 单次最大退避（封顶 30s）
+  var RECONNECT_MAX_ATTEMPTS = 8;   // 重连上限：达到后停止自动重连，提示手动重试，避免一直显示"正在重连"
 
   function Online() {
     this.code = null;
@@ -135,12 +136,15 @@
           self._emit('welcome', m.player);
           if (!settled) { settled = true; resolve(m.player); }
         }
+        else if (m.type === 'lobby') { self._emit('lobby', m); if (m.started) self._emit('started'); }
+        else if (m.type === 'started') self._emit('started');
         else if (m.type === 'state') self._emit('state', m.state);
         else if (m.type === 'players') self._emit('players', m.players);
         else if (m.type === 'req_undo') self._emit('req_undo');
         else if (m.type === 'res_undo') self._emit('res_undo', m.ok);
         else if (m.type === 'req_new') self._emit('req_new');
         else if (m.type === 'res_new') self._emit('res_new', m.ok);
+        else if (m.type === 'dissolve') { self._intentionalClose = true; self._stopHeartbeat(); self._emit('dissolve'); }
         else if (m.type === 'error') self._emit('error', m.msg);
         else if (m.type === 'pong') { /* 服务端心跳回包，忽略 */ }
         else if (m.type === 'ping') { self._wsSend({ type: 'pong' }); }  // 回应服务端心跳探测

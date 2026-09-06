@@ -34,6 +34,9 @@
   var wantNew = false;
   var resetSent = false;
   var placedLocal = false;      // 本人是否已上报布阵（联机锁定用）
+  var roomStarted = false;
+  var currentRoom = '';
+  var lobby = null;
 
   var winTimer = null;
   var aiTimer = null;
@@ -283,23 +286,42 @@
       welcomed = true;
       myPlayer = p;
       connOk = true;
-      el.phaseLabel.textContent = '布阵阶段 · 摆放你的舰队';
-      showOnlineStatus(p === 0 ? '你是玩家一（先手方），等待对手加入…' : '成功进入房间（你是玩家二）', 'connected');
+      if (!roomStarted) {
+        if (lobby) { lobby.show(currentRoom); lobby.setStatus('已连接，等待双方准备', 'connected'); }
+        showOnlineStatus('已进入房间，等待准备开始', 'connected');
+      }
       syncUI();
+    });
+    o.on('lobby', function (d) {
+      myPlayer = d.you; connOk = true;
+      roomStarted = !!d.started;
+      if (lobby) {
+        if (d.started) lobby.hide();
+        else { lobby.show(currentRoom); lobby.render(d); }
+      }
+    });
+    o.on('started', function () { roomStarted = true; if (lobby) lobby.hide(); });
+    o.on('dissolve', function () {
+      roomStarted = false;
+      if (online) online._intentionalClose = true;
+      if (lobby) lobby.hide();
+      showOnlineStatus('房间已解散（有玩家离开），即将返回大厅…', 'disconnected');
+      setTimeout(function () { location.href = 'battleship-online.html'; }, 1800);
     });
     o.on('state', function (v) {
       state = fromView(v);
       myPlayer = v.you;
-      connOk = true;
+      connOk = true; roomStarted = true;
+      if (lobby) lobby.hide();
       phase = (v.placed[0] && v.placed[1]) ? 'fire' : 'place';
       if (phase === 'fire') el.placePanel.hidden = true;
       if (state.winner >= 0) onWin(state.winner);
       syncUI(); updateFleet(); updatePlacePanel();
     });
     o.on('players', function (ps) {
+      if (roomStarted) return;
       var opp = !!(ps[1 - myPlayer]);
-      if (opp) showOnlineStatus('双方已就位', 'connected');
-      else showOnlineStatus(myPlayer === 0 ? '等待对手加入…（把房间码发给朋友）' : '等待对方创建房间…', 'connecting');
+      if (lobby) lobby.setStatus(opp ? '双方已就位，准备开始' : '等待对手加入…', opp ? 'connected' : 'connecting');
     });
     o.on('req_new', function () {
       reqPending = true; incomingKind = 'new';
@@ -519,11 +541,19 @@
         return;
       }
       mode = 'online'; onlineMode = true; myPlayer = role === 'host' ? 0 : 1;
+      roomStarted = false; currentRoom = room;
       state = B.createState(); phase = 'place'; placedLocal = false; welcomed = false;
       if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + room; el.roomCodeTag.hidden = false; }
       if (el.onlineStatus) el.onlineStatus.hidden = false;
       syncUI();
       online = new window.BattleshipOnline();
+      lobby = new window.GameLobby({
+        onReady: function () { if (online) online.sendReady(); },
+        onStart: function () { if (online) online.sendStart(); },
+        onLeave: function () { if (online) online._intentionalClose = true; location.href = 'battleship-online.html'; }
+      });
+      lobby.show(room);
+      lobby.setStatus('连接中…', 'connecting');
       bindOnline(online);
       online.connect(role === 'host' ? 0 : 1);
     } else {
