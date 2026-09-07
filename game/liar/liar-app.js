@@ -1,0 +1,567 @@
+/* 骗子酒馆 · Liar's Table
+ * 移植自 Hanazar-Games/Liars-Bar-webgame（MIT License）
+ * 单人 AI + 联机（复用本站 Cloudflare Worker 房间协议）
+ */
+(function () {
+  'use strict';
+
+  var E = (typeof window !== 'undefined' ? window : globalThis).LiarEngine;
+  var AI = (typeof window !== 'undefined' ? window : globalThis).LiarAI;
+  var GameEngine = E.GameEngine;
+
+  var AI_PLAYERS = [
+    { id: 'a1', name: '酒鬼老莫', avatar: '♠', bot: true },
+    { id: 'a2', name: '铁匠锤叔', avatar: '♣', bot: true },
+    { id: 'a3', name: '神婆小娜', avatar: '♦', bot: true },
+  ];
+
+  var app = {
+    mode: 'none',            // none | solo | online
+    engine: null,
+    view: null,
+    youId: 'you',
+    room: null,
+    ws: null,
+    selected: new Set(),
+    busy: false,
+    paused: false,
+    session: 0,
+    aiTimer: null,
+    revealSequence: 0,
+    connectionTimer: null,
+    roomStarted: false,
+    profileActive: false,
+    // 联机状态
+    connOk: false,
+    welcomed: false,
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var els = {
+    game: $('game'), start: $('startScreen'), lobby: $('lobbyOverlay'),
+    reveal: $('revealOverlay'), end: $('endOverlay'), rules: $('rulesOverlay'),
+    tutorial: $('tutorialOverlay'), toast: $('toast'),
+    players: $('players'), hand: $('hand'), historyList: $('historyList'),
+    targetRank: $('targetRank'), targetName: $('targetName'),
+    roundNo: $('roundNo'), pileCount: $('pileCount'), claimText: $('claimText'),
+    youLabel: $('youLabel'), connectionHint: $('connectionHint'),
+    selectionHint: $('selectionHint'), turnBanner: $('turnBanner'),
+    lastClaim: $('lastClaim'), challengeText: $('challengeText'),
+    selectedCount: $('selectedCount'), pile: $('playedPile'),
+    challenge: $('challengeBtn'), play: $('playBtn'),
+    modeBadge: $('modeBadge'),
+    continueBtn: $('continueBtn'), onlineContinue: $('onlineContinue'),
+    revealed: $('revealedCards'), revealTitle: $('revealTitle'),
+    revealEyebrow: $('revealEyebrow'), revealCopy: $('revealCopy'),
+    roulette: $('roulette'), rouletteText: $('rouletteText'),
+    eliminationImpact: $('eliminationImpact'), eliminationName: $('eliminationName'),
+    endTitle: $('endTitle'), endCopy: $('endCopy'),
+    lobbyCode: $('lobbyCode'), lobbyPlayers: $('lobbyPlayers'),
+    lobbyStatus: $('lobbyStatus'), startGame: $('startGameBtn'),
+    playerName: $('playerName'), roomCode: $('roomCode'),
+    onlinePanel: $('onlinePanel'),
+    tutorialTitle: $('tutorialTitle'), tutorialCopy: $('tutorialCopy'),
+    tutorialProgress: $('tutorialProgress'), tutorialVisual: $('tutorialVisual'),
+  };
+
+  /* ---------- 工具 ---------- */
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function playerName(id) {
+    if (!app.view) return id;
+    var p = app.view.players.find(function (x) { return x.id === id; });
+    return p ? p.name : id;
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { els.toast.hidden = true; }, 2400);
+  }
+  function focusSoon(el) { if (el && el.focus) setTimeout(function () { el.focus({ preventScroll: true }); }, 50); }
+
+  /* ---------- 渲染 ---------- */
+  function showGame() {
+    els.start.hidden = true; els.lobby.hidden = true;
+    els.reveal.hidden = true; els.end.hidden = true;
+    els.game.hidden = false;
+  }
+
+  function render() {
+    var view = app.view;
+    if (!view) return;
+    var me = view.players.find(function (p) { return p.id === app.youId; });
+    var opponents = view.players.filter(function (p) { return p.id !== app.youId; });
+    els.targetRank.textContent = view.target;
+    els.targetName.textContent = E.CARD_NAMES[view.target];
+    els.roundNo.textContent = view.round;
+    els.pileCount.textContent = view.pileCount;
+    els.claimText.textContent = '宣称是 ' + view.target;
+    els.youLabel.textContent = me ? (me.name + ' · 你的手牌') : '旁观牌局';
+    els.connectionHint.textContent = app.mode === 'online' ? ('房间 ' + (app.room ? app.room.code : '…')) : '单人模式';
+    renderOpponents(opponents);
+    renderHand(me, view);
+    renderPile(view);
+    renderHistory(view.history);
+    renderControls(me, view);
+  }
+
+  function renderOpponents(opponents) {
+    var view = app.view;
+    els.players.innerHTML = opponents.map(function (player, index) {
+      var cards = Array.from({ length: player.handCount }, function () { return '<i class="liar-mini-card"></i>'; }).join('');
+      var chambers = Array.from({ length: 6 }, function (_, chamber) {
+        return '<span class="' + (chamber < player.shots ? 'used' : '') + '"></span>';
+      }).join('');
+      var status = !player.connected ? '已断开连接'
+        : !player.alive ? '已淘汰'
+        : player.handCount ? (player.handCount + ' 张牌 · 弹巢 ' + player.shots + '/6')
+        : ('手牌已出尽 · 弹巢 ' + player.shots + '/6');
+      return '<article class="liar-opp ' + (!player.alive ? 'dead' : '') + ' ' + (view.current === player.id && view.phase === 'playing' ? 'active' : '') + '" data-seat="' + (index + 1) + '" data-total="' + opponents.length + '">' +
+        '<div class="liar-avatar-ring"><div class="liar-avatar">' + escapeHtml(player.avatar) + '</div><i class="liar-turn-dot"></i></div>' +
+        '<div class="liar-name">' + escapeHtml(player.name) + '</div>' +
+        '<div class="liar-status">' + status + '</div>' +
+        '<div class="liar-mini-cards">' + cards + '</div>' +
+        '<div class="liar-chambers">' + chambers + '</div>' +
+        '</article>';
+    }).join('');
+  }
+
+  function renderHand(me, view) {
+    var hand = (me && me.hand) || [];
+    var myTurn = view.current === app.youId && view.phase === 'playing' && !app.busy && !app.paused && me && me.alive;
+    els.hand.innerHTML = hand.map(function (rank, index) {
+      var selected = app.selected.has(index);
+      var red = rank === 'Q' ? 'red' : '';
+      var rotation = (index - (hand.length - 1) / 2) * 3;
+      return '<button class="liar-card ' + (rank === E.WILD_CARD ? 'joker' : '') + ' ' + red + ' ' + (selected ? 'selected' : '') + '" type="button" data-index="' + index + '" style="--rot:' + rotation + 'deg" aria-pressed="' + selected + '" ' + (myTurn ? '' : 'disabled') + '>' +
+        '<span class="liar-corner">' + (rank === E.WILD_CARD ? '★' : rank) + '</span>' +
+        '<span class="liar-suit">' + (rank === 'Q' ? '♥' : rank === 'K' ? '♣' : rank === 'A' ? '♠' : '✦') + '</span>' +
+        '<span class="liar-face">' + (rank === E.WILD_CARD ? 'J' : rank) + '</span>' +
+        (rank === E.WILD_CARD ? '<small class="liar-wild-label">万能</small>' : '') +
+        '</button>';
+    }).join('');
+    els.hand.querySelectorAll('.liar-card').forEach(function (card) {
+      card.addEventListener('click', function (e) { toggleCard(Number(card.dataset.index)); });
+    });
+  }
+
+  function renderPile(view) {
+    var count = view.pileCount;
+    if (!count) { els.pile.innerHTML = '<div class="liar-empty">等待出牌</div>'; return; }
+    var visible = Math.min(count, 9);
+    var cards = Array.from({ length: visible }, function (_, index) {
+      var rotation = (index * 23 % 34) - 17;
+      var offset = (index - (visible - 1) / 2) * 5;
+      return '<i class="liar-pile-card" style="--x:' + offset + 'px;--r:' + rotation + 'deg"></i>';
+    }).join('');
+    var actor = view.lastPlay ? playerName(view.lastPlay.player) : '上一位玩家';
+    els.pile.innerHTML = cards +
+      '<span class="liar-pile-badge"><span>' + escapeHtml(actor) + '</span><b>+' + view.lastPlay.count + ' 张</b></span>';
+  }
+
+  function renderHistory(history) {
+    els.historyList.innerHTML = history.slice(-6).reverse().map(function (entry) {
+      return '<div class="liar-history-item">' + escapeHtml(entry) + '</div>';
+    }).join('');
+  }
+
+  function renderControls(me, view) {
+    var myTurn = Boolean(me && me.alive && view.current === app.youId && view.phase === 'playing' && !app.busy && !app.paused);
+    els.selectedCount.textContent = app.selected.size;
+    var previous = view.lastPlay ? view.players.find(function (p) { return p.id === view.lastPlay.player; }) : null;
+    if (previous) {
+      els.lastClaim.innerHTML = '<span>' + escapeHtml(previous.name) + ' 宣称</span><b class="liar-claim-count">' + view.lastPlay.count + ' 张 ' + escapeHtml(view.target) + '</b>';
+      els.challengeText.innerHTML = '揭穿 ' + escapeHtml(previous.name) + ' 的 <em>' + view.lastPlay.count + ' 张牌</em>';
+    } else {
+      els.lastClaim.textContent = '尚无出牌';
+      els.challengeText.textContent = '尚无可质疑出牌';
+    }
+    els.lastClaim.className = 'liar-claim' + (previous ? ' active' : '');
+    els.selectionHint.textContent = app.selected.size
+      ? ('已选择 ' + app.selected.size + ' 张 · 将宣称为 ' + view.target)
+      : myTurn ? (!me.handCount && view.lastPlay ? '手牌已出尽，只能质疑上一手' : (view.lastPlay ? '继续出牌，或质疑上一手' : '选择 1–3 张牌'))
+      : (me && me.alive) ? '等待轮到你' : '你已被淘汰，正在旁观';
+    els.play.disabled = !myTurn || app.selected.size < 1 || app.selected.size > 3;
+    els.challenge.disabled = !myTurn || !view.lastPlay;
+    var current = view.players.find(function (p) { return p.id === view.current; });
+    var waiting = current && current.bot ? (current.name + ' 正在盘算…') : ('等待 ' + (current ? current.name : '玩家') + ' 出牌');
+    var turnMessage = view.phase === 'reveal' ? '等待裁决…' : view.phase === 'ended' ? '牌局结束' : myTurn ? '轮到你了' : waiting;
+    els.turnBanner.textContent = turnMessage;
+    els.turnBanner.className = 'liar-turn' + (myTurn ? ' your-turn' : '');
+    els.modeBadge.className = 'liar-badge ' + (app.mode === 'online' ? 'online' : app.mode === 'solo' ? 'solo' : '');
+    els.modeBadge.querySelector('span').textContent = app.mode === 'online' ? ('联机 · ' + (app.room ? app.room.code : '')) : app.mode === 'solo' ? '单人牌局' : '未入座';
+  }
+
+  function toggleCard(index) {
+    if (app.selected.has(index)) app.selected.delete(index);
+    else if (app.selected.size < 3) app.selected.add(index);
+    else return toast('一次最多打出 3 张牌');
+    render();
+  }
+
+  /* ---------- 单人模式 ---------- */
+  function startSolo() {
+    app.session += 1;
+    clearTimeout(app.aiTimer);
+    app.mode = 'solo';
+    app.youId = 'you';
+    app.room = null;
+    app.selected.clear();
+    app.busy = false;
+    app.paused = false;
+    app.engine = new GameEngine([{ id: 'you', name: '你', avatar: '♠' }].concat(AI_PLAYERS));
+    app.engine.start();
+    showGame();
+    refreshLocal();
+    maybeRunAI();
+  }
+
+  function refreshLocal() {
+    var prevCurrent = app.view ? app.view.current : null;
+    app.view = app.engine.viewFor(app.youId);
+    app.busy = app.view.phase !== 'playing';
+    render();
+    if (app.view.phase === 'ended') showEnd();
+    else if (prevCurrent && app.view.current === app.youId && app.view.phase === 'playing' && app.mode === 'solo') maybeRunAI();
+  }
+
+  function maybeRunAI() {
+    clearTimeout(app.aiTimer);
+    if (app.mode !== 'solo' || app.paused || app.busy || !app.engine || app.engine.phase !== 'playing') return;
+    var current = app.engine.player(app.engine.current);
+    if (!current.bot) return;
+    var session = app.session;
+    var currentId = current.id;
+    app.aiTimer = setTimeout(function () {
+      setTimeout(function () {
+        if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId || app.engine.phase !== 'playing') return;
+        if (app.engine.lastPlay && AI.shouldChallenge(app.engine, currentId)) {
+          localChallenge(currentId);
+          return;
+        }
+        app.engine.play(currentId, AI.chooseAI(app.engine, currentId));
+        refreshLocal();
+        maybeRunAI();
+      }, 600 + Math.random() * 600);
+    }, 200);
+  }
+
+  async function localChallenge(challenger) {
+    var result = app.engine.challenge(challenger);
+    await showReveal(result, false);
+    refreshLocal();
+    if (app.engine.phase === 'reveal') continueLocal();
+  }
+
+  async function showReveal(result, online) {
+    var sequence = ++app.revealSequence;
+    app.paused = false;
+    els.reveal.hidden = false;
+    els.continueBtn.hidden = true;
+    els.onlineContinue.hidden = !online;
+    els.eliminationImpact.hidden = true;
+    els.revealed.innerHTML = '';
+    els.roulette.className = 'liar-roulette';
+    els.revealTitle.textContent = result.lied ? '谎言被揭穿' : '质疑失败';
+    els.revealEyebrow.textContent = playerName(result.challenger) + ' 发起质疑';
+    els.revealed.innerHTML = result.cards.map(function (card) {
+      return '<div class="liar-reveal-card ' + (card === E.WILD_CARD ? 'joker' : '') + '">' + (card === E.WILD_CARD ? '★' : card) + '</div>';
+    }).join('');
+    var loserName = playerName(result.loser);
+    var accusedName = playerName(result.accused);
+    els.revealCopy.textContent = result.lied
+      ? (accusedName + ' 宣称的牌里藏着假牌，谎言被识破！')
+      : (accusedName + ' 说的是真话，' + loserName + ' 误判了。');
+    // 左轮动画
+    var chambers = els.roulette.querySelectorAll('.liar-chamber span');
+    els.rouletteText.textContent = '左轮转动……';
+    els.roulette.classList.add('spin');
+    await sleep(700);
+    chambers.forEach(function (c, i) { c.className = i < result.shotsAfter ? 'used' : ''; });
+    els.rouletteText.textContent = result.bang ? '💥 击发了！' : '咔哒……空膛';
+    if (result.bang) {
+      await sleep(500);
+      showEliminationImpact(loserName);
+    }
+    if (sequence !== app.revealSequence) return;
+    if (online) {
+      els.onlineContinue.hidden = false;
+      await sleep(2200);
+    } else {
+      els.continueBtn.hidden = false;
+    }
+  }
+
+  function showEliminationImpact(name) {
+    els.eliminationName.textContent = name;
+    els.eliminationImpact.hidden = false;
+    setTimeout(function () { els.eliminationImpact.hidden = true; }, 1600);
+  }
+
+  function continueLocal() {
+    if (!app.engine || app.engine.phase !== 'reveal') return;
+    app.engine.nextRound();
+    app.selected.clear();
+    app.busy = app.engine.phase !== 'playing';
+    app.view = app.engine.viewFor(app.youId);
+    render();
+    maybeRunAI();
+  }
+
+  function playSelected() {
+    if (app.mode === 'solo') {
+      if (app.busy || !app.selected.size) return;
+      var indices = Array.from(app.selected).sort(function (a, b) { return b - a; });
+      try {
+        app.engine.play(app.youId, indices);
+      } catch (e) { return toast(e.message || '出牌失败'); }
+      app.selected.clear();
+      refreshLocal();
+      maybeRunAI();
+    } else if (app.mode === 'online') {
+      if (app.busy || !app.selected.size || !app.connOk) return;
+      sendOnline({ type: 'play', indices: Array.from(app.selected).sort(function (a, b) { return a - b; }) });
+      app.selected.clear();
+      render();
+    }
+  }
+
+  function challenge() {
+    if (app.mode === 'solo') {
+      if (app.busy || !app.engine.lastPlay) return;
+      localChallenge(app.youId);
+    } else if (app.mode === 'online') {
+      if (app.busy || !app.connOk) return;
+      sendOnline({ type: 'challenge' });
+      app.selected.clear();
+      render();
+    }
+  }
+
+  function showEnd() {
+    var winner = app.view.players.find(function (p) { return p.id === app.view.winner; });
+    var won = winner && winner.id === app.youId;
+    els.endTitle.textContent = won ? '你活了下来' : ((winner ? winner.name : '无人') + ' 获胜');
+    els.endCopy.textContent = app.mode === 'online' ? '酒馆记住了最后的赢家。' : (won ? '三名酒客都倒下了，只有你站着。' : '下次胆子大一点。');
+    els.endLeaveBtn.hidden = app.mode !== 'online';
+    els.end.hidden = false;
+  }
+
+  /* ---------- 联机（复用 CF Worker 房间） ---------- */
+  var WS_BASE = 'wss://quoridor-mp.pages.dev/api/room/';   // 注意：WS 端点需带 /ws 后缀（见 openSocket）
+  var HTTP_BASE = 'https://quoridor-mp.pages.dev/api/room';
+
+  function connectRoom(action) {
+    var name = (els.playerName.value || '').trim() || '酒客';
+    if (action === 'create') {
+      fetch(HTTP_BASE + '?game=liar', { method: 'POST' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.code) return toast('创建房间失败：' + (d.error || '未知错误'));
+          openSocket(d.code, name, true);
+        })
+        .catch(function () { return toast('创建房间失败，服务器不可用'); });
+    } else {
+      var code = (els.roomCode.value || '').trim().toUpperCase();
+      if (code.length !== 4) return toast('请输入 4 位房间码');
+      openSocket(code, name, false);
+    }
+  }
+
+  function openSocket(code, name, host) {
+    app.mode = 'online';
+    app.room = { code: code, host: host };
+    els.lobby.hidden = false;
+    els.start.hidden = true;
+    els.lobbyCode.textContent = code;
+    els.lobbyStatus.textContent = '连接中…';
+    var ws = new WebSocket(WS_BASE + encodeURIComponent(code) + '/ws');
+    app.ws = ws;
+    ws.onopen = function () {
+      ws.send(JSON.stringify({ type: 'hello', name: name }));
+      app.playerName = name;
+    };
+    ws.onmessage = function (ev) {
+      var msg = JSON.parse(ev.data);
+      handleOnlineMessage(msg);
+    };
+    ws.onclose = function () {
+      app.connOk = false;
+      if (app.mode === 'online') toast('连接已断开');
+    };
+    ws.onerror = function () { toast('连接失败'); };
+  }
+
+  function sendOnline(message) {
+    if (app.ws && app.ws.readyState === 1) app.ws.send(JSON.stringify(message));
+  }
+
+  function handleOnlineMessage(message) {
+    if (message.type === 'error') {
+      toast(message.msg || '操作失败');
+      return;
+    }
+    if (message.type === 'welcome') {
+      app.welcomed = true;
+      app.connOk = true;
+      app.youId = String(message.player);
+      return;
+    }
+    if (message.type === 'lobby') {
+      app.youId = String(message.you);
+      app.connOk = true;
+      if (!message.started) {
+        renderLobby(message);
+      } else {
+        els.lobby.hidden = true;
+      }
+      return;
+    }
+    if (message.type === 'state') {
+      app.view = message.state;
+      app.connOk = true;
+      app.roomStarted = true;
+      els.lobby.hidden = true;
+      app.selected.clear();
+      app.busy = message.state.phase !== 'playing';
+      showGame();
+      render();
+      if (message.state.phase === 'ended') showEnd();
+      return;
+    }
+    if (message.type === 'reveal') {
+      app.busy = true;
+      app.view = message.view || app.view;   // 服务端附带最新局面（含 shotsAfter）
+      if (message.result) message.result.shotsAfter = message.result.shotsAfter != null ? message.result.shotsAfter : 0;
+      showReveal(message.result, true).then(function () {
+        // 联机：揭示动画后自动进入下一局
+        if (app.mode === 'solo') return;
+        sendOnline({ type: 'next' });
+      });
+      return;
+    }
+    if (message.type === 'next') {
+      // 服务端已进入下一局，等待 state
+      return;
+    }
+  }
+
+  function renderLobby(d) {
+    els.lobby.hidden = false;
+    els.start.hidden = true;
+    var isHost = String(d.you) === String(d.host);
+    var slots = d.players || [];
+    var capacity = d.capacity || 4;
+    while (slots.length < capacity) slots.push(null);
+    els.lobbyPlayers.innerHTML = slots.map(function (p, i) {
+      if (!p) return '<div class="liar-lobby-player liar-lobby-slot"><i>＋</i><span>等待加入</span></div>';
+      var host = String(i) === String(d.host);
+      return '<div class="liar-lobby-player"><i>' + escapeHtml(p.avatar || '♠') + '</i><span>' + escapeHtml(p.name) + '</span>' + (host ? '<small>房主</small>' : '') + '</div>';
+    }).join('');
+    var onlineCount = (d.players || []).filter(Boolean).length;
+    els.startGame.hidden = !isHost;
+    els.startGame.disabled = onlineCount < 2;
+    els.lobbyStatus.textContent = isHost
+      ? (onlineCount < 2 ? '至少需要 2 名玩家' : (onlineCount + ' 人已入座，可以开局'))
+      : '等待房主开始牌局';
+  }
+
+  /* ---------- 教程 ---------- */
+  var TUTORIAL = [
+    { title: '看清本局指定牌', copy: '每局指定 A、K 或 Q；只有 JOKER 是万能牌，可充当任意指定牌。' },
+    { title: '选牌暗扣', copy: '点击手牌选择 1–3 张，点「出牌」暗扣上桌，并宣称它们都是指定牌（可以说谎）。' },
+    { title: '出牌或质疑', copy: '轮到你时，继续出牌增加桌面牌数，或点「质疑」揭穿上一位玩家（上家手牌出尽时只能质疑）。' },
+    { title: '左轮裁决', copy: '质疑成功→撒谎者扣动左轮；质疑失败→你扣动左轮。弹巢随机，击发即淘汰，最后存活者获胜。' },
+  ];
+  var tutorialStep = 0;
+  function renderTutorial() {
+    var t = TUTORIAL[tutorialStep];
+    els.tutorialTitle.textContent = t.title;
+    els.tutorialCopy.textContent = t.copy;
+    els.tutorialProgress.textContent = '第 ' + (tutorialStep + 1) + ' / ' + TUTORIAL.length + ' 步';
+    els.tutorialVisual.dataset.step = tutorialStep;
+    els.tutorialBackBtn.disabled = tutorialStep === 0;
+    els.tutorialNextBtn.textContent = tutorialStep === TUTORIAL.length - 1 ? '开始游戏' : '下一步';
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function bind() {
+    $('soloBtn').addEventListener('click', startSolo);
+    $('onlineBtn').addEventListener('click', function () { els.onlinePanel.hidden = !els.onlinePanel.hidden; });
+    $('backModeBtn').addEventListener('click', function () { els.onlinePanel.hidden = true; });
+    $('createRoomBtn').addEventListener('click', function () { connectRoom('create'); });
+    $('joinRoomBtn').addEventListener('click', function () { connectRoom('join'); });
+    $('leaveRoomBtn').addEventListener('click', function () {
+      if (app.ws) app.ws.close();
+      app.mode = 'none';
+      location.reload();
+    });
+    $('startGameBtn').addEventListener('click', function () {
+      sendOnline({ type: 'start' });
+    });
+    els.play.addEventListener('click', playSelected);
+    els.challenge.addEventListener('click', challenge);
+    els.continueBtn.addEventListener('click', continueLocal);
+    els.restartBtn.addEventListener('click', function () {
+      els.end.hidden = true;
+      if (app.mode === 'solo') startSolo();
+      else if (app.mode === 'online') { sendOnline({ type: 'reset' }); els.lobby.hidden = false; }
+    });
+    els.endLeaveBtn.addEventListener('click', function () { location.href = '../index.html'; });
+    $('backToGameBtn').addEventListener('click', function () { location.href = '../index.html'; });
+    $('menuBtn').addEventListener('click', function () { els.rules.hidden = false; });
+    $('closeRulesBtn').addEventListener('click', function () { els.rules.hidden = true; });
+    $('resumeBtn').addEventListener('click', function () { els.rules.hidden = true; });
+    $('exitGameBtn').addEventListener('click', function () {
+      if (this.dataset.confirming) { location.href = '../index.html'; }
+      this.dataset.confirming = '1';
+      this.textContent = this.dataset.confirmLabel;
+      var self = this;
+      setTimeout(function () { if (self.dataset.confirming) { self.dataset.confirming = ''; self.textContent = self.dataset.defaultLabel; } }, 2500);
+    });
+    $('tutorialBtn').addEventListener('click', function () { tutorialStep = 0; renderTutorial(); els.tutorial.hidden = false; });
+    $('rulesBtn').addEventListener('click', function () { els.rules.hidden = false; });
+    $('closeTutorialBtn').addEventListener('click', function () { els.tutorial.hidden = true; });
+    $('tutorialBackBtn').addEventListener('click', function () {
+      if (tutorialStep > 0) { tutorialStep--; renderTutorial(); }
+    });
+    $('tutorialNextBtn').addEventListener('click', function () {
+      if (tutorialStep < TUTORIAL.length - 1) { tutorialStep++; renderTutorial(); }
+      else { els.tutorial.hidden = true; }
+    });
+    $('lobbyCode').addEventListener('click', function () {
+      var code = this.textContent;
+      if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { toast('房间码已复制'); });
+    });
+    // 键盘快捷键
+    document.addEventListener('keydown', function (e) {
+      if (els.game.hidden) return;
+      if (/^\d$/.test(e.key)) {
+        var idx = Number(e.key) - 1;
+        var card = els.hand.querySelector('[data-index="' + idx + '"]');
+        if (card && !card.disabled) toggleCard(idx);
+      } else if (e.key === 'p' || e.key === 'P') { if (!els.play.disabled) playSelected(); }
+      else if (e.key === 'c' || e.key === 'C') { if (!els.challenge.disabled) challenge(); }
+    });
+  }
+
+  /* ---------- 启动 ---------- */
+  function boot() {
+    bind();
+    // 供 Worker reveal 后联机继续
+    els.continueBtn.addEventListener('click', function () {
+      if (app.mode === 'solo') continueLocal();
+    });
+    els.reveal.hidden = true;
+    els.game.hidden = true;
+    els.start.hidden = false;
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
