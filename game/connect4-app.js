@@ -96,13 +96,13 @@
     setTimeout(function () {
       var firstLabel, sub;
       if (opts.ai) {
-        firstLabel = first === 0 ? '🔴 你（红）先手' : '🔵 电脑（蓝）先手';
+        firstLabel = first === 0 ? '你（红）先手' : '电脑（蓝）先手';
         sub = first === 0 ? '你执红，开始！' : '电脑执蓝，稍候…';
       } else if (opts.mode === 'online') {
-        firstLabel = (first === myPlayer) ? '🔴 你（红）先手' : '🔵 对手（蓝）先手';
+        firstLabel = (first === myPlayer) ? '你（红）先手' : '对手（蓝）先手';
         sub = (first === myPlayer) ? '你执红，开始！' : '对手执红，你执蓝';
       } else {
-        firstLabel = first === 0 ? '🔴 玩家一（红）先手' : '🔵 玩家二（蓝）先手';
+        firstLabel = first === 0 ? '玩家一（红）先手' : '玩家二（蓝）先手';
         sub = first === 0 ? '玩家一执红先行' : '玩家二执蓝先行';
       }
       el.coinResult.textContent = firstLabel;
@@ -151,7 +151,7 @@
     } else if (vsAI) {
       txt = winner === humanColor ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？';
     } else {
-      txt = (winner === 1 ? '🔴 红方' : '🔵 蓝方') + ' 获胜';
+      txt = (winner === 1 ? '红方' : '蓝方') + ' 获胜';
     }
     showBanner(txt, true, true);
     // 高亮胜利四连（简化为通知文案）
@@ -171,7 +171,7 @@
       var useWorker = typeof Worker !== 'undefined';
       if (useWorker) {
         if (!aiWorker) {
-          try { aiWorker = new Worker('connect4-ai.worker.js?v=c5'); } catch (e) { aiWorker = null; }
+          try { aiWorker = new Worker('connect4-ai.worker.js?v=c6'); } catch (e) { aiWorker = null; }
         }
         if (aiWorker) {
           var settle = false;
@@ -217,6 +217,7 @@
 
   function doUndoLocal() {
     if (!onlineMode && G.undo(state)) {
+      if (state.history.length) G.undo(state);   // 悔棋回到发起人上次落子前：撤两步
       window.Notify.clearAll();
       syncUI();
     }
@@ -245,8 +246,8 @@
   /* ---------- 渲染 ---------- */
   function turnLabel() {
     if (!state) return '';
-    if (state.winner === 1) return '🔴 红方获胜！';
-    if (state.winner === 2) return '🔵 蓝方获胜！';
+    if (state.winner === 1) return '红方获胜！';
+    if (state.winner === 2) return '蓝方获胜！';
     if (state.winner === 0) return '🤝 平局';
     return '轮到' + (state.turn === 1 ? '红' : '蓝') + '方落子';
   }
@@ -260,7 +261,7 @@
     if (el.boardTitle) {
       if (!state) el.boardTitle.textContent = '棋盘';
       else if (state.winner >= 0) el.boardTitle.textContent = (state.winner === 0 ? '🤝 平局' : (colorName(state.winner) + '方获胜'));
-      else el.boardTitle.textContent = '🔴' + colorName(state.turn) + '方回合';
+      else el.boardTitle.textContent = colorName(state.turn) + '方回合';   // 去掉左侧红 emoji（用户要求）
     }
     // 回合提示（Notify 一次性）
     if (state && state.winner < 0 && (onlineMode ? roomStarted : true)) {
