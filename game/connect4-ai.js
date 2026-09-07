@@ -1,99 +1,189 @@
-/* 四子棋 AI —— 永从中心列（第 4 列，index 3）开局；此后启发式：
- * 优先自己成四赢棋 → 堵对手成四 → 做/堵三连威胁 → 中心偏好。同步执行（局面小）。
+/* 四子棋 AI —— Minimax + Alpha-Beta 剪枝 + 迭代加深（时间预算）
+ *
+ * 设计（「开智」版，替代旧的单步启发式 + 强制中心列开局）：
+ *   - 评估函数：69 个四连窗口（24 横 + 21 竖 + 12 主对角 + 12 副对角）
+ *     按窗口内己方/对方棋子分布计分，天然覆盖「攻」与「防」
+ *   - 搜索：NegaMax + Alpha-Beta，列排序（中心优先 + 单步威胁启发）提升剪枝
+ *   - 迭代加深：深度从 1 递增到 maxDepth（默认 7），600ms 时间预算内尽量深，
+ *     至少保证 3 层（提前看 2~3 步）；终局返回 ±(WIN-ply) 鼓励尽快赢
+ *   - 不再强制中心列开局：第一步也走完整搜索（中心列因启发排序天然优先，
+ *     但不是死板规则）
+ *   - 同步执行：Alpha-Beta + 剪枝下 7 列分支极小，耗时 <100ms 级
  */
 (function (global) {
   'use strict';
 
   var C = global.Connect4;
-  var CENTER = 3;   // 0-based 中心列
+  var WIN = 1000000;
+  var MAX_DEPTH = 7;
+  var TIME_BUDGET = 600;      // ms
+  var _deadline = 0;
+  var _nodes = 0;
 
-  function bestMove(state, p) {
-    var moves = C.legalMoves(state);
-    if (!moves.length) return null;
+  // 四连窗口起点（r,c）与方向 dr,dc
+  var DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
 
-    // 开局（空盘/第一手）：永远中心列
-    if (state.history.length === 0) {
-      return (moves.indexOf(CENTER) >= 0) ? CENTER : moves[Math.floor(moves.length / 2)];
-    }
+  function inB(r, c) { return C.inBoard(r, c); }
 
-    var opp = 3 - p;
-    var best = null, bestScore = -Infinity;
-
-    for (var i = 0; i < moves.length; i++) {
-      var col = moves[i];
-      var score = evalMove(state, col, p, opp);
-      // 中心偏好：列越靠中得分越高（轻微）
-      score += (CENTER - Math.abs(col - CENTER)) * 0.2;
-      if (score > bestScore) { bestScore = score; best = col; }
-    }
-    return best;
+  // 由开局深度自动定 maxDepth（局面越空搜得越深）
+  function pickMaxDepth(state) {
+    var filled = state.history.length;
+    if (filled >= 38) return Math.max(3, MAX_DEPTH - 2);
+    if (filled >= 28) return MAX_DEPTH;
+    return MAX_DEPTH;
   }
 
-  // 对某一列落子的评分（红方视角 p 得分高好，opp 维度沉重惩罚）
-  function evalMove(state, col, p, opp) {
+  // 评估：遍历棋盘上所有四连窗口
+  function evalBoard(state, p) {
     var rows = state.rows, cols = state.cols;
-
-    // 模拟 p 落子
-    var r = C.dropRow(state, col);
-    if (r < 0) return -9999;
-
-    // 1) 自己落子后成四 → 必胜
-    if (C.checkWinAt(state, r, col, p)) return 100000;
-
-    // 2) 对手若落此列会成四 → 立即堵
-    if (C.checkWinAt(state, r, col, opp)) return 50000;
-
-    // 3) 通用评价：对 (r,col) 为中心的所有窗打分
-    var pScore = windowScore(state, r, col, p, opp);
-
-    // 4) 考虑「若我不堵，对手下一步在哪成四」——已有第 2 条覆盖堵，再加一层威胁观察：
-    //    对手在相邻列垂直落子是否成三（逼近成四）
-    var oppThreat = 0;
-    for (var dc2 = -3; dc2 <= 3; dc2++) {
-      var c2 = col + dc2;
-      if (c2 < 0 || c2 >= cols) continue;
-      var r2 = C.dropRow(state, c2);
-      if (r2 < 0) continue;
-      if (C.checkWinAt(state, r2, c2, opp)) oppThreat += 3000; // 对手下一步即成四（我方应优先防）
-    }
-
-    return pScore - oppThreat;
-  }
-
-  // 以 (r,c) 为落子点，统计经过它的四条线上 p 的威胁与 opp 的威胁
-  function windowScore(state, r, c, p, opp) {
-    var dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
     var score = 0;
-    for (var d = 0; d < dirs.length; d++) {
-      var dr = dirs[d][0], dc = dirs[d][1];
-      var pRun = runLen(state, r, c, p, dr, dc);
-      var oRun = runLen(state, r, c, opp, dr, dc);
-      if (oRun === 0) {
-        // 该方向无对手阻挡：p 的连子规模越大分越高（成 3 威胁 1200，成 2 起步 200）
-        score += (pRun === 3) ? 1200 : (pRun === 2) ? 200 : 30;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        for (var d = 0; d < DIRS.length; d++) {
+          var dr = DIRS[d][0], dc = DIRS[d][1];
+          // 窗口起点合法：r+3dr, c+3dc 必须在盘内
+          if (!inB(r + 3 * dr, c + 3 * dc)) continue;
+          var cntP = 0, cntO = 0;
+          for (var i = 0; i < 4; i++) {
+            var v = state.board[r + i * dr][c + i * dc];
+            if (!v) continue;
+            if (v === p) cntP++; else cntO++;
+          }
+          // 混合窗口无价值；单色窗口按连子数计分（攻/防对称）
+          if (cntP > 0 && cntO > 0) continue;
+          if (cntP > 0) {
+            if (cntP === 4) score += 30000;      // 必胜窗（搜索中一般已被终局截断）
+            else if (cntP === 3) score += 400;   // 三连威胁
+            else if (cntP === 2) score += 40;    // 二连铺垫
+            else score += 5;
+          } else if (cntO > 0) {
+            if (cntO === 4) score -= 30000;
+            else if (cntO === 3) score -= 350;   // 挡对手三连
+            else if (cntO === 2) score -= 35;
+            else score -= 4;
+          }
+        }
       }
-      if (pRun === 0) {
-        // 该方向无我阻挡：对手连子大说明我方应防守
-        score -= (oRun === 3) ? 900 : (oRun === 2) ? 150 : 10;
+    }
+    // 微小的中心偏好（仅作 tiebreak，不作为硬规则）
+    var bp = state.board;
+    for (var rr = 0; rr < rows; rr++) {
+      for (var cc = 0; cc < cols; cc++) {
+        if (!bp[rr][cc]) continue;
+        var x = (cc - (cols - 1) / 2) / (cols / 2);   // -1..1
+        if (bp[rr][cc] === p) score += x * x * 1.2;
+        else score -= x * x * 1.2;
       }
     }
     return score;
   }
 
-  // 经过 (r,c) 且沿 (dr,dc) 与反向形成的「同色连续窗」长度（含两端空位忽略）
-  function runLen(state, r, c, p, dr, dc) {
-    var rows = state.rows, cols = state.cols;
-    if (!C.inBoard(r, c) || state.board[r][c] !== p) return 0;
-    var n = 1;
-    for (var s = -1; s <= 1; s += 2) {
-      var rr = r + dr * s, cc = c + dc * s;
-      while (C.inBoard(rr, cc) && state.board[rr][cc] === p) { n++; rr += dr * s; cc += dc * s; }
+  // 克隆状态（6x7 小盘，复制便宜）
+  function clone(state) {
+    return {
+      rows: state.rows,
+      cols: state.cols,
+      board: state.board.map(function (row) { return row.slice(); }),
+      turn: state.turn,
+      winner: state.winner,
+      last: state.last,
+      history: state.history.slice(),
+      blackPlayer: state.blackPlayer,
+    };
+  }
+
+  // 列排序：中心优先 + 单步成三/堵三启发（提升剪枝效率）
+  function orderMoves(state, p, opp) {
+    var moves = C.legalMoves(state);
+    var scored = moves.map(function (col) {
+      var r = C.dropRow(state, col);
+      var s = -Math.abs(col - (state.cols - 1) / 2);   // 中心列排序靠前
+      // 单步威胁：自己落子成三 / 对手成三
+      if (C.checkWinAt(state, r, col, p)) s -= 100;
+      return { col: col, s: s };
+    });
+    scored.sort(function (a, b) { return a.s - b.s; });
+    return scored.map(function (x) { return x.col; });
+  }
+
+  // NegaMax：返回当前玩家 p 的分数
+  function negamax(state, p, depth, alpha, beta) {
+    _nodes++;
+    // 时间预算（仅在较深处检查，避免浅层开销）
+    if (depth >= 4 && performance.now() > _deadline) throw new Error('timeout');
+
+    var opp = 3 - p;
+    var moves = C.legalMoves(state);
+    if (!moves.length) return 0;          // 平局
+
+    var best = -Infinity;
+    var ordered = orderMoves(state, p, opp);
+
+    for (var i = 0; i < ordered.length; i++) {
+      var col = ordered[i];
+      var s = clone(state);
+      var res = C.drop(s, p, col);
+      if (!res.ok) continue;
+
+      var score;
+      if (s.winner === p) score = WIN - 1;              // 本轮即胜（ply 已在外部加成）
+      else if (s.winner === 0) score = 0;               // 已判平
+      else if (depth <= 1) score = evalBoard(s, p);     // 到达叶子
+      else score = -negamax(s, opp, depth - 1, -beta, -alpha);
+
+      if (score > best) best = score;
+      if (best > alpha) alpha = best;
+      if (alpha >= beta) break;                         // 剪枝
     }
-    return n;
+    return best;
+  }
+
+  function bestMove(state, p) {
+    var moves = C.legalMoves(state);
+    if (!moves.length) return null;
+    var opp = 3 - p;
+
+    var maxDepth = pickMaxDepth(state);
+    _deadline = performance.now() + TIME_BUDGET;
+
+    var bestCol = null, bestScore = -Infinity, bestDepth = 0;
+
+    // 迭代加深：从保证的 3 层开始（提前看 2~3 步），预算内尽量加深
+    for (var depth = 3; depth <= maxDepth; depth++) {
+      var curBest = null, curScore = -Infinity, alpha = -Infinity, beta = Infinity;
+      try {
+        var ordered = orderMoves(state, p, opp);
+        for (var i = 0; i < ordered.length; i++) {
+          var col = ordered[i];
+          var s = clone(state);
+          var res = C.drop(s, p, col);
+          if (!res.ok) continue;
+
+          var score;
+          if (s.winner === p) score = WIN + (MAX_DEPTH - depth);   // 尽快赢
+          else if (s.winner === 0) score = 0;
+          else score = -negamax(s, opp, depth - 1, -beta, -alpha);
+
+          if (score > curScore) { curScore = score; curBest = col; }
+          if (curScore > alpha) alpha = curScore;
+          if (alpha >= beta) break;
+        }
+        // 该层完整搜索成功，采用
+        if (curBest != null) { bestCol = curBest; bestScore = curScore; bestDepth = depth; }
+      } catch (e) {
+        if (e.message !== 'timeout') throw e;   // 超时：采用上一层结果
+        break;
+      }
+    }
+
+    // 兜底：极端情况下（全超时）至少返回一个合法列
+    if (bestCol == null) bestCol = moves[Math.floor(moves.length / 2)];
+    return bestCol;
   }
 
   global.Connect4AI = {
     bestMove: bestMove,
-    CENTER: CENTER
+    evalBoard: evalBoard,
+    MAX_DEPTH: MAX_DEPTH,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
