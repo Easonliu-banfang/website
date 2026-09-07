@@ -9,7 +9,15 @@
   <link rel="stylesheet" href="style.css?v=b12">
   <style>
     /* ---------- 服务器状态页 ---------- */
-    .st-wrap { max-width: 760px; margin: 0 auto; padding: 20px 24px 64px; position: relative; z-index: 1; }
+    .st-wrap {
+      width: 100%;                    /* 宽度跟随视口，而不是锁死居中 */
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px clamp(18px, 4vw, 44px) 44px;  /* 左右适中固定边距，拉伸窗口横线始终贴近边框 */
+      box-sizing: border-box;
+      position: relative;
+      z-index: 1;
+    }
     .st-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
     .st-title { font-family: var(--mono); font-size: clamp(24px, 5vw, 34px); font-weight: 700; letter-spacing: 1px; }
     .st-updated { font-family: var(--mono); font-size: 13px; color: var(--faint); }
@@ -180,7 +188,7 @@
     return p[1] + '-' + p[2];
   }
 
-  fetch('https://quoridor-mp.pages.dev/api/status', { headers: { 'Cache-Control': 'no-cache' } })
+  fetch('https://quoridor-mp.pages.dev/api/status?t=' + Date.now())
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (d) {
       if (d.error) throw new Error(d.error);
