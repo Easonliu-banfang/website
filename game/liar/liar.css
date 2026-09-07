@@ -329,11 +329,13 @@
 
 /* toast */
 .liar-toast {
+  display: none;                    /* 默认隐藏，toast() 调用时显示 */
   position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
   background: var(--bg-elev); border: 1px solid rgba(34,211,238,.4);
   color: var(--text); padding: 10px 22px; border-radius: 999px;
   font-size: 13px; z-index: 70; transition: opacity .3s;
 }
+.liar-toast:not([hidden]) { display: block; }
 
 /* ---------- 响应式 ---------- */
 @media (max-width: 880px) {

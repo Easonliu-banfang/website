@@ -309,6 +309,7 @@
     app.selected.clear();
     app.busy = app.engine.phase !== 'playing';
     app.view = app.engine.viewFor(app.youId);
+    els.reveal.hidden = true;              // 关闭质疑弹窗（之前漏了这步，弹窗盖住牌桌像没反应）
     render();
     maybeRunAI();
   }
@@ -553,10 +554,6 @@
   /* ---------- 启动 ---------- */
   function boot() {
     bind();
-    // 供 Worker reveal 后联机继续
-    els.continueBtn.addEventListener('click', function () {
-      if (app.mode === 'solo') continueLocal();
-    });
     els.reveal.hidden = true;
     els.game.hidden = true;
     els.start.hidden = false;
