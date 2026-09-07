@@ -69,6 +69,7 @@
     vsAI = !!ai;
     state = G.createState();
     reqPending = false; reqKind = null; incomingKind = null; wantNew = false; resetSent = false;
+    aiReqId++;                        // 作废所有在途 AI 搜索结果
     hideBanner();
     window.Notify.clearAll();
     if (!onlineMode) {
@@ -152,20 +153,62 @@
     // 高亮胜利四连（简化为通知文案）
   }
 
+  var aiWorker = null;          // AI 搜索 Web Worker（后台线程，避免主线程卡顿）
+  var aiReqId = 0;              // 请求编号，用于丢弃过期结果（开新局/悔棋时）
+
   function maybeAI() {
     if (onlineMode || !vsAI || !state || state.winner >= 0) return;
     if (state.turn !== aiSide) return;
     if (aiTimer) clearTimeout(aiTimer);
     aiTimer = setTimeout(function () {
-      // AI 永远从中心列开局：空盘时优先 col3
-      var col = window.Connect4AI.bestMove(state, aiSide);
-      if (col == null) return;
-      showBanner('电脑思考中…', false);
-      var res = G.drop(state, aiSide, col);
-      if (res && res.ok) R.dropPiece(col, aiSide, res.row);
-      afterMove();
-      syncUI();
+      var reqId = ++aiReqId;
+      var snapState = state;    // 记录本次搜索用的局面（防止搜索期间局面被重置）
+      // 优先用 Web Worker（不阻塞主线程，动画流畅）
+      var useWorker = typeof Worker !== 'undefined';
+      if (useWorker) {
+        if (!aiWorker) {
+          try { aiWorker = new Worker('connect4-ai.worker.js?v=c4'); } catch (e) { aiWorker = null; }
+        }
+        if (aiWorker) {
+          var settle = false;
+          aiWorker.onmessage = function (e) {
+            var m = e.data;
+            if (!m || reqId !== aiReqId) return;         // 过期结果：开新局/悔棋后丢弃
+            settle = true;
+            applyAIMove(m.col);
+          };
+          aiWorker.onerror = function () {
+            if (settle) return;
+            if (reqId === aiReqId) syncAIFallback(snapState, reqId);
+          };
+          try {
+            aiWorker.postMessage({ type: 'think', reqId: reqId, state: snapState, aiSide: aiSide });
+            // 兜底：worker 若 5s 内无响应则同步计算（极端情况）
+            setTimeout(function () { if (!settle && reqId === aiReqId) syncAIFallback(snapState, reqId); }, 5000);
+            return;
+          } catch (e) { /* postMessage 失败 → 同步兜底 */ }
+        }
+      }
+      syncAIFallback(snapState, reqId);
     }, 550);
+  }
+
+  // 同步计算 AI 着法（worker 不可用/超时/出错时兜底）
+  function syncAIFallback(snapState, reqId) {
+    if (reqId !== aiReqId) return;
+    var col = window.Connect4AI.bestMove(snapState, aiSide);
+    applyAIMove(col);
+  }
+
+  // 应用 AI 着法（与主线程 state 同步，防止搜索期间局面已被重置）
+  function applyAIMove(col) {
+    if (aiReqId === 0) return;
+    if (!state || state.winner >= 0 || state.turn !== aiSide) return;
+    if (col == null) return;
+    var res = G.drop(state, aiSide, col);
+    if (res && res.ok) R.dropPiece(col, aiSide, res.row);
+    afterMove();
+    syncUI();
   }
 
   function doUndoLocal() {

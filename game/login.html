@@ -15,13 +15,14 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: radial-gradient(1200px 600px at 80% -10%, rgba(34,211,238,0.08), transparent 60%),
+      background-color: var(--bg);   /* 深色底，避免半透明渐变露出白底 */
+      background-image: radial-gradient(1200px 600px at 80% -10%, rgba(34,211,238,0.08), transparent 60%),
                   radial-gradient(1000px 500px at 10% 110%, rgba(167,139,250,0.10), transparent 55%);
     }
     .login-card {
       width: 100%;
       max-width: 420px;
-      background: var(--card);
+      background: var(--bg-elev);    /* 更实的深色卡面，白字清晰 */
       border: 1px solid var(--card-edge);
       border-radius: 20px;
       padding: 34px 32px 26px;
@@ -41,26 +42,28 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 26px;
     }
-    .login-brand h1 { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+    .login-brand h1 { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.5px; color: var(--text); }
     .login-brand p { font-size: 13px; color: var(--dim); margin-top: 5px; }
 
     /* 切换标签 */
-    .login-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(255,255,255,0.04); padding: 5px; border-radius: 12px; margin-bottom: 20px; }
+    .login-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 12px; margin-bottom: 20px; }
     .login-tab {
       padding: 9px 0; text-align: center; border-radius: 9px; cursor: pointer;
       font-family: var(--mono); font-size: 14px; color: var(--dim);
       transition: all 0.2s ease; border: none; background: none;
     }
-    .login-tab.on { background: rgba(34,211,238,0.14); color: var(--cyan); box-shadow: 0 2px 10px rgba(34,211,238,0.15); }
+    .login-tab:hover { color: var(--text); }
+    .login-tab.on { background: rgba(34,211,238,0.15); color: var(--cyan); box-shadow: 0 2px 10px rgba(34,211,238,0.15); }
 
     .login-field { margin-bottom: 14px; }
-    .login-field label { display: block; font-family: var(--mono); font-size: 12px; color: var(--faint); letter-spacing: 0.5px; margin-bottom: 6px; }
+    .login-field label { display: block; font-family: var(--mono); font-size: 12px; color: var(--dim); letter-spacing: 0.5px; margin-bottom: 6px; }
     .login-input {
       width: 100%; padding: 12px 14px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06);
       color: var(--text); font-size: 15px; outline: none; box-sizing: border-box;
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
     }
+    .login-input::placeholder { color: var(--faint); }
     .login-input:focus { border-color: rgba(34,211,238,0.5); box-shadow: 0 0 0 3px rgba(34,211,238,0.12); }
 
     .login-submit {
@@ -81,7 +84,7 @@
 
     .login-skip {
       display: block; margin: 16px auto 0; padding: 8px 18px; border: none; background: none;
-      font-size: 13px; color: var(--faint); cursor: pointer; font-family: var(--mono);
+      font-size: 13px; color: var(--dim); cursor: pointer; font-family: var(--mono);
       transition: color 0.18s ease;
     }
     .login-skip:hover { color: var(--cyan); }
