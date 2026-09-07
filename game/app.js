@@ -158,6 +158,8 @@
   function afterAction() {
     R.hover = null;
     placing = false;
+    if (wallPadEl) wallPadEl.hidden = true;   // 放墙/走子后隐藏触屏控件
+    wallCursor = null;
     syncUI();
     updateHints();
     if (state.winner >= 0) {
@@ -345,17 +347,116 @@
 
   /* ---------- 按钮 ---------- */
 
+var wallCursor = null;        // 触屏墙光标 {r,c,dir}
+  var wallPadEl = document.getElementById('wallPad');
+  var wallEls = {
+    rotate: document.getElementById('btnWallRotate'),
+    place: document.getElementById('btnWallPlace'),
+    cancel: document.getElementById('btnWallCancel'),
+  };
+  var WALL_GRID = (window.Quoridor && window.Quoridor.SIZE) ? window.Quoridor.SIZE - 1 : 8;  // 墙槽 8x8
+
+  function isTouchWall() {
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  }
+
+  // 显示/隐藏触屏墙控件
+  function showWallPad(show) {
+    if (!wallPadEl) return;
+    wallPadEl.hidden = !show;
+  }
+
+  // 初始化墙光标（若未定位：棋盘中心墙槽，横向）
+  function ensureWallCursor() {
+    if (wallCursor) return;
+    var mid = Math.floor(WALL_GRID / 2);      // 4 (0-based)
+    wallCursor = { r: mid, c: mid - 1, dir: 'H' };   // 中心附近
+    refreshWallCursor();
+  }
+
+  // 移动墙光标（方向键）
+  function moveWallCursor(dr, dc) {
+    if (!wallCursor) return;
+    var r = wallCursor.r + dr, c = wallCursor.c + dc;
+    if (r < 0 || r >= WALL_GRID || c < 0 || c >= WALL_GRID) return;
+    wallCursor.r = r; wallCursor.c = c;
+    refreshWallCursor();
+  }
+
+  // 旋转：横↔竖
+  function rotateWallCursor() {
+    if (!wallCursor) return;
+    wallCursor.dir = (wallCursor.dir === 'H') ? 'V' : 'H';
+    refreshWallCursor();
+  }
+
+  // 渲染当前墙光标预览（走 R.hover 机制）
+  function refreshWallCursor() {
+    if (!state || !wallCursor || !interactive()) return;
+    var who = onlineMode ? myPlayer : state.turn;
+    var w = { r: wallCursor.r, c: wallCursor.c, dir: wallCursor.dir, type: 'wall' };
+    w.valid = state.players[who].walls > 0 && Q.canPlaceWall(state, who, w.r, w.c, w.dir);
+    R.hover = w;
+    syncUI();
+  }
+
+  // 确认放置：光标处放墙
+  function placeWallCursor() {
+    if (!state || !wallCursor || !interactive()) return;
+    var who = onlineMode ? myPlayer : state.turn;
+    if (state.players[who].walls <= 0) { flashBanner('你没有剩余的墙了', true); return; }
+    if (!Q.canPlaceWall(state, who, wallCursor.r, wallCursor.c, wallCursor.dir)) { flashBanner('这里不能放墙', true); return; }
+    if (onlineMode) {
+      Q.placeWall(state, who, wallCursor.r, wallCursor.c, wallCursor.dir);
+      afterAction();
+      online.sendWall(wallCursor.r, wallCursor.c, wallCursor.dir);
+    } else if (Q.placeWall(state, who, wallCursor.r, wallCursor.c, wallCursor.dir)) {
+      afterAction();
+    }
+    wallCursor = null;
+    showWallPad(false);
+  }
+
+  function cancelWallPad() {
+    wallCursor = null;
+    setPlacing(false);
+    showWallPad(false);
+  }
+
   function setPlacing(v) {
     if (!interactive()) return;
     if (v && state.players[state.turn].walls <= 0) return;
     placing = v;
     R.hover = null;
+    if (v && isTouchWall()) {          // 触屏：显示控件 + 初始化光标
+      ensureWallCursor();
+      showWallPad(true);
+      refreshWallCursor();
+    } else if (!v) {
+      showWallPad(false);
+      wallCursor = null;
+    }
     syncUI();
     updateHints();
   }
 
   el.btnMove.addEventListener('click', function () { setPlacing(false); });
   el.btnWall.addEventListener('click', function () { setPlacing(!placing); });
+  if (wallPadEl) {
+    // 方向键（用事件委托）
+    document.getElementById('wallDpad').addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.dpad-btn') : null;
+      if (!b || !state || !placing || !interactive()) return;
+      var dir = b.getAttribute('data-dir');
+      if (dir === 'up') moveWallCursor(-1, 0);
+      else if (dir === 'down') moveWallCursor(1, 0);
+      else if (dir === 'left') moveWallCursor(0, -1);
+      else if (dir === 'right') moveWallCursor(0, 1);
+    });
+    if (wallEls.rotate) wallEls.rotate.addEventListener('click', function () { if (placing) rotateWallCursor(); });
+    if (wallEls.place) wallEls.place.addEventListener('click', function () { if (placing) placeWallCursor(); });
+    if (wallEls.cancel) wallEls.cancel.addEventListener('click', function () { if (placing) cancelWallPad(); });
+  }
 
   el.btnUndo.addEventListener('click', function () {
     if (onlineMode) { requestUndo(); return; }
