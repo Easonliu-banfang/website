@@ -464,7 +464,8 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
     if (onlineMode) { requestUndo(); return; }
     if (aiThinking || !state.history.length) return;
     Q.undo(state);
-    if (vsAI && state.history.length) Q.undo(state);
+    // 悔棋语义：回到「悔棋发起人上一次落子之前」→ 撤两步（对方应手+自己最后一手）
+    if (state.history.length) Q.undo(state);
     hideBanner();
     placing = false; R.anim = null; R.hover = null; aiThinking = false;
     syncUI(); updateHints();

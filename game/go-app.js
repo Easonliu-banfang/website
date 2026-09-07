@@ -478,6 +478,7 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
   function doUndoLocal() {
     if (!state || state.history.length === 0) return;
     G.undo(state);
+    if (state.history.length) G.undo(state);   // 悔棋回到发起人上次落子前：撤两步
     hideBanner();
     window.Notify.clearAll();
     scoringMode = false; deadSet = [];

@@ -31,6 +31,7 @@
     var self = this;
     if (this.btnReady) this.btnReady.addEventListener('click', function () {
       // 乐观更新：点击立即切换文字（服务端广播随后 render 校正，双保险避免“点了文字不变”）
+      if (self.btnReady.disabled) return;   // 房主无准备按钮，点击无效
       self.readyState = !self.readyState;
       if (!self.btnReady.hidden) self.btnReady.textContent = self.readyState ? '取消准备' : '准备';
       self.onReady();
@@ -146,6 +147,7 @@
     if (self.btnNotify) self.btnNotify.hidden = !isHost;
     if (self.btnReady) {
       self.btnReady.hidden = isHost;
+      self.btnReady.disabled = isHost;      // 双保险：房主禁用准备按钮，即使显示也点不了
       if (!isHost) {
         self.readyState = !!d.ready[you];
         self.btnReady.textContent = self.readyState ? '取消准备' : '准备';
