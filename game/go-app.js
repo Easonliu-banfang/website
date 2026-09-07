@@ -194,6 +194,34 @@
     }
   }
 
+var confirmModeGo = false;        // 触屏确认模式（手机/平板）
+  var pendingGo = null;              // {r,c} 待确认落点
+  var elConfirmGo = document.getElementById('btnConfirm');
+
+  function isTouchDeviceGo() {
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  }
+  function setPendingGo(r, c) {
+    pendingGo = { r: r, c: c };
+    if (elConfirmGo) {
+      elConfirmGo.hidden = false;
+      elConfirmGo.disabled = false;
+      elConfirmGo.textContent = '✅ 确认落子（' + (r + 1) + ',' + (c + 1) + '）';
+    }
+    hover = null;
+  }
+  function clearPendingGo() {
+    pendingGo = null;
+    if (elConfirmGo) elConfirmGo.hidden = true;
+  }
+  function commitPendingGo() {
+    if (!pendingGo) return;
+    var pr = pendingGo.r, pc = pendingGo.c;
+    pendingGo = null;
+    if (elConfirmGo) elConfirmGo.hidden = true;
+    placeAt(pr, pc);
+  }
+
   function placeAt(r, c) {
     if (!myTurn() || undoPending) return;
     if (onlineMode) { online.sendMove(r, c); return; }
@@ -286,10 +314,13 @@
   function onWin(winner, res) {
     res = res || state.score;
     var txt;
-    if (onlineMode) txt = winner === myColor() ? '🎉 你赢了！' : '对手获胜';
+    if (winner === 0) {                    // 和棋
+      var sc0 = res ? ('（黑 ' + res.score1 + ' · 白 ' + res.score2 + '）') : '';
+      txt = '🤝 平局' + (sc0 ? ' ' + sc0 : '');
+    } else if (onlineMode) txt = winner === myColor() ? '🎉 你赢了！' : '对手获胜';
     else if (vsAI) txt = winner === humanColor ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？';
     else {
-      var name = winner === 1 ? '黑棋' : (winner === 2 ? '白棋' : '和棋');
+      var name = winner === 1 ? '黑棋' : '白棋';
       var sc = res ? ('（黑 ' + res.score1 + ' · 白 ' + res.score2 + '）') : '';
       txt = name + ' 获胜 ' + sc;
     }
@@ -417,6 +448,7 @@
   }
 
   function requestNew() {
+    clearPendingGo();
     if (reqPending || !state) return;
     reqPending = true; incomingKind = 'new';
     if (onlineMode) { online.sendRelay('req_new'); showOnlineStatus('已发送重开请求，等待对方确认…', 'connecting'); }
@@ -431,6 +463,7 @@
     syncUI();
   }
   function requestUndo() {
+    clearPendingGo();
     if (!state || state.winner >= 0 || scoringMode || undoPending || reqPending) return;
     if (state.history.length === 0) return;
     if (onlineMode) {
@@ -517,12 +550,17 @@
     if (scoringMode) { toggleDead(cell.r, cell.c); return; }
     if (!myTurn()) return;
     if (state.board[cell.r][cell.c] !== 0) return;
+    if (confirmModeGo && !onlineMode) { setPendingGo(cell.r, cell.c); return; }
     placeAt(cell.r, cell.c);
   });
 
   /* ---------- 按钮 ---------- */
   if (el.btnPass) el.btnPass.addEventListener('click', doPass);
-  if (el.btnNew) el.btnNew.addEventListener('click', requestNew);
+
+  if (elConfirmGo) {
+    elConfirmGo.addEventListener('click', commitPendingGo);
+    confirmModeGo = isTouchDeviceGo();
+  }  if (el.btnNew) el.btnNew.addEventListener('click', requestNew);
   if (el.btnUndo) el.btnUndo.addEventListener('click', requestUndo);
   if (el.btnScore) el.btnScore.addEventListener('click', confirmScore);
   if (el.btnRescore) el.btnRescore.addEventListener('click', function () { deadSet = G.autoDead(state); renderScore(); });
@@ -584,7 +622,7 @@
   /* ---------- 循环 ---------- */
   function loop() {
     if (state) {
-      R.draw(state, { interactive: myTurn(), hover: hover, previewColor: (mode === 'local' ? state.turn : myColor()), deadSet: deadSet, scoring: scoringMode });
+      R.draw(state, { interactive: myTurn(), hover: (pendingGo || hover), previewColor: (mode === 'local' ? state.turn : myColor()), deadSet: deadSet, scoring: scoringMode });
       renderClock();
     }
     requestAnimationFrame(loop);

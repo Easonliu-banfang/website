@@ -343,6 +343,24 @@ body::before {
   box-shadow: 0 4px 16px rgba(34,211,238,0.28);
 }
 .btn.ghost { font-size: 13px; padding: 9px 10px; }
+
+/* 触屏确认落子按钮（五子棋/围棋手机平板） */
+.confirm-row { margin-top: 12px; }
+.confirm-btn {
+  flex: 1;
+  background: linear-gradient(135deg, #2f9e57, #1f7a3f);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 14px rgba(47, 158, 87, 0.25);
+}
+.confirm-btn:hover:not(:disabled) {
+  border-color: #4ade80;
+  box-shadow: 0 5px 18px rgba(47, 158, 87, 0.4);
+  transform: translateY(-1px);
+}
+.confirm-btn:disabled { opacity: 0.4; cursor: default; }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .join-row { display: flex; gap: 8px; margin-top: 12px; }

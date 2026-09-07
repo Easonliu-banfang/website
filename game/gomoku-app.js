@@ -187,6 +187,36 @@
     onWin(winnerColor);
   }
 
+var confirmMode = false;          // 触屏确认模式（手机/平板）
+  var pending = null;                // {r,c} 待确认落点
+  var elConfirm = document.getElementById('btnConfirm');
+
+  function isTouchDevice() {
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  }
+
+  // 触屏确认模式：点棋盘仅记录待确认位，显示确认按钮
+  function setPending(r, c) {
+    pending = { r: r, c: c };
+    if (elConfirm) {
+      elConfirm.hidden = false;
+      elConfirm.disabled = false;
+      elConfirm.textContent = '✅ 确认落子（' + (r + 1) + ',' + (c + 1) + '）';
+    }
+    hover = null;                    // 预览交给 pending 渲染
+  }
+  function clearPending() {
+    pending = null;
+    if (elConfirm) { elConfirm.hidden = true; }
+  }
+  function commitPending() {
+    if (!pending) return;
+    var pr = pending.r, pc = pending.c;
+    pending = null;
+    if (elConfirm) elConfirm.hidden = true;
+    placeAt(pr, pc);
+  }
+
   function placeAt(r, c) {
     if (!myTurn() || undoPending) return;
     if (onlineMode) { online.sendMove(r, c); return; }
@@ -213,6 +243,10 @@
   }
 
   function onWin(winner) {
+    if (winner === 0) {                    // 平局（满盘无五连）
+      showBanner('🤝 平局', true, true);
+      return;
+    }
     if (onlineMode) {
       showBanner(winner === myColor() ? '🎉 你赢了！' : '对手获胜', true);
     } else if (vsAI) {
@@ -367,6 +401,7 @@
   }
 
   function requestNew() {
+    clearPending();
     if (reqPending || !state) return;
     reqPending = true; reqKind = 'new'; incomingKind = null; wantNew = true;
     if (onlineMode) { online.sendRelay('req_new'); showOnlineStatus('已发送重开请求，等待对方确认…', 'connecting'); }
@@ -386,6 +421,7 @@
   }
 
   function requestUndo() {
+    clearPending();
     if (!state || state.winner >= 0 || undoPending || reqPending) return;
     if (state.history.length === 0) return;
     if (onlineMode) {
@@ -455,11 +491,16 @@
     var cell = R.hitCell(p.x, p.y);
     if (!cell) return;
     if (state.board[cell.r][cell.c] !== 0) return;
+    if (confirmMode && !onlineMode) { setPending(cell.r, cell.c); return; }  // 触屏：待确认
     placeAt(cell.r, cell.c);
   });
 
   /* ---------- 按钮 ---------- */
   el.btnNew.addEventListener('click', requestNew);
+  if (elConfirm) {
+    elConfirm.addEventListener('click', commitPending);
+    confirmMode = isTouchDevice();            // 手机/平板启用确认
+  }
   if (el.btnUndo) el.btnUndo.addEventListener('click', requestUndo);
   if (el.btnReqOk) el.btnReqOk.addEventListener('click', function () {
     if (incomingKind === 'new') respondNew(true);
@@ -495,7 +536,7 @@
   /* ---------- 循环 ---------- */
   function loop() {
     if (state) {
-      R.draw(state, { interactive: myTurn(), hover: hover, previewColor: (mode === 'local' ? state.turn : myColor()) });
+      R.draw(state, { interactive: myTurn(), hover: (pending || hover), previewColor: (mode === 'local' ? state.turn : myColor()) });
       renderClock();
     }
     requestAnimationFrame(loop);

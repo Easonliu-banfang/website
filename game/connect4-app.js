@@ -141,6 +141,10 @@
   }
 
   function onWin(winner) {
+    if (winner === 0) {                    // 平局（满盘无人四连）
+      showBanner('🤝 平局', true, true);
+      return;
+    }
     var txt;
     if (onlineMode) {
       txt = winner === myColor() ? '🎉 你赢了！' : '对手获胜';
@@ -167,7 +171,7 @@
       var useWorker = typeof Worker !== 'undefined';
       if (useWorker) {
         if (!aiWorker) {
-          try { aiWorker = new Worker('connect4-ai.worker.js?v=c4'); } catch (e) { aiWorker = null; }
+          try { aiWorker = new Worker('connect4-ai.worker.js?v=c5'); } catch (e) { aiWorker = null; }
         }
         if (aiWorker) {
           var settle = false;

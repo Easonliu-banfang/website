@@ -2,7 +2,7 @@
  * 在后台线程跑 Minimax + Alpha-Beta 迭代加深搜索，避免阻塞主线程，
  * 从而让「电脑思考时」用户走子动画、AI 走子动画都流畅播放，不再卡顿。
  */
-importScripts('connect4-engine.js?v=c4', 'connect4-ai.js?v=c4');
+importScripts('connect4-engine.js?v=c5', 'connect4-ai.js?v=c5');
 
 self.onmessage = function (e) {
   var msg = e.data;
