@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-09-07T10:03:02Z",
+  "today": {
+    "date": "2026-09-07",
+    "calls": 0,
+    "errors": 0,
+    "remaining": 100000,
+    "quota": 100000
+  },
+  "history7": [
+    {
+      "date": "2026-09-01",
+      "calls": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-09-02",
+      "calls": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-09-03",
+      "calls": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-09-04",
+      "calls": 0,
+      "errors": 0
+    },
+    {
+      "date": "2026-09-05",
+      "calls": 38,
+      "errors": 0
+    },
+    {
+      "date": "2026-09-06",
+      "calls": 556,
+      "errors": 0
+    },
+    {
+      "date": "2026-09-07",
+      "calls": 0,
+      "errors": 0
+    }
+  ],
+  "totals": {
+    "calls": 594,
+    "errors": 0,
+    "errorRate": 0.0,
+    "avgMs": 0.727,
+    "subrequests": 458
+  },
+  "scripts": 2,
+  "statusBreakdown": {
+    "clientDisconnected": 282,
+    "success": 310,
+    "responseStreamDisconnected": 2
+  }
+}

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>服务器状态 · Eason 的个人网站</title>
+  <meta name="description" content="服务器状态 —— 剩余算力与近期调用概览">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css?v=b12">
+  <style>
+    /* ---------- 服务器状态页 ---------- */
+    .st-wrap { max-width: 760px; margin: 0 auto; padding: 20px 24px 64px; position: relative; z-index: 1; }
+    .st-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+    .st-title { font-family: var(--mono); font-size: clamp(24px, 5vw, 34px); font-weight: 700; letter-spacing: 1px; }
+    .st-updated { font-family: var(--mono); font-size: 13px; color: var(--faint); }
+    .st-sub { color: var(--dim); font-size: 15px; margin-bottom: 28px; }
+
+    /* 顶部：剩余算力大卡片 */
+    .st-hero {
+      background: linear-gradient(160deg, rgba(34,211,238,0.10), rgba(167,139,250,0.08) 60%, rgba(10,14,20,0.2));
+      border: 1px solid rgba(34,211,238,0.22);
+      border-radius: 20px;
+      padding: 30px 28px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .st-hero::after {
+      content: ""; position: absolute; right: -60px; top: -60px; width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(34,211,238,0.14), transparent 70%);
+      pointer-events: none;
+    }
+    .st-hero-label { font-family: var(--mono); font-size: 15px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .st-hero-label .pulse { width: 9px; height: 9px; border-radius: 50%; background: #34d399; box-shadow: 0 0 12px #34d399; animation: stPulse 2s ease-in-out infinite; }
+    @keyframes stPulse { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: 0.45; transform: scale(0.8);} }
+    .st-hero-num { font-family: var(--mono); font-size: clamp(44px, 10vw, 68px); font-weight: 800; line-height: 1.05; color: var(--text); letter-spacing: 1px; }
+    .st-hero-num small { font-size: 0.4em; color: var(--dim); font-weight: 400; margin-left: 6px; }
+    .st-hero-note { font-size: 14px; color: var(--dim); margin-top: 10px; }
+    .st-hero-note b { color: var(--text); }
+
+    /* 今日调用 + 总览小卡 */
+    .st-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+    .st-card {
+      background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px;
+      padding: 20px 20px 18px;
+    }
+    .st-card .k { font-family: var(--mono); font-size: 12.5px; color: var(--faint); letter-spacing: 1px; margin-bottom: 8px; }
+    .st-card .v { font-family: var(--mono); font-size: 30px; font-weight: 700; color: var(--text); }
+    .st-card .s { font-size: 12.5px; color: var(--dim); margin-top: 5px; }
+    .st-card.good .v { color: #34d399; }
+    .st-card.warn .v { color: #fbbf24; }
+    .st-card.info .v { color: var(--cyan); }
+
+    /* 历史 7 天柱状图 */
+    .st-chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+    .st-chart-title { font-family: var(--mono); font-size: 16px; color: var(--text); letter-spacing: 1px; }
+    .st-chart-title .dim { color: var(--faint); font-size: 12.5px; }
+    .st-chart {
+      background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px;
+      padding: 22px 20px 16px; display: flex; align-items: flex-end; gap: 10px; height: 210px;
+    }
+    .st-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+    .st-bar-num { font-family: var(--mono); font-size: 12.5px; color: var(--dim); opacity: 0; transition: opacity .6s ease .3s; }
+    .st-chart.show .st-bar-num { opacity: 1; }
+    .st-bar {
+      width: 100%; max-width: 46px; border-radius: 7px 7px 3px 3px;
+      background: linear-gradient(180deg, rgba(34,211,238,0.85), rgba(34,211,238,0.25));
+      height: 0; transition: height 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+      min-height: 3px; position: relative;
+    }
+    .st-bar.today { background: linear-gradient(180deg, rgba(167,139,250,0.9), rgba(167,139,250,0.3)); }
+    .st-bar-day { font-family: var(--mono); font-size: 11.5px; color: var(--faint); margin-top: 4px; }
+
+    /* 底部：明细 */
+    .st-detail { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 20px; }
+    .st-detail h3 { font-family: var(--mono); font-size: 15px; color: var(--text); margin-bottom: 14px; letter-spacing: 1px; }
+    .st-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 2px; border-bottom: 1px dashed rgba(255,255,255,0.07); font-size: 14.5px; }
+    .st-row:last-child { border-bottom: none; }
+    .st-row .label { color: var(--dim); }
+    .st-row .val { font-family: var(--mono); color: var(--text); }
+    .st-back { display: inline-block; margin-top: 22px; font-family: var(--mono); font-size: 14px; color: var(--faint); text-decoration: none; }
+    .st-back:hover { color: var(--cyan); }
+    @media (max-width: 560px) {
+      .st-cards { grid-template-columns: 1fr 1fr; }
+      .st-chart { height: 170px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="head">
+  <a href="index.html?v=b10" class="back">← 游戏室</a>
+  <h1>服务器状态</h1>
+</header>
+
+<div class="st-wrap">
+
+  <div class="st-head">
+    <div class="st-title">服务器状态</div>
+    <div class="st-updated" id="stUpdated"></div>
+  </div>
+  <p class="st-sub">随时关注服务器的剩余算力与近期调用情况。</p>
+
+  <!-- 剩余算力 -->
+  <div class="st-hero">
+    <div class="st-hero-label"><span class="pulse"></span>今日剩余算力</div>
+    <div class="st-hero-num"><span id="stRemaining">--</span><small>次调用</small></div>
+    <div class="st-hero-note">今天已使用 <b id="stUsed">--</b> 次调用，算力池每天自动恢复。</div>
+  </div>
+
+  <!-- 今日 + 总览 -->
+  <div class="st-cards">
+    <div class="st-card good">
+      <div class="k">今日调用次数</div>
+      <div class="v" id="stTodayCalls">--</div>
+      <div class="s" id="stTodayErrors">--</div>
+    </div>
+    <div class="st-card info">
+      <div class="k">平均响应耗时</div>
+      <div class="v" id="stAvg">--</div>
+      <div class="s">每次调用的平均处理时间</div>
+    </div>
+    <div class="st-card">
+      <div class="k">统计期内总调用</div>
+      <div class="v" id="stTotal">--</div>
+      <div class="s" id="stErrorRate">--</div>
+    </div>
+  </div>
+
+  <!-- 历史 7 天 -->
+  <div class="st-chart-head">
+    <div class="st-chart-title">近 7 天调用 <span class="dim" id="stChartNote"></span></div>
+  </div>
+  <div class="st-chart" id="stChart">
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+    <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
+  </div>
+
+  <!-- 明细 -->
+  <div class="st-detail">
+    <h3>运行明细</h3>
+    <div class="st-row"><span class="label">正常完成</span><span class="val" id="stOk">--</span></div>
+    <div class="st-row"><span class="label">连接中断（客户端主动断开）</span><span class="val" id="stDisconnected">--</span></div>
+    <div class="st-row"><span class="label">其他异常</span><span class="val" id="stOther">--</span></div>
+    <div class="st-row"><span class="label">统计期</span><span class="val" id="stPeriod">--</span></div>
+  </div>
+
+  <a class="st-back" href="index.html?v=b10">← 返回游戏室</a>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  function $(id) { return document.getElementById(id); }
+
+  // 数值滚动动画（简单：0 → target，缓出）
+  function countTo(el, target, suffix, dur) {
+    var t0 = null;
+    suffix = suffix || '';
+    function step(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / (dur || 900));
+      var eased = 1 - Math.pow(1 - p, 3);
+      var v = Math.round(target * eased);
+      el.textContent = v.toLocaleString('zh-CN') + suffix;
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = target.toLocaleString('zh-CN') + suffix;
+    }
+    requestAnimationFrame(step);
+  }
+
+  function fmtDate(d) {
+    var p = d.split('-');
+    return p[1] + '-' + p[2];
+  }
+
+  fetch('server-status.json?v=b1')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (d) {
+      // 更新时间（本地时区）
+      var upd = new Date(d.generatedAt);
+      $('stUpdated').textContent = '更新于 ' +
+        upd.getFullYear() + '-' + String(upd.getMonth() + 1).padStart(2, '0') + '-' + String(upd.getDate()).padStart(2, '0') +
+        ' ' + String(upd.getHours()).padStart(2, '0') + ':' + String(upd.getMinutes()).padStart(2, '0');
+
+      var today = d.today || {};
+      var t = d.totals || {};
+
+      countTo($('stRemaining'), today.remaining || 0, '', 1000);
+      countTo($('stUsed'), today.calls || 0, '', 800);
+      countTo($('stTodayCalls'), today.calls || 0, '', 800);
+      countTo($('stTotal'), t.calls || 0, '', 1000);
+      $('stAvg').textContent = (t.avgMs || 0).toFixed(2) + ' ms';
+      $('stTodayErrors').textContent = '错误 ' + (today.errors || 0) + ' 次';
+      $('stErrorRate').textContent = '错误率 ' + (t.errorRate || 0).toFixed(2) + '%';
+
+      // 历史柱状图
+      var hist = d.history7 || [];
+      var max = 1;
+      hist.forEach(function (h) { if (h.calls > max) max = h.calls; });
+      var cols = document.querySelectorAll('#stChart .st-bar-col');
+      var note = '最大 ' + max.toLocaleString('zh-CN') + ' 次/天';
+      $('stChartNote').textContent = note;
+      hist.forEach(function (h, i) {
+        if (!cols[i]) return;
+        var bar = cols[i].querySelector('.st-bar');
+        var num = cols[i].querySelector('.st-bar-num');
+        var day = cols[i].querySelector('.st-bar-day');
+        var hPct = h.calls ? Math.max(4, Math.round(h.calls / max * 100)) : 3;
+        bar.setAttribute('data-h', hPct);
+        num.textContent = h.calls ? h.calls.toLocaleString('zh-CN') : '0';
+        day.textContent = fmtDate(h.date);
+        if (i === hist.length - 1) bar.classList.add('today');
+      });
+      // 触发生长动画
+      setTimeout(function () {
+        document.getElementById('stChart').classList.add('show');
+        cols.forEach(function (col) {
+          var bar = col.querySelector('.st-bar');
+          bar.style.height = bar.getAttribute('data-h') + '%';
+        });
+      }, 120);
+
+      // 明细
+      var sb = d.statusBreakdown || {};
+      var ok = sb.success || 0;
+      var disc = sb.clientDisconnected || 0;
+      var other = (sb.responseStreamDisconnected || 0) + (sb.error || 0);
+      countTo($('stOk'), ok, '', 900);
+      countTo($('stDisconnected'), disc, '', 900);
+      countTo($('stOther'), other, '', 900);
+      var gte = d.generatedAt ? d.generatedAt.slice(0, 10) : '';
+      $('stPeriod').textContent = '近 7 天（截至 ' + gte + '）';
+    })
+    .catch(function (e) {
+      $('stRemaining').textContent = '暂不可用';
+      $('stUsed').textContent = '--';
+      var note = document.createElement('div');
+      note.className = 'st-hero-note';
+      note.style.color = '#f87171';
+      note.textContent = '状态数据暂时无法获取，请稍后刷新页面。(' + e.message + ')';
+      document.querySelector('.st-hero').appendChild(note);
+    });
+})();
+</script>
+  <script src="device.js?v=d1"></script>
+</body>
+</html>
