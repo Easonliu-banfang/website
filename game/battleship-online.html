@@ -86,6 +86,17 @@
     creatingView.classList.remove('show');
     joinView.hidden = true;
   }
+  // 服务器不可用兜底：弹通知并跳转到服务器状态页（业务错误不跳转）
+  function isServerDown(e) {
+    var m = (e && e.message) ? String(e.message) : String(e || '');
+    return /fetch|network|网络|未返回房间码|HTTP 5\d\d|5\d\d|服务不可用|worker|请求.*失败/i.test(m);
+  }
+  function onServerFail(e) {
+    if (!isServerDown(e)) return false;
+    if (window.Notify) window.Notify.show('服务器暂时不可用，正在为你跳转到服务器状态页…', 'error', { sticky: true });
+    setTimeout(function () { location.href = 'server-status.html'; }, 2500);
+    return true;
+  }
   function showJoin() {
     menuRow.hidden = true;
     creatingView.classList.remove('show');
@@ -102,7 +113,7 @@
       location.href = 'battleship-play.html?mode=online&room=' + encodeURIComponent(code) + '&role=host';
     }).catch(function (e) {
       showMenu();
-      setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected');
+      if (!onServerFail(e)) setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected');
     });
   });
 
@@ -118,7 +129,7 @@
     o.joinRoom(code).then(function () {
       location.href = 'battleship-play.html?mode=online&room=' + encodeURIComponent(code) + '&role=guest';
     }).catch(function (e) {
-      setStatus('加入失败：' + (e && e.message ? e.message : e), 'disconnected');
+      if (!onServerFail(e)) setStatus('加入失败：' + (e && e.message ? e.message : e), 'disconnected');
     });
   }
 
@@ -130,6 +141,7 @@
   showMenu();
 })();
 </script>
+  <script src="notify.js?v=n3"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>
