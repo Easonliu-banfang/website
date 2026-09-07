@@ -227,6 +227,41 @@
     </a>
 
   </main>
+
+  <!-- 门禁：已登录/已跳过 → 放行；否则跳登录页（可跳过） -->
+  <script>
+  (function () {
+    'use strict';
+    function g(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function s(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function r(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+    var token = g('game_token');
+    var skip = g('game_skip_auth');
+    var skipAt = parseInt(g('game_skip_auth_at') || '0', 10);
+
+    // 登录过：本地有 token → 放行（token 是否仍有效，进游戏时接口会校验；这里是快速放行）
+    if (token) {
+      // 顶部显示欢迎（若记住用户名）
+      var uname = g('game_username');
+      if (uname) {
+        var bar = document.createElement('div');
+        bar.style.cssText = 'position:fixed;top:14px;right:14px;z-index:99;font-family:var(--mono);font-size:12.5px;color:var(--dim);display:flex;align-items:center;gap:8px;';
+        bar.innerHTML = '<span style="color:var(--cyan)">👋 ' + uname.replace(/[<>&]/g, '') + '</span>' +
+          '<a href="login.html" style="color:var(--faint);text-decoration:none">切换</a>';
+        document.body.appendChild(bar);
+      }
+      return;
+    }
+    // 跳过了：7 天内不再拦
+    if (skip && skipAt && Date.now() - skipAt < 7 * 24 * 3600 * 1000) return;
+    if (skip) r('game_skip_auth');   // 过期跳过标记
+
+    // 未登录且未跳过 → 跳登录页（带上返回地址）
+    var ret = location.pathname.split('/').pop() || 'index.html';
+    location.replace('login.html?return=' + encodeURIComponent(ret));
+  })();
+  </script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

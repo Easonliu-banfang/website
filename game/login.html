@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 · 游戏室</title>
+  <meta name="description" content="登录后进入游戏室">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css?v=b12">
+  <style>
+    /* ---------- 登录/注册页 ---------- */
+    .login-body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: radial-gradient(1200px 600px at 80% -10%, rgba(34,211,238,0.08), transparent 60%),
+                  radial-gradient(1000px 500px at 10% 110%, rgba(167,139,250,0.10), transparent 55%);
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--card-edge);
+      border-radius: 20px;
+      padding: 34px 32px 26px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      position: relative;
+      overflow: hidden;
+    }
+    .login-card::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #22d3ee, #a78bfa);
+    }
+    .login-brand { text-align: center; margin-bottom: 24px; }
+    .login-logo {
+      width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.2));
+      border: 1px solid rgba(34,211,238,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    .login-brand h1 { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+    .login-brand p { font-size: 13px; color: var(--dim); margin-top: 5px; }
+
+    /* 切换标签 */
+    .login-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(255,255,255,0.04); padding: 5px; border-radius: 12px; margin-bottom: 20px; }
+    .login-tab {
+      padding: 9px 0; text-align: center; border-radius: 9px; cursor: pointer;
+      font-family: var(--mono); font-size: 14px; color: var(--dim);
+      transition: all 0.2s ease; border: none; background: none;
+    }
+    .login-tab.on { background: rgba(34,211,238,0.14); color: var(--cyan); box-shadow: 0 2px 10px rgba(34,211,238,0.15); }
+
+    .login-field { margin-bottom: 14px; }
+    .login-field label { display: block; font-family: var(--mono); font-size: 12px; color: var(--faint); letter-spacing: 0.5px; margin-bottom: 6px; }
+    .login-input {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);
+      color: var(--text); font-size: 15px; outline: none; box-sizing: border-box;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .login-input:focus { border-color: rgba(34,211,238,0.5); box-shadow: 0 0 0 3px rgba(34,211,238,0.12); }
+
+    .login-submit {
+      width: 100%; margin-top: 6px; padding: 13px 0; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #22d3ee, #38bdf8); color: #06222b;
+      font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: 1px;
+      cursor: pointer; transition: all 0.18s ease; box-shadow: 0 4px 18px rgba(34,211,238,0.25);
+    }
+    .login-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(34,211,238,0.35); }
+    .login-submit:disabled { opacity: 0.5; cursor: wait; transform: none; }
+
+    .login-msg {
+      min-height: 22px; margin-top: 12px; text-align: center;
+      font-size: 13px; font-family: var(--mono);
+    }
+    .login-msg.err { color: #f87171; }
+    .login-msg.ok { color: #34d399; }
+
+    .login-skip {
+      display: block; margin: 16px auto 0; padding: 8px 18px; border: none; background: none;
+      font-size: 13px; color: var(--faint); cursor: pointer; font-family: var(--mono);
+      transition: color 0.18s ease;
+    }
+    .login-skip:hover { color: var(--cyan); }
+    .login-foot { text-align: center; font-size: 11.5px; color: var(--faint); margin-top: 18px; line-height: 1.6; }
+  </style>
+</head>
+<body class="login-body">
+
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo">🎮</div>
+      <h1>游戏室</h1>
+      <p id="loginHint">登录后可保存你的游戏进度</p>
+    </div>
+
+    <!-- 切换：登录 / 注册 -->
+    <div class="login-tabs">
+      <button class="login-tab on" id="tabLogin" type="button">登录</button>
+      <button class="login-tab" id="tabRegister" type="button">注册</button>
+    </div>
+
+    <form id="loginForm" autocomplete="on">
+      <div class="login-field">
+        <label for="username">用户名</label>
+        <input class="login-input" id="username" name="username" maxlength="16" placeholder="2-16 位，中英文/数字/下划线" autocomplete="username" spellcheck="false" />
+      </div>
+      <div class="login-field">
+        <label for="password">密码</label>
+        <input class="login-input" id="password" name="password" type="password" maxlength="64" placeholder="6-64 位" autocomplete="current-password" />
+      </div>
+      <button class="login-submit" id="btnSubmit" type="submit">登 录</button>
+      <div class="login-msg" id="loginMsg"></div>
+    </form>
+
+    <button class="login-skip" id="btnSkip" type="button">先跳过，直接进入游戏室 →</button>
+    <div class="login-foot">登录后在同一设备上会自动记住账号，下次直接进入。</div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  var WORKER = 'https://quoridor-mp.pages.dev';
+  var mode = 'login';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var returnTo = (new URLSearchParams(location.search)).get('return') || 'index.html';
+  if (!/^[a-zA-Z0-9\/._-]+$/.test(returnTo)) returnTo = 'index.html';
+
+  var savedUser = null;
+  try { savedUser = localStorage.getItem('game_username'); } catch (e) {}
+
+  function setMode(m) {
+    mode = m;
+    $('tabLogin').classList.toggle('on', m === 'login');
+    $('tabRegister').classList.toggle('on', m === 'register');
+    $('btnSubmit').textContent = m === 'login' ? '登 录' : '注 册';
+    $('loginHint').textContent = m === 'login' ? '登录后可保存你的游戏进度' : '创建一个新账号，无需邮箱验证';
+    $('loginMsg').textContent = '';
+    $('loginMsg').className = 'login-msg';
+    if (savedUser && m === 'login' && !$('username').value) $('username').value = savedUser;
+  }
+  $('tabLogin').addEventListener('click', function () { setMode('login'); });
+  $('tabRegister').addEventListener('click', function () { setMode('register'); });
+  if (savedUser) $('username').value = savedUser;
+
+  function enter() {
+    location.href = returnTo;
+  }
+
+  // 跳过：存标记（本次会话 + 记住 7 天），直接进入
+  $('btnSkip').addEventListener('click', function () {
+    try {
+      localStorage.setItem('game_skip_auth', '1');
+      localStorage.setItem('game_skip_auth_at', String(Date.now()));
+    } catch (e) {}
+    enter();
+  });
+
+  $('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var username = ($('username').value || '').trim();
+    var password = $('password').value || '';
+    if (!username || !password) {
+      showMsg('请填写用户名和密码', 'err');
+      return;
+    }
+    $('btnSubmit').disabled = true;
+    $('btnSubmit').textContent = mode === 'login' ? '登录中…' : '注册中…';
+    fetch(WORKER + '/api/auth/' + (mode === 'login' ? 'login' : 'register'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { showMsg(res.d.err || '操作失败', 'err'); return; }
+        if (mode === 'register') {
+          // 注册成功 → 自动切登录并回填
+          showMsg('注册成功，请登录', 'ok');
+          setMode('login');
+          $('password').value = '';
+          $('password').focus();
+        } else {
+          // 登录成功 → 存 token + 记住账号 → 进入
+          try {
+            localStorage.setItem('game_token', res.d.token);
+            localStorage.setItem('game_username', res.d.username);
+            localStorage.removeItem('game_skip_auth');
+          } catch (err) {}
+          enter();
+        }
+      })
+      .catch(function (err) {
+        showMsg('网络错误，请稍后重试', 'err');
+      })
+      .finally(function () {
+        $('btnSubmit').disabled = false;
+        if (mode === 'login') $('btnSubmit').textContent = '登 录';
+        else $('btnSubmit').textContent = '注 册';
+      });
+  });
+
+  function showMsg(text, cls) {
+    $('loginMsg').textContent = text;
+    $('loginMsg').className = 'login-msg ' + cls;
+  }
+
+  // 回车提交
+  $('password').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('loginForm').dispatchEvent(new Event('submit', { cancelable: true }));
+  });
+})();
+</script>
+  <script src="device.js?v=d1"></script>
+</body>
+</html>

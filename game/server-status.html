@@ -180,9 +180,36 @@
     return p[1] + '-' + p[2];
   }
 
-  fetch('server-status.json?v=b1')
+  fetch('https://quoridor-mp.pages.dev/api/status', { headers: { 'Cache-Control': 'no-cache' } })
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (d) {
+      if (d.error) throw new Error(d.error);
+      render(d);
+    })
+    .catch(function (e) {
+      // 实时接口失败 → 兜底读静态 JSON（不会让页面空白）
+      return fetch('server-status.json?v=b1')
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (d) {
+          d.cache = true;
+          render(d);
+        })
+        .catch(function (e2) { render(null, e2.message); });
+    });
+
+  function render(d, errMsg) {
+      if (!d) {
+        $('stRemaining').textContent = '暂不可用';
+        $('stUsed').textContent = '--';
+        $('stTodayCalls').textContent = '--';
+        $('stTotal').textContent = '--';
+        var note = document.createElement('div');
+        note.className = 'st-hero-note';
+        note.style.color = '#f87171';
+        note.textContent = '状态数据暂时无法获取，请稍后刷新页面。(' + (errMsg || '') + ')';
+        document.querySelector('.st-hero').appendChild(note);
+        return;
+      }
       // 更新时间（本地时区）
       var upd = new Date(d.generatedAt);
       $('stUpdated').textContent = '更新于 ' +
@@ -237,16 +264,12 @@
       countTo($('stOther'), other, '', 900);
       var gte = d.generatedAt ? d.generatedAt.slice(0, 10) : '';
       $('stPeriod').textContent = '近 7 天（截至 ' + gte + '）';
-    })
-    .catch(function (e) {
-      $('stRemaining').textContent = '暂不可用';
-      $('stUsed').textContent = '--';
-      var note = document.createElement('div');
-      note.className = 'st-hero-note';
-      note.style.color = '#f87171';
-      note.textContent = '状态数据暂时无法获取，请稍后刷新页面。(' + e.message + ')';
-      document.querySelector('.st-hero').appendChild(note);
-    });
+      // 缓存/限流标记（实时接口）
+      if (d.cache) {
+        var tag = document.getElementById('stCacheTag');
+        if (tag) tag.textContent = d.rateLimited ? '（数据每 60 秒刷新一次）' : '';
+      }
+    }
 })();
 </script>
   <script src="device.js?v=d1"></script>
