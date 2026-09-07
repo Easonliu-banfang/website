@@ -502,6 +502,8 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
 
   /* ---------- UI ---------- */
   function syncUI() {
+    if (!state || state.winner >= 0 || !myTurn()) clearPendingGo();   // 回合切换/结束后清除待确认
+
     if (!state) return;
     if (scoringMode) {
       window.Notify.setTurn('数子阶段：点选死子，确认后计分');

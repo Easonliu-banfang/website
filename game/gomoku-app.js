@@ -453,6 +453,8 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
 
   /* ---------- UI ---------- */
   function syncUI() {
+    if (!state || state.winner >= 0 || !myTurn()) clearPending();   // 回合切换/结束后清除待确认
+
     if (!state) return;
     var cur = state.turn;
     // 仅开局后（联机 roomStarted / 本地人机直接）提示回合；等待室阶段不提示

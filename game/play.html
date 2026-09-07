@@ -6,7 +6,7 @@
   <title>步步为营 · Quoridor</title>
   <meta name="description" content="Quoridor 步步为营 —— 走到对面，或者把对手堵死">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b13">
+  <link rel="stylesheet" href="style.css?v=b14">
 </head>
 <body>
 
@@ -59,12 +59,11 @@
         <div class="dpad" id="wallDpad">
           <button class="dpad-btn dpad-up" data-dir="up" type="button" aria-label="上">↑</button>
           <button class="dpad-btn dpad-left" data-dir="left" type="button" aria-label="左">←</button>
-          <div class="dpad-center"></div>
+          <button class="dpad-center" id="btnWallRotate" type="button" aria-label="旋转">⟳</button>
           <button class="dpad-btn dpad-right" data-dir="right" type="button" aria-label="右">→</button>
           <button class="dpad-btn dpad-down" data-dir="down" type="button" aria-label="下">↓</button>
         </div>
         <div class="wall-pad-btns">
-          <button id="btnWallRotate" class="btn ghost" type="button">⟳ 旋转</button>
           <button id="btnWallPlace" class="btn confirm-btn" type="button">✅ 放置</button>
           <button id="btnWallCancel" class="btn ghost" type="button">✕ 取消</button>
         </div>
@@ -146,13 +145,13 @@
   </div>
 </div>
 
-<script src="engine.js?v=g24"></script>
-<script src="render.js?v=g24"></script>
-<script src="online.js?v=g24"></script>
+<script src="engine.js?v=g25"></script>
+<script src="render.js?v=g25"></script>
+<script src="online.js?v=g25"></script>
 <script src="ai.js?v=g24"></script>
 <script src="lobby.js?v=g24"></script>
 <script src="notify.js?v=g24"></script>
-<script src="app.js?v=g24"></script>
+<script src="app.js?v=g25"></script>
   <script src="device.js?v=d1"></script>
 </body>
 </html>

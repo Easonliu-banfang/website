@@ -344,6 +344,9 @@ body::before {
 }
 .btn.ghost { font-size: 13px; padding: 9px 10px; }
 
+/* hidden 属性必须压过 .btn 的 display:inline-flex（否则确认按钮永远显示） */
+[hidden] { display: none !important; }
+
 /* ---------- 步步为营 触屏放墙控件 ---------- */
 .wall-pad-card { margin-top: 4px; }
 .wall-pad-card .cap { margin-bottom: 12px; }
@@ -377,7 +380,23 @@ body::before {
 .dpad-btn:hover { background: rgba(34, 211, 238, 0.20); }
 .dpad-up { grid-column: 2; grid-row: 1; }
 .dpad-left { grid-column: 1; grid-row: 2; }
-.dpad-center { grid-column: 2; grid-row: 2; border-radius: 10px; background: rgba(34, 211, 238, 0.16); border: 1px solid rgba(34,211,238,0.15); }
+.dpad-center {
+  grid-column: 2; grid-row: 2;
+  border: none;
+  border-radius: 10px;
+  background: rgba(167, 139, 250, 0.16);      /* 紫色调区分方向键 */
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  color: var(--purple);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dpad-center:hover { background: rgba(167, 139, 250, 0.28); }
+.dpad-center:active { background: rgba(167, 139, 250, 0.42); transform: scale(0.92); }
 .dpad-right { grid-column: 3; grid-row: 2; }
 .dpad-down { grid-column: 2; grid-row: 3; }
 .wall-pad-btns { display: flex; flex-direction: column; gap: 8px; flex: 1; }

@@ -188,7 +188,7 @@
   function ensureAIWorker() {
     if (aiWorker) return aiWorker;
     try {
-      aiWorker = new Worker('ai.worker.js?v=g10');
+      aiWorker = new Worker('ai.worker.js?v=g25');
       aiWorker.onmessage = function (ev) {
         var msg = ev.data;
         if (!msg) return;
@@ -397,6 +397,8 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
     var w = { r: wallCursor.r, c: wallCursor.c, dir: wallCursor.dir, type: 'wall' };
     w.valid = state.players[who].walls > 0 && Q.canPlaceWall(state, who, w.r, w.c, w.dir);
     R.hover = w;
+    // 非法墙位：确认按钮变灰不可点（不再出现「点了没反应」）
+    if (wallEls.place) wallEls.place.disabled = !w.valid;
     syncUI();
   }
 
@@ -404,8 +406,8 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
   function placeWallCursor() {
     if (!state || !wallCursor || !interactive()) return;
     var who = onlineMode ? myPlayer : state.turn;
-    if (state.players[who].walls <= 0) { flashBanner('你没有剩余的墙了', true); return; }
-    if (!Q.canPlaceWall(state, who, wallCursor.r, wallCursor.c, wallCursor.dir)) { flashBanner('这里不能放墙', true); return; }
+    if (state.players[who].walls <= 0) { if (wallEls.place) wallEls.place.disabled = true; return; }
+    if (!Q.canPlaceWall(state, who, wallCursor.r, wallCursor.c, wallCursor.dir)) return;   // 按钮已变灰，双保险
     if (onlineMode) {
       Q.placeWall(state, who, wallCursor.r, wallCursor.c, wallCursor.dir);
       afterAction();

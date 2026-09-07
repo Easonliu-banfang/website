@@ -5,7 +5,7 @@
  * 通过 importScripts 复用与主页同一份 engine.js / ai.js（同域名、同源），
  * 二者在 Worker 内会挂到 globalThis（window 不存在时走 globalThis 分支）。
  */
-importScripts('engine.js?v=g24', 'ai.js?v=g24');
+importScripts('engine.js?v=g25', 'ai.js?v=g25');
 
 self.onmessage = function (e) {
   var msg = e.data;
