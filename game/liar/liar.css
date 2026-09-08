@@ -351,6 +351,9 @@
 .liar-tut-visual[data-step="3"] i { background: linear-gradient(165deg, #1a2332, #131920); }
 .liar-tut-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
 
+/* 通知条置顶（高于开局遮罩 .liar-intro 的 95，否则通知被遮住） */
+#notifyBar { z-index: 9999 !important; }
+
 /* 开局动画遮罩 */
 .liar-intro {
   position: fixed; inset: 0; z-index: 95;

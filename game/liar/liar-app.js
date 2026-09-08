@@ -442,19 +442,24 @@
     var session = app.session;
     var currentId = current.id;
     app.aiTimer = setTimeout(function () {
-      setTimeout(function () {
+      setTimeout(async function () {
         if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId || app.engine.phase !== 'playing') return;
         if (app.engine.lastPlay && AI.shouldChallenge(app.engine, currentId)) {
-          // 模拟真人：质疑前先「思考」一小段
+          // 质疑前先「盯一会儿牌」，让玩家看清 AI 在犹豫
           app.view = app.engine.viewFor(app.youId);
           render();
+          if (window.Notify) window.Notify.show('🤔 ' + (app.engine.player(currentId).name) + ' 正在考虑要不要质疑…', 'info', { ttl: 2200 });
+          await sleepMs(1200);
+          if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
           localChallenge(currentId);
           return;
         }
+        // 出牌前先思考：通知「XX 正在出牌」
+        if (window.Notify) window.Notify.show('🃏 ' + app.engine.player(currentId).name + ' 正在出牌…', 'info', { ttl: 2000 });
         app.engine.play(currentId, AI.chooseAI(app.engine, currentId));
         refreshLocal();
         maybeRunAI();
-      }, 1200 + Math.random() * 1000);   // 模拟真人思考节奏（1.2-2.2s）
+      }, 2000 + Math.random() * 1000);   // 模拟真人：至少 2 秒再出牌
     }, 200);
   }
 
@@ -499,8 +504,9 @@
     chambers.forEach(function (c, i) { c.className = i < result.shotsAfter ? 'used' : ''; });
     els.rouletteText.textContent = result.bang ? '💥 击发了！' : '咔哒……空膛';
     if (result.bang) {
-      await sleep(500);
+      await sleep(700);
       showEliminationImpact(loserName);
+      await sleep(1800);          // 让「☠ OUT OF THE BAR」冲击动画完整播完（否则弹窗下一秒就关，动画等于没有）
       // 显示剩余人数（>1 人继续，==1 人决出冠军）
       var aliveNow = app.view.players.filter(function (p) { return p.alive !== false && p.id !== result.loser; }).length;
       if (aliveNow > 1) {
@@ -514,9 +520,13 @@
     if (sequence !== app.revealSequence) return;
     if (online) {
       els.onlineContinue.hidden = false;
-      await sleep(2200);
+      await sleep(2600);
     } else {
       els.continueBtn.hidden = false;
+      // 单人：停留足够时间让人看清结果（揭穿/失败至少 3.5s），再自动进入下一局
+      await sleep(3500);
+      if (sequence !== app.revealSequence) return;
+      els.reveal.hidden = true;
     }
   }
 
@@ -532,8 +542,14 @@
     app.selected.clear();
     app.busy = app.engine.phase !== 'playing';
     app.view = app.engine.viewFor(app.youId);
-    els.reveal.hidden = true;              // 关闭质疑弹窗（之前漏了这步，弹窗盖住牌桌像没反应）
+    els.reveal.hidden = true;              // 关闭质疑弹窗
     render();
+    // 只剩一人 → 直接结束（不再发牌！）
+    var aliveNow = app.engine.alivePlayers ? app.engine.alivePlayers().length : 0;
+    if (app.engine.phase === 'ended' || aliveNow <= 1) {
+      showEnd();
+      return;
+    }
     playIntro();                           // 新一局：先手/发牌/底牌动画
     maybeRunAI();
   }
