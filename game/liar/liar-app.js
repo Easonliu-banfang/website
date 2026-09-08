@@ -27,6 +27,7 @@
     paused: false,
     session: 0,
     aiTimer: null,
+    introSeq: 0,
     revealSequence: 0,
     connectionTimer: null,
     roomStarted: false,
@@ -41,7 +42,7 @@
     game: $('game'), lobby: $('lobby'),
     reveal: $('revealOverlay'), end: $('endOverlay'), rules: $('rulesOverlay'),
     tutorial: $('tutorialOverlay'), toast: $('toast'),
-    players: $('players'), hand: $('hand'), historyList: $('historyList'),
+    players: $('players'), hand: $('hand'),
     targetRank: $('targetRank'), targetName: $('targetName'),
     roundNo: $('roundNo'), pileCount: $('pileCount'), claimText: $('claimText'),
     youLabel: $('youLabel'), connectionHint: $('connectionHint'),
@@ -128,14 +129,51 @@
     }).join('');
   }
 
+  // 开局动画：先手抽取 → 发牌 → 底牌揭示（每局一次）
+  function playIntro() {
+    if (!app.view || !window.Notify) return;
+    var intro = document.getElementById('introOverlay');
+    if (!intro) return;
+    var phaseEl = intro.querySelector('.intro-phase');
+    var mainEl = intro.querySelector('.intro-main');
+    var introSeq = ++app.introSeq;
+    // 阶段1：先手抽取
+    intro.hidden = false;
+    phaseEl.textContent = '🎲 决定先手';
+    mainEl.textContent = '';
+    setTimeout(function () {
+      if (introSeq !== app.introSeq) return;
+      var cur = app.view.players.find(function (p) { return p.id === app.view.current; });
+      phaseEl.textContent = '🎲 先手';
+      mainEl.textContent = (cur ? cur.name : '玩家') + ' 先出牌';
+      // 阶段2：发牌动画（手牌 dealing 逐张飞入，0.5s 后）
+      setTimeout(function () {
+        if (introSeq !== app.introSeq) return;
+        els.hand.classList.add('dealing');
+        // 阶段3：底牌揭示
+        setTimeout(function () {
+          if (introSeq !== app.introSeq) return;
+          phaseEl.textContent = '🃏 底牌';
+          mainEl.textContent = '本局指定 ' + app.view.target + '（' + (E.CARD_NAMES[app.view.target] || '') + '）';
+          setTimeout(function () {
+            if (introSeq !== app.introSeq) return;
+            intro.hidden = true;
+            els.hand.classList.remove('dealing');
+          }, 2000);
+        }, 900);
+      }, 1300);
+    }, 1000);
+  }
+
   function renderHand(me, view) {
     var hand = (me && me.hand) || [];
     var myTurn = view.current === app.youId && view.phase === 'playing' && !app.busy && !app.paused && me && me.alive;
+    var dealing = els.hand.classList.contains('dealing');
     els.hand.innerHTML = hand.map(function (rank, index) {
       var selected = app.selected.has(index);
       var red = rank === 'Q' ? 'red' : '';
       var rotation = (index - (hand.length - 1) / 2) * 3;
-      return '<button class="liar-card ' + (rank === E.WILD_CARD ? 'joker' : '') + ' ' + red + ' ' + (selected ? 'selected' : '') + '" type="button" data-index="' + index + '" style="--rot:' + rotation + 'deg" aria-pressed="' + selected + '" ' + (myTurn ? '' : 'disabled') + '>' +
+      return '<button class="liar-card ' + (rank === E.WILD_CARD ? 'joker' : '') + ' ' + red + ' ' + (selected ? 'selected' : '') + ' ' + (dealing ? 'dealing' : '') + '" type="button" data-index="' + index + '" style="--rot:' + rotation + 'deg;--d:' + (index * 90) + 'ms" aria-pressed="' + selected + '" ' + (myTurn ? '' : 'disabled') + '>' +
         '<span class="liar-corner">' + (rank === E.WILD_CARD ? '★' : rank) + '</span>' +
         '<span class="liar-suit">' + (rank === 'Q' ? '♥' : rank === 'K' ? '♣' : rank === 'A' ? '♠' : '✦') + '</span>' +
         '<span class="liar-face">' + (rank === E.WILD_CARD ? 'J' : rank) + '</span>' +
@@ -147,24 +185,53 @@
     });
   }
 
+  var lastPileCount = -1;   // 上次桌面牌数（检测新增牌做飞入动画）
+  var lastPileRound = -1;
   function renderPile(view) {
     var count = view.pileCount;
-    if (!count) { els.pile.innerHTML = '<div class="liar-empty">等待出牌</div>'; return; }
+    if (!count) { lastPileCount = -1; els.pile.innerHTML = '<div class="liar-empty">等待出牌</div>'; return; }
     var visible = Math.min(count, 9);
+    var sameRound = lastPileRound === view.round;
+    var arriving = sameRound ? Math.max(0, count - lastPileCount) : count;
+    if (arriving < 0) arriving = 0;
+    lastPileCount = count;
+    lastPileRound = view.round;
+    var fromOpponent = view.lastPlay && view.lastPlay.player !== app.youId;
+    var arrivalStart = Math.max(0, visible - arriving);
     var cards = Array.from({ length: visible }, function (_, index) {
       var rotation = (index * 23 % 34) - 17;
       var offset = (index - (visible - 1) / 2) * 5;
-      return '<i class="liar-pile-card" style="--x:' + offset + 'px;--r:' + rotation + 'deg"></i>';
+      var isArriving = index >= arrivalStart;
+      var origin = fromOpponent ? 'from-opp' : 'from-you';
+      var delay = isArriving ? (index - arrivalStart) * 80 : 0;
+      return '<i class="liar-pile-card' + (isArriving ? ' arriving ' + origin : '') + '" style="--x:' + offset + 'px;--r:' + rotation + 'deg;--d:' + delay + 'ms"></i>';
     }).join('');
     var actor = view.lastPlay ? playerName(view.lastPlay.player) : '上一位玩家';
     els.pile.innerHTML = cards +
       '<span class="liar-pile-badge"><span>' + escapeHtml(actor) + '</span><b>+' + view.lastPlay.count + ' 张</b></span>';
+    // 出牌横幅（顶部通知）
+    if (arriving > 0 && view.lastPlay && window.Notify) {
+      window.Notify.show('🃏 ' + actor + ' 宣称打出 ' + view.lastPlay.count + ' 张 ' + view.target, 'info', { ttl: 3000 });
+    }
   }
 
+  var lastNotified = -1;    // 已通知的历史条目标志（避免重复弹横幅）
   function renderHistory(history) {
-    els.historyList.innerHTML = history.slice(-6).reverse().map(function (entry) {
-      return '<div class="liar-history-item">' + escapeHtml(entry) + '</div>';
-    }).join('');
+    if (!history || !history.length) return;
+    // 酒馆耳语 → 顶部横幅通知（对齐其他游戏 notify 样式，3 秒）
+    if (history.length > lastNotified && window.Notify) {
+      for (var i = lastNotified; i < history.length; i++) {
+        var entry = history[i];
+        if (/淘汰|击发|成为最后的赢家/.test(entry)) {
+          window.Notify.show(entry, 'error', { ttl: 4000 });
+        } else if (/质疑/.test(entry)) {
+          window.Notify.show(entry, 'warn', { ttl: 3500 });
+        } else {
+          window.Notify.show(entry, 'info', { ttl: 3000 });
+        }
+      }
+      lastNotified = history.length;
+    }
   }
 
   function renderControls(me, view) {
@@ -205,6 +272,7 @@
   function startSolo() {
     app.session += 1;
     clearTimeout(app.aiTimer);
+    lastNotified = 0;
     app.mode = 'solo';
     app.youId = 'you';
     app.room = null;
@@ -215,6 +283,7 @@
     app.engine.start();
     showGame();
     refreshLocal();
+    playIntro();
     maybeRunAI();
   }
 
@@ -238,13 +307,16 @@
       setTimeout(function () {
         if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId || app.engine.phase !== 'playing') return;
         if (app.engine.lastPlay && AI.shouldChallenge(app.engine, currentId)) {
+          // 模拟真人：质疑前先「思考」一小段
+          app.view = app.engine.viewFor(app.youId);
+          render();
           localChallenge(currentId);
           return;
         }
         app.engine.play(currentId, AI.chooseAI(app.engine, currentId));
         refreshLocal();
         maybeRunAI();
-      }, 600 + Math.random() * 600);
+      }, 1200 + Math.random() * 1000);   // 模拟真人思考节奏（1.2-2.2s）
     }, 200);
   }
 
@@ -274,6 +346,13 @@
     els.revealCopy.textContent = result.lied
       ? (accusedName + ' 宣称的牌里藏着假牌，谎言被识破！')
       : (accusedName + ' 说的是真话，' + loserName + ' 误判了。');
+    // 质疑结果顶部横幅（≥3 秒，红色高亮）
+    if (window.Notify) {
+      var revealText = result.lied
+        ? '🕵 ' + playerName(result.challenger) + ' 识破了 ' + accusedName + ' 的谎言！'
+        : '😨 ' + playerName(result.challenger) + ' 质疑失败，' + accusedName + ' 说的是真话';
+      window.Notify.show(revealText, result.bang ? 'error' : 'warn', { ttl: 4000 });
+    }
     // 左轮动画
     var chambers = els.roulette.querySelectorAll('.liar-chamber span');
     els.rouletteText.textContent = '左轮转动……';
@@ -308,6 +387,7 @@
     app.view = app.engine.viewFor(app.youId);
     els.reveal.hidden = true;              // 关闭质疑弹窗（之前漏了这步，弹窗盖住牌桌像没反应）
     render();
+    playIntro();                           // 新一局：先手/发牌/底牌动画
     maybeRunAI();
   }
 
@@ -472,8 +552,18 @@
       else if (app.mode === 'online') { sendOnline({ type: 'reset' }); els.lobby.hidden = false; }
     });
     els.endLeaveBtn.addEventListener('click', function () { location.href = '../index.html'; });
-    $('backToGameBtn').addEventListener('click', function () { location.href = 'liar.html'; });
-    $('menuBtn').addEventListener('click', function () { els.rules.hidden = false; });
+    $('backToGameBtn').addEventListener('click', function () {
+      if (app.mode === 'online' && app.lobby) {
+        // 联机：返回房间等待室（离开对局）
+        app.lobby.show(app.room ? app.room.code : '');
+        els.game.hidden = true;
+        els.reveal.hidden = true; els.end.hidden = true;
+      } else {
+        location.href = 'liar.html';
+      }
+    });
+    var rulesBtn = $('btnRules');
+    if (rulesBtn) rulesBtn.addEventListener('click', function () { els.rules.hidden = false; });
     $('closeRulesBtn').addEventListener('click', function () { els.rules.hidden = true; });
     $('resumeBtn').addEventListener('click', function () { els.rules.hidden = true; });
     $('exitGameBtn').addEventListener('click', function () {

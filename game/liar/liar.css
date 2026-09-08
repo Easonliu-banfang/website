@@ -12,6 +12,15 @@
 .liar-body [hidden] { display: none !important; }
 
 /* ---------- 顶层 ---------- */
+.liar-head { display: flex; align-items: center; gap: 12px; }
+.liar-head .back { margin-right: 2px; }
+.liar-top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.liar-head h1 { font-family: var(--mono); font-size: 17px; letter-spacing: 1px; }
+.liar-head h1 { color: var(--text); }
+@media (max-width: 620px) {
+  .liar-head { gap: 8px; }
+  .liar-top-right { gap: 8px; }
+}
 .liar-shell { display: flex; flex-direction: column; height: 100vh; }
 .liar-topbar {
   display: flex; align-items: center; gap: 14px;
@@ -108,6 +117,17 @@
   border: 1px solid rgba(255,255,255,.22); border-radius: 8px;
   box-shadow: 0 6px 18px rgba(0,0,0,.5);
   transform: translateX(var(--x, 0)) rotate(var(--r, 0));
+}
+.liar-pile-card.arriving { animation: liar-card-in 0.5s ease both; animation-delay: var(--d, 0ms); }
+.liar-pile-card.arriving.from-you { animation-name: liar-card-in-you; }
+.liar-pile-card.arriving.from-opp { animation-name: liar-card-in-opp; }
+@keyframes liar-card-in-you {
+  from { transform: translate(0, 140px) rotate(6deg) scale(1.15); opacity: 0; }
+  to { transform: translateX(var(--x, 0)) rotate(var(--r, 0)) scale(1); opacity: 1; }
+}
+@keyframes liar-card-in-opp {
+  from { transform: translate(0, -160px) rotate(-6deg) scale(1.15); opacity: 0; }
+  to { transform: translateX(var(--x, 0)) rotate(var(--r, 0)) scale(1); opacity: 1; }
 }
 .liar-pile-badge {
   position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
@@ -326,6 +346,30 @@
 .liar-tut-visual i:nth-child(2) { background: linear-gradient(165deg, #2b2138, #171a28); }
 .liar-tut-visual[data-step="3"] i { background: linear-gradient(165deg, #1a2332, #131920); }
 .liar-tut-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+
+/* 开局动画遮罩 */
+.liar-intro {
+  position: fixed; inset: 0; z-index: 95;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5,8,12,0.7); backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+.liar-intro-inner { text-align: center; padding: 30px 40px; background: var(--bg-elev); border: 1px solid rgba(34,211,238,0.3); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.intro-coin { font-size: 52px; animation: intro-bounce 0.8s ease infinite alternate; }
+@keyframes intro-bounce { from { transform: translateY(-6px); } to { transform: translateY(8px); } }
+.intro-phase { font-family: var(--mono); font-size: 15px; color: var(--cyan); margin: 10px 0 4px; }
+.intro-main { font-size: 18px; color: var(--text); min-height: 24px; }
+
+/* 发牌动画：手牌逐张从中央飞入（2.5D 效果） */
+.liar-hand.dealing .liar-card {
+  animation: deal-in 0.45s ease both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes deal-in {
+  from { transform: translate(0, -60px) rotate(-12deg) scale(1.4); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: translate(0, 0) rotate(var(--rot, 0deg)) scale(1); }
+}
 
 /* 竖屏遮罩（与 UNO 一致） */
 #landscapeOverlay {

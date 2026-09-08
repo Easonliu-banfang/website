@@ -19,8 +19,8 @@
   <div class="start-inner">
     <h2 class="start-title">选择对战方式</h2>
 
-    <div class="mode-grid">
-      <a class="mode-card" href="liar-online.html?v=l3">
+    <div class="mode-grid liar-modes">
+      <a class="mode-card" href="liar-online.html?v=l4">
         <span class="mode-ico">🌐</span>
         <span class="mode-name">互联网对战</span>
         <span class="mode-desc">2–4 人实时同桌</span>
@@ -31,6 +31,10 @@
         <span class="mode-desc">与三名酒馆老手较量</span>
       </a>
     </div>
+    <style>
+      .liar-modes { grid-template-columns: repeat(2, 1fr); }   /* 两卡片左一右一 */
+      @media (max-width: 620px) { .liar-modes { grid-template-columns: 1fr; } }
+    </style>
 
     <div class="btn-row enter-row">
       <a class="btn ghost" href="liar-rules.html?v=l1">玩法规则 →</a>
