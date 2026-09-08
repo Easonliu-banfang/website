@@ -160,7 +160,10 @@
     }).join('');
     var els = Array.prototype.slice.call(wheels.querySelectorAll('.intro-pcard'));
     if (!els.length) return null;
-    var pickIdx = Math.floor(Math.random() * els.length);
+    // 停在引擎真正的先手（app.view.current），保证显示与实际一致
+    var pickIdx = 0;
+    var realFirst = app.view.current;
+    for (var fi = 0; fi < alive.length; fi++) { if (alive[fi].id === realFirst) { pickIdx = fi; break; } }
     var DURATION = 4000;            // 固定 4 秒
     var delay = 70;
     var idx = 0, elapsed = 0;
@@ -245,8 +248,10 @@
     var target = app.view.target || 'K';
     reveal.hidden = false;
     if (cardEls.length) {
-      // 三张候选卡片高亮循环，减速停在本局目标
-      var idx = 0, delay = 90, elapsed = 0, DURATION = 1800;
+      // 每局都从 A/K/Q 三张公平重抽：先清掉上局 winner/active 高亮残留
+      cardEls.forEach(function (el) { el.classList.remove('active', 'winner'); });
+      // 从随机位置起跳，避免每局看起来一样
+      var idx = Math.floor(Math.random() * cardEls.length), delay = 90, elapsed = 0, DURATION = 1800;
       while (elapsed < DURATION) {
         cardEls.forEach(function (el) { el.classList.remove('active'); });
         cardEls[idx].classList.add('active');
@@ -274,18 +279,12 @@
     intro.hidden = false;
     try {
       var cards = buildPlayerCards();
-      await roulettePick(cards);
+      await roulettePick(cards);      // ① 先手轮盘
       if (seq !== app.introSeq) return;
-      els.hand.classList.remove('dealing');
-      await dealAnimation(cards);
-      if (seq !== app.introSeq) return;
-      await revealTarget();
+      await revealTarget();           // ② 底牌轮盘（发牌动画已取消，手牌直接展示）
       if (seq !== app.introSeq) return;
       intro.hidden = true;
-      // 发牌完成：手牌正式渲染（dealing 逐张飞入效果）
-      els.hand.classList.add('dealing');
-      render();
-      setTimeout(function () { els.hand.classList.remove('dealing'); }, 900);
+      render();                       // 手牌直接渲染
     } catch (e) {
       intro.hidden = true;
     }
@@ -380,17 +379,20 @@
     var myTurn = Boolean(me && me.alive && view.current === app.youId && view.phase === 'playing' && !app.busy && !app.paused);
     els.selectedCount.textContent = app.selected.size;
     var previous = view.lastPlay ? view.players.find(function (p) { return p.id === view.lastPlay.player; }) : null;
-    if (previous) {
-      els.challengeText.innerHTML = '揭穿 ' + escapeHtml(previous.name) + ' 的 <em>' + view.lastPlay.count + ' 张牌</em>';
-    } else {
-      els.challengeText.textContent = '尚无可质疑出牌';
-    }
     els.selectionHint.textContent = app.selected.size
       ? ('已选择 ' + app.selected.size + ' 张 · 将宣称为 ' + view.target)
       : myTurn ? (!me.handCount && view.lastPlay ? '手牌已出尽，只能质疑上一手' : (view.lastPlay ? '继续出牌，或质疑上一手' : '选择 1–3 张牌'))
       : (me && me.alive) ? '等待出牌' : '你已被淘汰，正在旁观';
     els.play.disabled = !myTurn || app.selected.size < 1 || app.selected.size > 3;
-    els.challenge.disabled = !myTurn || !view.lastPlay;
+    // 质疑按钮只在「轮到我 + 桌上有上一手可质疑」时才显示，否则隐藏
+    var canChallenge = myTurn && !!view.lastPlay;
+    els.challenge.disabled = !canChallenge;
+    els.challenge.style.display = canChallenge ? '' : 'none';
+    if (view.lastPlay && previous) {
+      els.challengeText.innerHTML = '揭穿 ' + escapeHtml(previous.name) + ' 的 <em>' + view.lastPlay.count + ' 张牌</em>';
+    } else {
+      els.challengeText.textContent = '尚无可质疑出牌';
+    }
     // 「轮到/等待」只走顶部通知（状态变化时弹一次，不占桌面空间）
     var current = view.players.find(function (p) { return p.id === view.current; });
     if (view.phase === 'playing' && window.Notify && !app.busy && !app.paused && !app.introPlaying) {
@@ -533,9 +535,9 @@
       els.onlineContinue.hidden = false;
       await sleep(2600);
     } else {
-      els.continueBtn.hidden = false;
-      // 单人：停留足够时间让人看清结果（揭穿/失败至少 3.5s），再自动进入下一局
-      await sleep(3500);
+      els.continueBtn.hidden = true;   // 取消「继续」按钮，直接 5 秒停留
+      // 单人：质疑结果停留 5 秒让人看清，再自动进入下一局
+      await sleep(5000);
       if (sequence !== app.revealSequence) return;
       els.reveal.hidden = true;
     }
