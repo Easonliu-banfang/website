@@ -421,15 +421,15 @@
 .intro-bcard.active { border-color: var(--cyan); transform: scale(1.06); box-shadow: 0 0 18px rgba(34,211,238,0.4); }
 .intro-bcard.winner { border-color: #fbbf24; transform: scale(1.18); box-shadow: 0 0 28px rgba(251,191,36,0.6); }
 
-/* 发牌动画：手牌逐张从中央飞入（2.5D 效果） */
+/* 发牌动画：手牌一张张从底部冒上来（约 2 秒播完 5 张） */
 .liar-hand.dealing .liar-card {
-  animation: deal-in 0.45s ease both;
+  animation: deal-in 0.35s cubic-bezier(0.2, 0.8, 0.3, 1) both;
   animation-delay: var(--d, 0ms);
 }
 @keyframes deal-in {
-  from { transform: translate(0, -60px) rotate(-12deg) scale(1.4); opacity: 0; }
-  60% { opacity: 1; }
-  to { transform: translate(0, 0) rotate(var(--rot, 0deg)) scale(1); }
+  from { transform: translate(0, 92px) rotate(9deg) scale(0.8); opacity: 0; }
+  70% { opacity: 1; }
+  to { transform: translate(0, 0) rotate(var(--rot, 0deg)) scale(1); opacity: 1; }
 }
 
 /* 竖屏遮罩（与 UNO 一致） */

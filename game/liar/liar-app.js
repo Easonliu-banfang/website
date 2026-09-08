@@ -29,6 +29,7 @@
     aiTimer: null,
     introSeq: 0,
     introPlaying: false,
+    handsHidden: true,   // 开局抽取阶段手牌不渲染（避免遮罩下隐约可见）
     revealSequence: 0,
     connectionTimer: null,
     roomStarted: false,
@@ -275,28 +276,32 @@
     if (!app.view) return;
     var intro = document.getElementById('introOverlay');
     if (!intro) return;
+    app.handsHidden = true;            // 抽取阶段一律先藏手牌
+    els.hand.classList.remove('dealing');
     var seq = ++app.introSeq;
     intro.hidden = false;
     try {
       var cards = buildPlayerCards();
-      await roulettePick(cards);           // ① 先手轮盘
+      await roulettePick(cards);           // ① 先手轮盘（全程手牌隐藏）
       if (seq !== app.introSeq) return;
       await revealTarget();                // ② 底牌轮盘（本局指定牌）
       if (seq !== app.introSeq) return;
-      await sleepMs(1000);                 // ③ 底牌后停 1 秒
+      await sleepMs(900);                  // ③ 底牌后小停顿
       if (seq !== app.introSeq) return;
-      // ④ 为所有玩家重新发新牌（每张从中央飞向各自座位）
-      els.hand.innerHTML = '';             // 清空手牌区，先发牌动画
-      await dealAnimation(cards);
-      if (seq !== app.introSeq) return;
+      // ④ 收遮罩 → 手牌一张张从底部冒出（~2 秒播完）
       intro.hidden = true;
-      render();                            // 发完显示手牌
+      app.handsHidden = false;
+      els.hand.classList.add('dealing');   // 触发逐张浮出动画
+      render();
+      setTimeout(function () { els.hand.classList.remove('dealing'); }, 2200);
     } catch (e) {
       intro.hidden = true;
+      app.handsHidden = false;
     }
   }
 
   function renderHand(me, view) {
+    if (app.handsHidden) { els.hand.innerHTML = ''; return; }   // 抽取阶段不露手牌
     var hand = (me && me.hand) || [];
     var myTurn = view.current === app.youId && view.phase === 'playing' && !app.busy && !app.paused && me && me.alive;
     var dealing = els.hand.classList.contains('dealing');
@@ -304,7 +309,7 @@
       var selected = app.selected.has(index);
       var red = rank === 'Q' ? 'red' : '';
       var rotation = (index - (hand.length - 1) / 2) * 3;
-      return '<button class="liar-card ' + (rank === E.WILD_CARD ? 'joker' : '') + ' ' + red + ' ' + (selected ? 'selected' : '') + ' ' + (dealing ? 'dealing' : '') + '" type="button" data-index="' + index + '" style="--rot:' + rotation + 'deg;--d:' + (index * 90) + 'ms" aria-pressed="' + selected + '" ' + (myTurn ? '' : 'disabled') + '>' +
+      return '<button class="liar-card ' + (rank === E.WILD_CARD ? 'joker' : '') + ' ' + red + ' ' + (selected ? 'selected' : '') + ' ' + (dealing ? 'dealing' : '') + '" type="button" data-index="' + index + '" style="--rot:' + rotation + 'deg;--d:' + (index * 300) + 'ms" aria-pressed="' + selected + '" ' + (myTurn ? '' : 'disabled') + '>' +
         '<span class="liar-corner">' + (rank === E.WILD_CARD ? '★' : rank) + '</span>' +
         '<span class="liar-suit">' + (rank === 'Q' ? '♥' : rank === 'K' ? '♣' : rank === 'A' ? '♠' : '✦') + '</span>' +
         '<span class="liar-face">' + (rank === E.WILD_CARD ? 'J' : rank) + '</span>' +
@@ -437,6 +442,8 @@
     app.paused = false;
     app.engine = new GameEngine([{ id: 'you', name: '你', avatar: '♠' }].concat(AI_PLAYERS));
     app.engine.start();
+    app.handsHidden = true;               // 开局抽取阶段不露手牌
+    app.introPlaying = true;
     showGame();
     refreshLocal();
     app.introPlaying = true;
