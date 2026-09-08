@@ -129,40 +129,166 @@
     }).join('');
   }
 
-  // 开局动画：先手抽取 → 发牌 → 底牌揭示（每局一次）
-  function playIntro() {
-    if (!app.view || !window.Notify) return;
+  // 开局动画（严格串行）：① 先手轮盘 → ② 轮流发牌 → ③ 底牌揭示
+  function sleepMs(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function buildPlayerCards() {
+    // 用 view.players 造轮盘卡片（头像 + 名字）
+    if (!app.view || !app.view.players) return [];
+    return app.view.players.map(function (p) {
+      return {
+        id: p.id,
+        name: p.name || '玩家',
+        avatar: p.avatar || '♠',
+        alive: p.alive !== false,
+        handCount: p.handCount != null ? p.handCount : (p.hand ? p.hand.length : 0),
+        isMe: p.id === app.youId,
+      };
+    });
+  }
+
+  async function roulettePick(cards) {
+    // 阶段1：先手轮盘 —— 玩家卡片逐个高亮（加速→减速），随机停一人
+    var wheels = document.getElementById('introWheels');
+    var phase = document.getElementById('introPhase');
+    if (!wheels) return null;
+    var alive = cards.filter(function (c) { return c.alive; });
+    if (!alive.length) alive = cards;
+    wheels.hidden = false;
+    wheels.innerHTML = alive.map(function (c) {
+      return '<div class="intro-pcard" data-id="' + c.id + '">' +
+        '<span class="intro-pavatar">' + escapeHtml(c.avatar) + '</span>' +
+        '<span class="intro-pname">' + escapeHtml(c.name) + '</span>' +
+        '</div>';
+    }).join('');
+    var els = Array.prototype.slice.call(wheels.querySelectorAll('.intro-pcard'));
+    var pickIdx = Math.floor(Math.random() * els.length);
+    // 轮盘：先快后慢，转 N 圈后停在 pickIdx
+    var delay = 60, total = 12 + pickIdx + els.length * 3;   // 至少转 3 圈+
+    var idx = 0;
+    phase.textContent = '🎲 决定先手';
+    for (var step = 0; step < total; step++) {
+      els.forEach(function (el, k) { el.classList.remove('active'); });
+      els[idx].classList.add('active');
+      await sleepMs(delay);
+      delay = Math.min(320, delay + (total - step) * 1.4);   // 逐步减速
+      idx = (idx + 1) % els.length;
+    }
+    // 停在目标：再走几步微调
+    var finalIdx = pickIdx;
+    var curIdx = idx % els.length;
+    var steps = (finalIdx - curIdx + els.length) % els.length;
+    for (var k2 = 0; k2 < steps; k2++) {
+      els.forEach(function (el) { el.classList.remove('active'); });
+      els[(curIdx + k2 + 1) % els.length].classList.add('active');
+      await sleepMs(200);
+    }
+    els.forEach(function (el) { el.classList.remove('active'); });
+    els[finalIdx].classList.add('active');
+    // 单独展示 2 秒
+    var winner = alive[finalIdx];
+    phase.textContent = '🎯 先手';
+    var main = document.getElementById('introMain');
+    if (main) main.textContent = (winner.isMe ? '你' : winner.name) + ' 先出牌';
+    els[finalIdx].classList.add('winner');
+    await sleepMs(2000);
+    wheels.hidden = true;
+    return winner;
+  }
+
+  async function dealAnimation(cards) {
+    // 阶段2：轮流发牌 —— 中央牌堆逐张飞向每个玩家座位，每人一轮发一张，直到发完 5 轮
+    var deal = document.getElementById('introDeal');
+    var phase = document.getElementById('introPhase');
+    if (!deal) return;
+    deal.hidden = false;
+    phase.textContent = '🂠 发牌';
+    var main = document.getElementById('introMain');
+    if (main) main.textContent = '';
+    var players = cards.filter(function (c) { return c.alive; });
+    if (!players.length) players = cards;
+    var ROUNDS = 5;   // 每人 5 张
+    var deckEl = deal.querySelector('.intro-deck');
+    var handEl = document.getElementById('hand');
+    var oppEls = Array.prototype.slice.call(document.querySelectorAll('.liar-opp'));
+    // 计算目标位置：自己在底部手牌区，对手在各自座位
+    function targetFor(p, roundIdx) {
+      if (p.isMe) {
+        var hr = handEl.getBoundingClientRect();
+        return { x: hr.left + hr.width / 2 + (roundIdx - 2) * 30, y: hr.top + 30 };
+      }
+      var opp = oppEls.find(function (el) {
+        return el.textContent.indexOf(p.name) >= 0;
+      });
+      if (opp) {
+        var r = opp.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+      return { x: 300 + players.indexOf(p) * 120, y: 120 };
+    }
+    for (var r = 0; r < ROUNDS; r++) {
+      for (var pi = 0; pi < players.length; pi++) {
+        var p = players[pi];
+        var t = targetFor(p, r);
+        var card = document.createElement('i');
+        card.className = 'intro-fly-card';
+        card.style.left = '50%';
+        card.style.top = '50%';
+        deal.appendChild(card);
+        // 强制回流后设置目标
+        void card.offsetWidth;
+        card.style.transform = 'translate(' + (t.x - window.innerWidth / 2) + 'px, ' + (t.y - window.innerHeight / 2) + 'px) rotate(' + ((Math.random() * 30 - 15)) + 'deg) scale(0.55)';
+        card.style.opacity = '0.85';
+        await sleepMs(160);
+        setTimeout(function (c) { if (c && c.parentNode) c.parentNode.removeChild(c); }, 500);
+      }
+      await sleepMs(200);   // 每轮之间小停顿
+    }
+    deal.hidden = true;
+  }
+
+  async function revealTarget() {
+    // 阶段3：底牌揭示 —— 中央翻一张目标牌，展示 2 秒
+    var reveal = document.getElementById('introReveal');
+    var phase = document.getElementById('introPhase');
+    if (!reveal) return;
+    reveal.hidden = false;
+    phase.textContent = '🃏 底牌';
+    var cardEl = document.getElementById('introRevealCard');
+    var main = document.getElementById('introMain');
+    var target = app.view.target || 'K';
+    cardEl.textContent = target === 'JOKER' ? '★' : target;
+    cardEl.className = 'intro-reveal-card ' + (target === 'Q' ? 'red' : '') + (target === 'JOKER' ? 'joker' : '');
+    if (main) main.textContent = '本局指定 ' + target + '（' + (E.CARD_NAMES[target] || '') + '）';
+    cardEl.classList.add('flip-in');
+    await sleepMs(2500);
+    reveal.hidden = true;
+  }
+
+  async function playIntro() {
+    if (!app.view) return;
     var intro = document.getElementById('introOverlay');
     if (!intro) return;
-    var phaseEl = intro.querySelector('.intro-phase');
-    var mainEl = intro.querySelector('.intro-main');
-    var introSeq = ++app.introSeq;
-    // 阶段1：先手抽取
+    var seq = ++app.introSeq;
     intro.hidden = false;
-    phaseEl.textContent = '🎲 决定先手';
-    mainEl.textContent = '';
-    setTimeout(function () {
-      if (introSeq !== app.introSeq) return;
-      var cur = app.view.players.find(function (p) { return p.id === app.view.current; });
-      phaseEl.textContent = '🎲 先手';
-      mainEl.textContent = (cur ? cur.name : '玩家') + ' 先出牌';
-      // 阶段2：发牌动画（手牌 dealing 逐张飞入，0.5s 后）
-      setTimeout(function () {
-        if (introSeq !== app.introSeq) return;
-        els.hand.classList.add('dealing');
-        // 阶段3：底牌揭示
-        setTimeout(function () {
-          if (introSeq !== app.introSeq) return;
-          phaseEl.textContent = '🃏 底牌';
-          mainEl.textContent = '本局指定 ' + app.view.target + '（' + (E.CARD_NAMES[app.view.target] || '') + '）';
-          setTimeout(function () {
-            if (introSeq !== app.introSeq) return;
-            intro.hidden = true;
-            els.hand.classList.remove('dealing');
-          }, 2000);
-        }, 900);
-      }, 1300);
-    }, 1000);
+    try {
+      var cards = buildPlayerCards();
+      var winner = await roulettePick(cards);
+      if (seq !== app.introSeq) return;
+      // 清掉 dealing 以便发牌后重绘
+      els.hand.classList.remove('dealing');
+      await dealAnimation(cards);
+      if (seq !== app.introSeq) return;
+      await revealTarget();
+      if (seq !== app.introSeq) return;
+      intro.hidden = true;
+      // 发牌完成：手牌正式渲染（带 dealing 逐张飞入效果）
+      els.hand.classList.add('dealing');
+      render();
+      setTimeout(function () { els.hand.classList.remove('dealing'); }, 1000);
+    } catch (e) {
+      intro.hidden = true;
+    }
   }
 
   function renderHand(me, view) {
@@ -198,13 +324,27 @@
     lastPileRound = view.round;
     var fromOpponent = view.lastPlay && view.lastPlay.player !== app.youId;
     var arrivalStart = Math.max(0, visible - arriving);
+    // 出牌起始位置：自己出牌从底部手牌区，对手出牌从对手座位旁（动态定位）
+    var flyFrom = { x: 0, y: 150 };
+    if (fromOpponent && view.lastPlay) {
+      var oppName = playerName(view.lastPlay.player);
+      var oppEl = null;
+      var opps = document.querySelectorAll('.liar-opp');
+      for (var oi = 0; oi < opps.length; oi++) {
+        if (opps[oi].textContent.indexOf(oppName) >= 0) { oppEl = opps[oi]; break; }
+      }
+      if (oppEl) {
+        var r = oppEl.getBoundingClientRect();
+        flyFrom = { x: r.left + r.width / 2 - window.innerWidth / 2, y: r.top + r.height / 2 - window.innerHeight / 2 };
+      }
+    }
     var cards = Array.from({ length: visible }, function (_, index) {
       var rotation = (index * 23 % 34) - 17;
       var offset = (index - (visible - 1) / 2) * 5;
       var isArriving = index >= arrivalStart;
       var origin = fromOpponent ? 'from-opp' : 'from-you';
       var delay = isArriving ? (index - arrivalStart) * 80 : 0;
-      return '<i class="liar-pile-card' + (isArriving ? ' arriving ' + origin : '') + '" style="--x:' + offset + 'px;--r:' + rotation + 'deg;--d:' + delay + 'ms"></i>';
+      return '<i class="liar-pile-card' + (isArriving ? ' arriving ' + origin : '') + '" style="--x:' + offset + 'px;--r:' + rotation + 'deg;--d:' + delay + 'ms;--fx:' + flyFrom.x + 'px;--fy:' + flyFrom.y + 'px"></i>';
     }).join('');
     var actor = view.lastPlay ? playerName(view.lastPlay.player) : '上一位玩家';
     els.pile.innerHTML = cards +
@@ -363,6 +503,15 @@
     if (result.bang) {
       await sleep(500);
       showEliminationImpact(loserName);
+      // 显示剩余人数（>1 人继续，==1 人决出冠军）
+      var aliveNow = app.view.players.filter(function (p) { return p.alive !== false && p.id !== result.loser; }).length;
+      if (aliveNow > 1) {
+        els.revealCopy.textContent += ' 还剩 ' + aliveNow + ' 人继续。';
+        if (window.Notify) window.Notify.show('💀 ' + loserName + ' 被淘汰，还剩 ' + aliveNow + ' 人', 'error', { ttl: 4000 });
+      } else {
+        els.revealCopy.textContent += ' 最后一人！';
+        if (window.Notify) window.Notify.show('🏆 仅剩 1 人，冠军即将揭晓！', 'win', { ttl: 4000 });
+      }
     }
     if (sequence !== app.revealSequence) return;
     if (online) {
@@ -424,8 +573,11 @@
   function showEnd() {
     var winner = app.view.players.find(function (p) { return p.id === app.view.winner; });
     var won = winner && winner.id === app.youId;
-    els.endTitle.textContent = won ? '你活了下来' : ((winner ? winner.name : '无人') + ' 获胜');
-    els.endCopy.textContent = app.mode === 'online' ? '酒馆记住了最后的赢家。' : (won ? '三名酒客都倒下了，只有你站着。' : '下次胆子大一点。');
+    var wname = winner ? winner.name : '无人';
+    els.endTitle.textContent = won ? '🏆 你成为冠军！' : ('🏆 ' + wname + ' 夺冠');
+    els.endCopy.textContent = app.mode === 'online' ? ('酒馆最后的赢家是 ' + wname + '。') : (won ? '三名酒客都倒下了，只有你站着。' : '下次胆子大一点，' + wname + ' 赢下了今晚。');
+    // 冠军横幅（顶部通知，4 秒）
+    if (window.Notify) window.Notify.show('🏆 ' + wname + ' 成为最后的赢家！', 'win', { ttl: 4000 });
     els.endLeaveBtn.hidden = app.mode !== 'online';
     els.end.hidden = false;
   }

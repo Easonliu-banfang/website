@@ -118,16 +118,20 @@
   box-shadow: 0 6px 18px rgba(0,0,0,.5);
   transform: translateX(var(--x, 0)) rotate(var(--r, 0));
 }
-.liar-pile-card.arriving { animation: liar-card-in 0.5s ease both; animation-delay: var(--d, 0ms); }
+.liar-pile-card.arriving { animation: liar-card-in 0.55s cubic-bezier(0.3, 0.8, 0.4, 1) both; animation-delay: var(--d, 0ms); }
 .liar-pile-card.arriving.from-you { animation-name: liar-card-in-you; }
 .liar-pile-card.arriving.from-opp { animation-name: liar-card-in-opp; }
+/* 自己出牌：从底部手牌区向上扔到桌面 */
 @keyframes liar-card-in-you {
-  from { transform: translate(0, 140px) rotate(6deg) scale(1.15); opacity: 0; }
-  to { transform: translateX(var(--x, 0)) rotate(var(--r, 0)) scale(1); opacity: 1; }
+  from { transform: translate(0, 150px) rotate(7deg) scale(1.2); opacity: 0; }
+  70% { opacity: 1; }
+  to { transform: translate(var(--x, 0), 0) rotate(var(--r, 0)) scale(1); opacity: 1; }
 }
+/* 对手出牌：从对手座位旁动态坐标飞向桌面中央（--fx/--fy 定位起点） */
 @keyframes liar-card-in-opp {
-  from { transform: translate(0, -160px) rotate(-6deg) scale(1.15); opacity: 0; }
-  to { transform: translateX(var(--x, 0)) rotate(var(--r, 0)) scale(1); opacity: 1; }
+  from { transform: translate(var(--fx, 0), var(--fy, -160px)) rotate(-8deg) scale(1.15); opacity: 0; }
+  70% { opacity: 1; }
+  to { transform: translate(var(--x, 0), 0) rotate(var(--r, 0)) scale(1); opacity: 1; }
 }
 .liar-pile-badge {
   position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
@@ -351,14 +355,56 @@
 .liar-intro {
   position: fixed; inset: 0; z-index: 95;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(5,8,12,0.7); backdrop-filter: blur(3px);
+  background: rgba(5,8,12,0.72); backdrop-filter: blur(3px);
   pointer-events: none;
 }
-.liar-intro-inner { text-align: center; padding: 30px 40px; background: var(--bg-elev); border: 1px solid rgba(34,211,238,0.3); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-.intro-coin { font-size: 52px; animation: intro-bounce 0.8s ease infinite alternate; }
-@keyframes intro-bounce { from { transform: translateY(-6px); } to { transform: translateY(8px); } }
-.intro-phase { font-family: var(--mono); font-size: 15px; color: var(--cyan); margin: 10px 0 4px; }
-.intro-main { font-size: 18px; color: var(--text); min-height: 24px; }
+.liar-intro-inner { text-align: center; padding: 30px 44px; background: var(--bg-elev); border: 1px solid rgba(34,211,238,0.3); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); min-width: 320px; }
+.intro-phase { font-family: var(--mono); font-size: 15px; color: var(--cyan); margin: 0 0 14px; letter-spacing: 2px; }
+.intro-main { font-size: 17px; color: var(--text); min-height: 24px; margin-top: 10px; }
+
+/* 阶段1：先手轮盘（玩家卡片） */
+.intro-wheels { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.intro-pcard {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 84px; padding: 12px 8px; border-radius: 14px;
+  background: rgba(255,255,255,0.04); border: 2px solid transparent;
+  transition: all 0.15s ease; transform: scale(0.92);
+}
+.intro-pcard .intro-pavatar {
+  width: 44px; height: 44px; border-radius: 50%; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elev); border: 2px solid var(--card-edge); color: var(--text);
+}
+.intro-pcard .intro-pname { font-size: 12px; color: var(--dim); font-family: var(--mono); }
+.intro-pcard.active { border-color: var(--cyan); transform: scale(1); box-shadow: 0 0 18px rgba(34,211,238,0.4); }
+.intro-pcard.active .intro-pavatar { border-color: var(--cyan); color: var(--cyan); }
+.intro-pcard.active .intro-pname { color: var(--text); }
+.intro-pcard.winner { border-color: #fbbf24; transform: scale(1.18); box-shadow: 0 0 26px rgba(251,191,36,0.55); }
+.intro-pcard.winner .intro-pavatar { border-color: #fbbf24; color: #fbbf24; }
+
+/* 阶段2：发牌（中央飞牌到座位） */
+.intro-deal { position: relative; width: 220px; height: 120px; margin: 0 auto; }
+.intro-deck { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 64px; opacity: 0.9; animation: intro-bounce 0.9s ease infinite alternate; }
+@keyframes intro-bounce { from { transform: translate(-50%, -58%); } to { transform: translate(-50%, -42%); } }
+.intro-fly-card {
+  position: fixed; width: 44px; height: 62px; margin-left: -22px; margin-top: -31px;
+  background: linear-gradient(160deg, #1a2332, #131920); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 7px; z-index: 96; transition: transform 0.5s cubic-bezier(0.34, 0.9, 0.4, 1), opacity 0.5s ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+}
+
+/* 阶段3：底牌揭示 */
+.intro-reveal-card {
+  width: 84px; height: 118px; margin: 8px auto; border-radius: 12px;
+  background: linear-gradient(165deg, #e8ecf2, #c6cdd8); color: #16233a;
+  font-size: 44px; font-weight: 700; font-family: var(--mono);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 14px 34px rgba(0,0,0,0.5);
+  transform: rotateY(90deg); transition: transform 0.5s ease;
+}
+.intro-reveal-card.flip-in { transform: rotateY(0deg); }
+.intro-reveal-card.red { color: #dc2626; }
+.intro-reveal-card.joker { background: linear-gradient(165deg, #2b2138, #171a28); color: #c9b8f2; }
 
 /* 发牌动画：手牌逐张从中央飞入（2.5D 效果） */
 .liar-hand.dealing .liar-card {
