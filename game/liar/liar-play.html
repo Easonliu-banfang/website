@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0e14">
 <title>骗子酒馆 · Liar's Table</title>
 <link rel="stylesheet" href="../style.css?v=b14">
-<link rel="stylesheet" href="liar.css?v=l5">
+<link rel="stylesheet" href="liar.css?v=l6">
 </head>
 <body class="liar-body">
 
@@ -25,11 +25,16 @@
     <p class="intro-phase" id="introPhase">决定先手</p>
     <!-- 阶段1：先手轮盘（玩家卡片） -->
     <div class="intro-wheels" id="introWheels"></div>
-    <!-- 阶段2：发牌动画层 -->
-    <div class="intro-deal" id="introDeal" hidden><div class="intro-deck">🂠</div></div>
-    <!-- 阶段3：底牌揭示 -->
+
+    <!-- 阶段2：发牌（直接在真实牌桌上飞牌，无独立窗口） -->
+    <div class="intro-deal" id="introDeal" hidden></div>
+    <!-- 阶段3：底牌轮盘（A/K/Q 候选卡片高亮停目标） -->
     <div class="intro-reveal" id="introReveal" hidden>
-      <div class="intro-reveal-card" id="introRevealCard">?</div>
+      <div class="intro-bcards" id="introBcards">
+        <div class="intro-bcard" data-rank="A">A</div>
+        <div class="intro-bcard" data-rank="K">K</div>
+        <div class="intro-bcard" data-rank="Q">Q</div>
+      </div>
       <p class="intro-main" id="introMain"></p>
     </div>
   </div>
@@ -38,7 +43,7 @@
 <!-- ========== 牌桌主界面 ========== -->
 <main id="game" class="liar-shell" hidden>
   <header class="head liar-head">
-    <a href="liar.html?v=l5" class="back" id="backToGameBtn">← 返回房间</a>
+    <a href="liar.html?v=l6" class="back" id="backToGameBtn">← 返回房间</a>
     <h1>骗子酒馆</h1>
     <div class="liar-top-right">
       <div id="modeBadge" class="liar-badge"><i></i><span>未入座</span></div>
@@ -197,8 +202,8 @@
 
 <script src="../notify.js?v=n3"></script>
 <script src="../lobby.js?v=l8"></script>
-<script src="liar-engine.js?v=l5"></script>
-<script src="liar-ai.js?v=l5"></script>
-<script src="liar-app.js?v=l5"></script>
+<script src="liar-engine.js?v=l6"></script>
+<script src="liar-ai.js?v=l6"></script>
+<script src="liar-app.js?v=l6"></script>
 </body>
 </html>

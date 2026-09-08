@@ -383,28 +383,28 @@
 .intro-pcard.winner .intro-pavatar { border-color: #fbbf24; color: #fbbf24; }
 
 /* 阶段2：发牌（中央飞牌到座位） */
-.intro-deal { position: relative; width: 220px; height: 120px; margin: 0 auto; }
-.intro-deck { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 64px; opacity: 0.9; animation: intro-bounce 0.9s ease infinite alternate; }
-@keyframes intro-bounce { from { transform: translate(-50%, -58%); } to { transform: translate(-50%, -42%); } }
+/* 发牌层：透明不占空间，飞牌直接落在真实牌桌上 */
+.intro-deal { position: fixed; inset: 0; z-index: 97; pointer-events: none; }
 .intro-fly-card {
   position: fixed; width: 44px; height: 62px; margin-left: -22px; margin-top: -31px;
   background: linear-gradient(160deg, #1a2332, #131920); border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 7px; z-index: 96; transition: transform 0.5s cubic-bezier(0.34, 0.9, 0.4, 1), opacity 0.5s ease;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+  border-radius: 7px; z-index: 96; transition: transform 0.48s cubic-bezier(0.3, 0.75, 0.35, 1), opacity 0.48s ease;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.55);
 }
 
-/* 阶段3：底牌揭示 */
-.intro-reveal-card {
-  width: 84px; height: 118px; margin: 8px auto; border-radius: 12px;
+/* 阶段3：底牌轮盘（A/K/Q 候选卡片高亮循环→停目标） */
+.intro-bcards { display: flex; gap: 14px; justify-content: center; margin: 6px 0 10px; }
+.intro-bcard {
+  width: 74px; height: 104px; border-radius: 12px;
   background: linear-gradient(165deg, #e8ecf2, #c6cdd8); color: #16233a;
-  font-size: 44px; font-weight: 700; font-family: var(--mono);
+  font-size: 36px; font-weight: 700; font-family: var(--mono);
   display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 14px 34px rgba(0,0,0,0.5);
-  transform: rotateY(90deg); transition: transform 0.5s ease;
+  border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 10px 26px rgba(0,0,0,0.45);
+  transition: all 0.15s ease; transform: scale(0.92);
 }
-.intro-reveal-card.flip-in { transform: rotateY(0deg); }
-.intro-reveal-card.red { color: #dc2626; }
-.intro-reveal-card.joker { background: linear-gradient(165deg, #2b2138, #171a28); color: #c9b8f2; }
+.intro-bcard[data-rank="Q"] { color: #dc2626; }
+.intro-bcard.active { border-color: var(--cyan); transform: scale(1.06); box-shadow: 0 0 18px rgba(34,211,238,0.4); }
+.intro-bcard.winner { border-color: #fbbf24; transform: scale(1.18); box-shadow: 0 0 28px rgba(251,191,36,0.6); }
 
 /* 发牌动画：手牌逐张从中央飞入（2.5D 效果） */
 .liar-hand.dealing .liar-card {
