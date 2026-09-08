@@ -636,7 +636,10 @@
   var HTTP_BASE = 'https://quoridor-mp.pages.dev/api/room';
 
   function connectRoom(code, host) {
-    var name = '酒客';   // 昵称简化为固定（对齐其他游戏联机页无昵称输入）
+    // 昵称：优先 URL ?name= 参数（分享/大厅带入），否则随机「酒客·XX」避免全员同名难区分
+    var qn = {};
+    (location.search || '').replace(/[?&]([^=&]+)=([^&]*)/g, function (_, k, v) { qn[k] = v; });
+    var name = (qn.name && String(qn.name).trim()) ? String(qn.name).slice(0, 10) : ('酒客·' + Math.floor(10 + Math.random() * 90));
     openSocket(code, name, host);
   }
 
@@ -653,6 +656,7 @@
       onLeave: function () { if (app.ws) app.ws.close(); location.href = 'liar.html'; },
     });
     app.lobby.setCapacity(4);          // 骗子酒馆 2-4 人
+    app.lobby.setMinToStart(2);       // 至少 2 人即可开局（不强制满 4）
     app.lobby.show(code);
     app.lobby.setStatus('已连接，等待准备开始', 'connected');
     var ws = new WebSocket(WS_BASE + encodeURIComponent(code) + '/ws');

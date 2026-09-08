@@ -22,6 +22,7 @@
     this.btnShareLink = document.getElementById('btnShareLink');
     this.you = -1;
     this.capacity = 2;       // 房间人数容量（默认双人；匹配卡牌 3/4/2v2 由 app 设置）
+    this.minToStart = 0;     // 开局最少人数（0=跟 capacity 一致；骗子酒馆设 2 → 2-4 人灵活开局）
     this.readyState = false;   // 本地已知准备态（render 同步，点击乐观切换）
     this.onReady = opts.onReady || function () {};
     this.onStart = opts.onStart || function () {};
@@ -60,6 +61,11 @@
     }
   };
 
+  // 开局最少人数（灵活开局用）：设 2 → 2 人即可开始（座位容量仍按 setCapacity）
+  GameLobby.prototype.setMinToStart = function (n) {
+    this.minToStart = n || 0;
+  };
+
   // 队伍标签（2v2 上下两排一队）：传入每座文字数组，如 ['下排','下排','上排','上排']（留 null 表示无）
   GameLobby.prototype.setSeatTags = function (tags) {
     this.seatTags = tags || null;
@@ -87,7 +93,7 @@
   };
 
   // 渲染一个座位：i=槽位(0-3)，occupied=是否有人，ready=是否已准备
-  function renderSeat(seat, i, occupied, ready) {
+  function renderSeat(seat, i, occupied, ready, playerName) {
     if (!seat) return;
     var name = seat.querySelector('.seat-name');
     var dot = seat.querySelector('.seat-dot');
@@ -99,7 +105,7 @@
       if (dot) { dot.textContent = ''; dot.classList.remove('ready', 'notready'); }
       return;
     }
-    name.textContent = '玩家 ' + (i + 1);
+    name.textContent = (playerName && playerName !== 'null') ? playerName : ('玩家 ' + (i + 1));
     seat.classList.add(ready ? 'ready' : 'notready');
     if (dot) {
       dot.textContent = ready ? '✓' : '⋯';
@@ -124,7 +130,8 @@
         if (dname) dname.textContent = '未开放';
         continue;
       }
-      renderSeat(self.seatEls[i], i, !!(d.players && d.players[i]), !!(d.ready && d.ready[i]));
+      var pname = (d.names && d.names[i]) ? String(d.names[i]) : null;
+      renderSeat(self.seatEls[i], i, !!(d.players && d.players[i]), !!(d.ready && d.ready[i]), pname);
     }
 
     var connected = (you >= 0);
@@ -133,7 +140,8 @@
     // 在线索引与全员就绪判定（N 人通用）
     var onlineIdx = [];
     for (var k = 0; k < cap; k++) if (d.players && d.players[k]) onlineIdx.push(k);
-    var readyAll = onlineIdx.length >= cap && onlineIdx.every(function (x) { return !!(d.ready && d.ready[x]); });
+    var needCount = (self.minToStart > 0) ? Math.min(self.minToStart, cap) : cap;   // 开局所需人数（liar=2 但 ≤容量）
+    var readyAll = onlineIdx.length >= needCount && onlineIdx.every(function (x) { return !!(d.ready && d.ready[x]); });
 
     // 房主：显示 [提醒准备][开始游戏]；加入者：显示 [准备/取消准备]
     if (self.btnStart) {
@@ -156,8 +164,12 @@
       }
     }
     if (self.hintEl) {
-      if (onlineIdx.length < cap) self.hintEl.textContent = (isHost ? '把房间码发给朋友，等待所有人加入…' : '等待房主创建好…');
-      else if (!readyAll) self.hintEl.textContent = (isHost ? '有人未准备，可点「提醒准备」催一催' : '等待所有人准备…');
+      var flexible = (self.minToStart > 0 && self.minToStart < cap);   // 灵活开局（如骗子酒馆 2-4 人）
+      if (onlineIdx.length < needCount) {
+        self.hintEl.textContent = flexible
+          ? (isHost ? ('已入座 ' + onlineIdx.length + '/' + cap + ' 人（至少 ' + needCount + ' 人可开始），继续邀请或直接开始…') : ('已入座 ' + onlineIdx.length + '/' + cap + ' 人，等待房主开始…'))
+          : (isHost ? '把房间码发给朋友，等待所有人加入…' : '等待房主创建好…');
+      } else if (!readyAll) self.hintEl.textContent = (isHost ? '有人未准备，可点「提醒准备」催一催' : '等待所有人准备…');
       else self.hintEl.textContent = (isHost ? '全员已准备，点击开始游戏' : '全员已准备，等待房主开始');
     }
     // 座位 class 在 renderSeat 中被重置，重新应用队伍标签（2v2）
