@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0e14">
 <title>骗子酒馆 · Liar's Table</title>
 <link rel="stylesheet" href="../style.css?v=b14">
-<link rel="stylesheet" href="liar.css?v=l7">
+<link rel="stylesheet" href="liar.css?v=l8">
 </head>
 <body class="liar-body">
 
@@ -43,12 +43,14 @@
 <!-- ========== 牌桌主界面 ========== -->
 <main id="game" class="liar-shell" hidden>
   <header class="head liar-head">
-    <a href="liar.html?v=l7" class="back" id="backToGameBtn">← 返回房间</a>
-    <h1>骗子酒馆</h1>
+    <div class="liar-head-left">
+      <a href="liar.html?v=l8" class="back" id="backToGameBtn">← 返回房间</a>
+      <h1>骗子酒馆</h1>
+      <div class="liar-mini-target"><span>本局</span><b id="targetRank">K</b><small id="targetName">国王</small></div>
+    </div>
     <div class="liar-top-right">
       <div id="modeBadge" class="liar-badge"><i></i><span>未入座</span></div>
       <div class="liar-round"><span>第 <b id="roundNo">0</b> 局</span><i></i><span>桌面 <b id="pileCount">0</b></span></div>
-      <button id="btnRules" class="liar-icon-btn" type="button" aria-label="游戏规则">❓</button>
     </div>
   </header>
 
@@ -56,16 +58,9 @@
     <div id="players" class="liar-players" aria-live="polite"></div>
 
     <div class="liar-center">
-      <div class="liar-target">
-        <span>本局指定牌</span>
-        <strong id="targetRank">K</strong>
-        <small id="targetName">国王</small>
-      </div>
       <div id="playedPile" class="liar-pile" aria-label="桌面牌堆" aria-live="polite">
         <div class="liar-empty">等待出牌</div>
       </div>
-      <div id="lastClaim" class="liar-claim" aria-live="polite">尚无出牌</div>
-      <div id="turnBanner" class="liar-turn" role="status" aria-live="polite">等待入座</div>
     </div>
 
 
@@ -202,8 +197,8 @@
 
 <script src="../notify.js?v=n3"></script>
 <script src="../lobby.js?v=l8"></script>
-<script src="liar-engine.js?v=l7"></script>
-<script src="liar-ai.js?v=l7"></script>
-<script src="liar-app.js?v=l7"></script>
+<script src="liar-engine.js?v=l8"></script>
+<script src="liar-ai.js?v=l8"></script>
+<script src="liar-app.js?v=l8"></script>
 </body>
 </html>

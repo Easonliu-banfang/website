@@ -28,6 +28,7 @@
     session: 0,
     aiTimer: null,
     introSeq: 0,
+    introPlaying: false,
     revealSequence: 0,
     connectionTimer: null,
     roomStarted: false,
@@ -46,8 +47,8 @@
     targetRank: $('targetRank'), targetName: $('targetName'),
     roundNo: $('roundNo'), pileCount: $('pileCount'), claimText: $('claimText'),
     youLabel: $('youLabel'), connectionHint: $('connectionHint'),
-    selectionHint: $('selectionHint'), turnBanner: $('turnBanner'),
-    lastClaim: $('lastClaim'), challengeText: $('challengeText'),
+    selectionHint: $('selectionHint'),
+    challengeText: $('challengeText'),
     selectedCount: $('selectedCount'), pile: $('playedPile'),
     challenge: $('challengeBtn'), play: $('playBtn'),
     modeBadge: $('modeBadge'),
@@ -98,6 +99,7 @@
     els.targetName.textContent = E.CARD_NAMES[view.target];
     els.roundNo.textContent = view.round;
     els.pileCount.textContent = view.pileCount;
+    view.lastPlayCount = view.lastPlay ? view.lastPlay.count : 0;
     els.claimText.textContent = '宣称是 ' + view.target;
     els.youLabel.textContent = me ? (me.name + ' · 你的手牌') : '旁观牌局';
     els.connectionHint.textContent = app.mode === 'online' ? ('房间 ' + (app.room ? app.room.code : '…')) : '单人模式';
@@ -345,10 +347,9 @@
       return '<i class="liar-pile-card' + (isArriving ? ' arriving ' + origin : '') + '" style="--x:' + offset + 'px;--r:' + rotation + 'deg;--d:' + delay + 'ms;--fx:' + flyFrom.x + 'px;--fy:' + flyFrom.y + 'px"></i>';
     }).join('');
     var actor = view.lastPlay ? playerName(view.lastPlay.player) : '上一位玩家';
-    els.pile.innerHTML = cards +
-      '<span class="liar-pile-badge"><span>' + escapeHtml(actor) + '</span><b>+' + view.lastPlay.count + ' 张</b></span>';
-    // 出牌横幅（顶部通知）
-    if (arriving > 0 && view.lastPlay && window.Notify) {
+    els.pile.innerHTML = cards;    // 桌面只有反扣牌（徽标已删，出牌信息走顶部通知）
+    // 出牌横幅（顶部通知，开局动画期间不弹）
+    if (arriving > 0 && view.lastPlay && window.Notify && !app.introPlaying) {
       window.Notify.show('🃏 ' + actor + ' 宣称打出 ' + view.lastPlay.count + ' 张 ' + view.target, 'info', { ttl: 3000 });
     }
   }
@@ -356,7 +357,8 @@
   var lastNotified = -1;    // 已通知的历史条目标志（避免重复弹横幅）
   function renderHistory(history) {
     if (!history || !history.length) return;
-    // 酒馆耳语 → 顶部横幅通知（对齐其他游戏 notify 样式，3 秒）
+    if (app.introPlaying) return;    // 开局动画期间不弹（先手/发牌/底牌还没结束）
+    // 酒馆耳语 → 顶部横幅通知（对齐其他游戏 notify 样式）
     if (history.length > lastNotified && window.Notify) {
       for (var i = lastNotified; i < history.length; i++) {
         var entry = history[i];
@@ -372,29 +374,35 @@
     }
   }
 
+  var lastTurnId = null;   // 上次回合通知的玩家（防止每帧刷通知）
+  var lastPhaseMsg = '';
   function renderControls(me, view) {
     var myTurn = Boolean(me && me.alive && view.current === app.youId && view.phase === 'playing' && !app.busy && !app.paused);
     els.selectedCount.textContent = app.selected.size;
     var previous = view.lastPlay ? view.players.find(function (p) { return p.id === view.lastPlay.player; }) : null;
     if (previous) {
-      els.lastClaim.innerHTML = '<span>' + escapeHtml(previous.name) + ' 宣称</span><b class="liar-claim-count">' + view.lastPlay.count + ' 张 ' + escapeHtml(view.target) + '</b>';
       els.challengeText.innerHTML = '揭穿 ' + escapeHtml(previous.name) + ' 的 <em>' + view.lastPlay.count + ' 张牌</em>';
     } else {
-      els.lastClaim.textContent = '尚无出牌';
       els.challengeText.textContent = '尚无可质疑出牌';
     }
-    els.lastClaim.className = 'liar-claim' + (previous ? ' active' : '');
     els.selectionHint.textContent = app.selected.size
       ? ('已选择 ' + app.selected.size + ' 张 · 将宣称为 ' + view.target)
       : myTurn ? (!me.handCount && view.lastPlay ? '手牌已出尽，只能质疑上一手' : (view.lastPlay ? '继续出牌，或质疑上一手' : '选择 1–3 张牌'))
-      : (me && me.alive) ? '等待轮到你' : '你已被淘汰，正在旁观';
+      : (me && me.alive) ? '等待出牌' : '你已被淘汰，正在旁观';
     els.play.disabled = !myTurn || app.selected.size < 1 || app.selected.size > 3;
     els.challenge.disabled = !myTurn || !view.lastPlay;
+    // 「轮到/等待」只走顶部通知（状态变化时弹一次，不占桌面空间）
     var current = view.players.find(function (p) { return p.id === view.current; });
-    var waiting = current && current.bot ? (current.name + ' 正在盘算…') : ('等待 ' + (current ? current.name : '玩家') + ' 出牌');
-    var turnMessage = view.phase === 'reveal' ? '等待裁决…' : view.phase === 'ended' ? '牌局结束' : myTurn ? '轮到你了' : waiting;
-    els.turnBanner.textContent = turnMessage;
-    els.turnBanner.className = 'liar-turn' + (myTurn ? ' your-turn' : '');
+    if (view.phase === 'playing' && window.Notify && !app.busy && !app.paused && !app.introPlaying) {
+      var turnKey = view.current + '|' + view.lastPlayCount;
+      if (myTurn && lastTurnId !== 'me-' + turnKey) {
+        lastTurnId = 'me-' + turnKey;
+        window.Notify.show('👉 轮到你了！', 'info', { ttl: 2500 });
+      } else if (!myTurn && lastTurnId !== view.current + '|' + turnKey) {
+        lastTurnId = view.current + '|' + turnKey;
+        if (current && current.bot) window.Notify.show((current.name) + ' 的回合…', 'info', { ttl: 2000 });
+      }
+    }
     els.modeBadge.className = 'liar-badge ' + (app.mode === 'online' ? 'online' : app.mode === 'solo' ? 'solo' : '');
     els.modeBadge.querySelector('span').textContent = app.mode === 'online' ? ('联机 · ' + (app.room ? app.room.code : '')) : app.mode === 'solo' ? '单人牌局' : '未入座';
   }
@@ -421,8 +429,11 @@
     app.engine.start();
     showGame();
     refreshLocal();
-    playIntro();
-    maybeRunAI();
+    app.introPlaying = true;
+    playIntro().then(function () {
+      app.introPlaying = false;
+      maybeRunAI();
+    });
   }
 
   function refreshLocal() {
@@ -436,7 +447,7 @@
 
   function maybeRunAI() {
     clearTimeout(app.aiTimer);
-    if (app.mode !== 'solo' || app.paused || app.busy || !app.engine || app.engine.phase !== 'playing') return;
+    if (app.introPlaying || app.mode !== 'solo' || app.paused || app.busy || !app.engine || app.engine.phase !== 'playing') return;
     var current = app.engine.player(app.engine.current);
     if (!current.bot) return;
     var session = app.session;
@@ -550,8 +561,11 @@
       showEnd();
       return;
     }
-    playIntro();                           // 新一局：先手/发牌/底牌动画
-    maybeRunAI();
+    app.introPlaying = true;
+    playIntro().then(function () {
+      app.introPlaying = false;
+      maybeRunAI();
+    });
   }
 
   function playSelected() {
@@ -728,8 +742,6 @@
         location.href = 'liar.html';
       }
     });
-    var rulesBtn = $('btnRules');
-    if (rulesBtn) rulesBtn.addEventListener('click', function () { els.rules.hidden = false; });
     $('closeRulesBtn').addEventListener('click', function () { els.rules.hidden = true; });
     $('resumeBtn').addEventListener('click', function () { els.rules.hidden = true; });
     $('exitGameBtn').addEventListener('click', function () {
