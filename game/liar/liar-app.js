@@ -279,12 +279,18 @@
     intro.hidden = false;
     try {
       var cards = buildPlayerCards();
-      await roulettePick(cards);      // ① 先手轮盘
+      await roulettePick(cards);           // ① 先手轮盘
       if (seq !== app.introSeq) return;
-      await revealTarget();           // ② 底牌轮盘（发牌动画已取消，手牌直接展示）
+      await revealTarget();                // ② 底牌轮盘（本局指定牌）
+      if (seq !== app.introSeq) return;
+      await sleepMs(1000);                 // ③ 底牌后停 1 秒
+      if (seq !== app.introSeq) return;
+      // ④ 为所有玩家重新发新牌（每张从中央飞向各自座位）
+      els.hand.innerHTML = '';             // 清空手牌区，先发牌动画
+      await dealAnimation(cards);
       if (seq !== app.introSeq) return;
       intro.hidden = true;
-      render();                       // 手牌直接渲染
+      render();                            // 发完显示手牌
     } catch (e) {
       intro.hidden = true;
     }
@@ -422,6 +428,8 @@
     clearTimeout(app.aiTimer);
     lastNotified = 0;
     app.mode = 'solo';
+    var bk = document.getElementById('backToGameBtn');
+    if (bk) bk.textContent = '← 返回';    // AI 单人模式：显示「返回」
     app.youId = 'you';
     app.room = null;
     app.selected.clear();
@@ -624,6 +632,8 @@
   function openSocket(code, name, host) {
     app.mode = 'online';
     app.room = { code: code, host: host };
+    var bk = document.getElementById('backToGameBtn');
+    if (bk) bk.textContent = '← 返回房间';   // 联机模式：显示「返回房间」
     // 统一等待室（GameLobby 组件，对齐其余游戏）
     app.lobby = new window.GameLobby({
       onReady: function () { sendOnline({ type: 'ready' }); },
@@ -677,6 +687,9 @@
       return;
     }
     if (message.type === 'state') {
+      // 新局检测：round 前进且 phase=playing → 播开局动画（先手/底牌/发牌）
+      var isNewRound = message.state.phase === 'playing' && (!app.view || message.state.round > (app.view.round || 0));
+      var wasIntro = app.introPlaying;
       app.view = message.state;
       app.connOk = true;
       app.roomStarted = true;
@@ -686,6 +699,11 @@
       showGame();
       render();
       if (message.state.phase === 'ended') showEnd();
+      else if (isNewRound && !wasIntro) {
+        // 联机新局：播与单人一致的开局动画（联机双方各播各的，先手同源）
+        app.introPlaying = true;
+        playIntro().then(function () { app.introPlaying = false; });
+      }
       return;
     }
     if (message.type === 'reveal') {
