@@ -63,11 +63,11 @@
   }
 
   function createState(mode) {
-    // 兼容字符串/数字两种传入（URL 参数为字符串 '3'/'4'/'2v2'）
+    // 兼容字符串/数字两种传入：'2'/'3'/'4'（单人混战任意人数）/ '2v2'（组队固定 4）
     if (mode === '2v2') { /* 保持 */ }
     else {
       var m = parseInt(mode, 10);
-      mode = (m === 3 || m === 4) ? m : 2;
+      mode = (m >= 2 && m <= 4) ? m : 2;   // 支持任意 2-4 人混战
     }
     var cap = (mode === '2v2') ? 4 : mode;
     var teams = null;
