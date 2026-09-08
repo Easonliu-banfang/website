@@ -38,7 +38,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var els = {
-    game: $('game'), start: $('startScreen'), lobby: $('lobbyOverlay'),
+    game: $('game'), lobby: $('lobby'),
     reveal: $('revealOverlay'), end: $('endOverlay'), rules: $('rulesOverlay'),
     tutorial: $('tutorialOverlay'), toast: $('toast'),
     players: $('players'), hand: $('hand'), historyList: $('historyList'),
@@ -51,15 +51,12 @@
     challenge: $('challengeBtn'), play: $('playBtn'),
     modeBadge: $('modeBadge'),
     continueBtn: $('continueBtn'), onlineContinue: $('onlineContinue'),
+    restartBtn: $('restartBtn'), endLeaveBtn: $('endLeaveBtn'),
     revealed: $('revealedCards'), revealTitle: $('revealTitle'),
     revealEyebrow: $('revealEyebrow'), revealCopy: $('revealCopy'),
     roulette: $('roulette'), rouletteText: $('rouletteText'),
     eliminationImpact: $('eliminationImpact'), eliminationName: $('eliminationName'),
     endTitle: $('endTitle'), endCopy: $('endCopy'),
-    lobbyCode: $('lobbyCode'), lobbyPlayers: $('lobbyPlayers'),
-    lobbyStatus: $('lobbyStatus'), startGame: $('startGameBtn'),
-    playerName: $('playerName'), roomCode: $('roomCode'),
-    onlinePanel: $('onlinePanel'),
     tutorialTitle: $('tutorialTitle'), tutorialCopy: $('tutorialCopy'),
     tutorialProgress: $('tutorialProgress'), tutorialVisual: $('tutorialVisual'),
   };
@@ -86,7 +83,7 @@
 
   /* ---------- 渲染 ---------- */
   function showGame() {
-    els.start.hidden = true; els.lobby.hidden = true;
+    els.lobby.hidden = true;
     els.reveal.hidden = true; els.end.hidden = true;
     els.game.hidden = false;
   }
@@ -357,30 +354,24 @@
   var WS_BASE = 'wss://quoridor-mp.pages.dev/api/room/';   // 注意：WS 端点需带 /ws 后缀（见 openSocket）
   var HTTP_BASE = 'https://quoridor-mp.pages.dev/api/room';
 
-  function connectRoom(action) {
-    var name = (els.playerName.value || '').trim() || '酒客';
-    if (action === 'create') {
-      fetch(HTTP_BASE + '?game=liar', { method: 'POST' })
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          if (!d.code) return toast('创建房间失败：' + (d.error || '未知错误'));
-          openSocket(d.code, name, true);
-        })
-        .catch(function () { return toast('创建房间失败，服务器不可用'); });
-    } else {
-      var code = (els.roomCode.value || '').trim().toUpperCase();
-      if (code.length !== 4) return toast('请输入 4 位房间码');
-      openSocket(code, name, false);
-    }
+  function connectRoom(code, host) {
+    var name = '酒客';   // 昵称简化为固定（对齐其他游戏联机页无昵称输入）
+    openSocket(code, name, host);
   }
 
   function openSocket(code, name, host) {
     app.mode = 'online';
     app.room = { code: code, host: host };
-    els.lobby.hidden = false;
-    els.start.hidden = true;
-    els.lobbyCode.textContent = code;
-    els.lobbyStatus.textContent = '连接中…';
+    // 统一等待室（GameLobby 组件，对齐其余游戏）
+    app.lobby = new window.GameLobby({
+      onReady: function () { sendOnline({ type: 'ready' }); },
+      onStart: function () { sendOnline({ type: 'start' }); },
+      onNotify: function () { sendOnline({ type: 'notify' }); },
+      onLeave: function () { if (app.ws) app.ws.close(); location.href = 'liar.html'; },
+    });
+    app.lobby.setCapacity(4);          // 骗子酒馆 2-4 人
+    app.lobby.show(code);
+    app.lobby.setStatus('已连接，等待准备开始', 'connected');
     var ws = new WebSocket(WS_BASE + encodeURIComponent(code) + '/ws');
     app.ws = ws;
     ws.onopen = function () {
@@ -416,10 +407,10 @@
     if (message.type === 'lobby') {
       app.youId = String(message.you);
       app.connOk = true;
-      if (!message.started) {
-        renderLobby(message);
-      } else {
-        els.lobby.hidden = true;
+      if (!message.started && app.lobby) {
+        app.lobby.render(message);
+      } else if (app.lobby) {
+        app.lobby.hide();
       }
       return;
     }
@@ -427,7 +418,7 @@
       app.view = message.state;
       app.connOk = true;
       app.roomStarted = true;
-      els.lobby.hidden = true;
+      if (app.lobby) app.lobby.hide();
       app.selected.clear();
       app.busy = message.state.phase !== 'playing';
       showGame();
@@ -452,26 +443,6 @@
     }
   }
 
-  function renderLobby(d) {
-    els.lobby.hidden = false;
-    els.start.hidden = true;
-    var isHost = String(d.you) === String(d.host);
-    var slots = d.players || [];
-    var capacity = d.capacity || 4;
-    while (slots.length < capacity) slots.push(null);
-    els.lobbyPlayers.innerHTML = slots.map(function (p, i) {
-      if (!p) return '<div class="liar-lobby-player liar-lobby-slot"><i>＋</i><span>等待加入</span></div>';
-      var host = String(i) === String(d.host);
-      return '<div class="liar-lobby-player"><i>' + escapeHtml(p.avatar || '♠') + '</i><span>' + escapeHtml(p.name) + '</span>' + (host ? '<small>房主</small>' : '') + '</div>';
-    }).join('');
-    var onlineCount = (d.players || []).filter(Boolean).length;
-    els.startGame.hidden = !isHost;
-    els.startGame.disabled = onlineCount < 2;
-    els.lobbyStatus.textContent = isHost
-      ? (onlineCount < 2 ? '至少需要 2 名玩家' : (onlineCount + ' 人已入座，可以开局'))
-      : '等待房主开始牌局';
-  }
-
   /* ---------- 教程 ---------- */
   var TUTORIAL = [
     { title: '看清本局指定牌', copy: '每局指定 A、K 或 Q；只有 JOKER 是万能牌，可充当任意指定牌。' },
@@ -492,19 +463,6 @@
 
   /* ---------- 事件绑定 ---------- */
   function bind() {
-    $('soloBtn').addEventListener('click', startSolo);
-    $('onlineBtn').addEventListener('click', function () { els.onlinePanel.hidden = !els.onlinePanel.hidden; });
-    $('backModeBtn').addEventListener('click', function () { els.onlinePanel.hidden = true; });
-    $('createRoomBtn').addEventListener('click', function () { connectRoom('create'); });
-    $('joinRoomBtn').addEventListener('click', function () { connectRoom('join'); });
-    $('leaveRoomBtn').addEventListener('click', function () {
-      if (app.ws) app.ws.close();
-      app.mode = 'none';
-      location.reload();
-    });
-    $('startGameBtn').addEventListener('click', function () {
-      sendOnline({ type: 'start' });
-    });
     els.play.addEventListener('click', playSelected);
     els.challenge.addEventListener('click', challenge);
     els.continueBtn.addEventListener('click', continueLocal);
@@ -514,7 +472,7 @@
       else if (app.mode === 'online') { sendOnline({ type: 'reset' }); els.lobby.hidden = false; }
     });
     els.endLeaveBtn.addEventListener('click', function () { location.href = '../index.html'; });
-    $('backToGameBtn').addEventListener('click', function () { location.href = '../index.html'; });
+    $('backToGameBtn').addEventListener('click', function () { location.href = 'liar.html'; });
     $('menuBtn').addEventListener('click', function () { els.rules.hidden = false; });
     $('closeRulesBtn').addEventListener('click', function () { els.rules.hidden = true; });
     $('resumeBtn').addEventListener('click', function () { els.rules.hidden = true; });
@@ -525,8 +483,12 @@
       var self = this;
       setTimeout(function () { if (self.dataset.confirming) { self.dataset.confirming = ''; self.textContent = self.dataset.defaultLabel; } }, 2500);
     });
-    $('tutorialBtn').addEventListener('click', function () { tutorialStep = 0; renderTutorial(); els.tutorial.hidden = false; });
-    $('rulesBtn').addEventListener('click', function () { els.rules.hidden = false; });
+    function openTutorial() { tutorialStep = 0; renderTutorial(); els.tutorial.hidden = false; }
+    var tBtn = $('tutorialBtn');
+    if (tBtn) tBtn.addEventListener('click', openTutorial);
+    if ($('tutorialFromRules')) $('tutorialFromRules').addEventListener('click', function () { els.rules.hidden = true; openTutorial(); });
+    var rBtn = $('rulesBtn');
+    if (rBtn) rBtn.addEventListener('click', function () { els.rules.hidden = false; });
     $('closeTutorialBtn').addEventListener('click', function () { els.tutorial.hidden = true; });
     $('tutorialBackBtn').addEventListener('click', function () {
       if (tutorialStep > 0) { tutorialStep--; renderTutorial(); }
@@ -535,10 +497,7 @@
       if (tutorialStep < TUTORIAL.length - 1) { tutorialStep++; renderTutorial(); }
       else { els.tutorial.hidden = true; }
     });
-    $('lobbyCode').addEventListener('click', function () {
-      var code = this.textContent;
-      if (navigator.clipboard) navigator.clipboard.writeText(code).then(function () { toast('房间码已复制'); });
-    });
+
     // 键盘快捷键
     document.addEventListener('keydown', function (e) {
       if (els.game.hidden) return;
@@ -551,12 +510,32 @@
     });
   }
 
-  /* ---------- 启动 ---------- */
+  /* ---------- 横屏强制（与 UNO 一致） ---------- */
+  function checkOrientation() {
+    var landscape = window.innerWidth >= window.innerHeight;
+    var ov = document.getElementById('landscapeOverlay');
+    if (ov) ov.hidden = landscape;
+  }
+
+  /* ---------- 启动：URL 驱动开局 ---------- */
   function boot() {
     bind();
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 120); });
+
+    var q = {};
+    (location.search || '').replace(/[?&]([^=&]+)=([^&]*)/g, function (_, k, v) { q[k] = v; });
+    var mode = q.mode || 'solo';
     els.reveal.hidden = true;
-    els.game.hidden = true;
-    els.start.hidden = false;
+    els.game.hidden = false;
+    if (mode === 'online') {
+      var code = (q.room || '').toUpperCase();
+      var role = q.role === 'host' ? true : false;
+      connectRoom(code, role);
+    } else {
+      startSolo();
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

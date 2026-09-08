@@ -1,190 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0e14">
-<title>骗子酒馆 · Liar's Table</title>
-<link rel="stylesheet" href="../style.css?v=b14">
-<link rel="stylesheet" href="liar.css?v=l2">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>骗子酒馆 · 选择对战方式</title>
+  <meta name="description" content="骗子酒馆 Liar's Table —— 选择对战方式">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="../style.css?v=b14">
 </head>
-<body class="liar-body">
+<body>
 
-<!-- ========== 牌桌主界面 ========== -->
-<main id="game" class="liar-shell" hidden>
-  <header class="liar-topbar">
-    <button id="menuBtn" class="liar-icon-btn" type="button" aria-label="打开游戏规则">☰</button>
-    <div class="liar-brand"><span>骗子</span><b>酒馆</b></div>
-    <div id="modeBadge" class="liar-badge"><i></i><span>未入座</span></div>
-    <div class="liar-round"><span>第 <b id="roundNo">0</b> 局</span><i></i><span>桌面 <b id="pileCount">0</b></span></div>
-    <button id="backToGameBtn" class="liar-icon-btn" type="button" aria-label="返回游戏室">🏠</button>
-  </header>
+<header class="head">
+  <a href="../index.html?v=b10" class="back">← 游戏室</a>
+  <h1>骗子酒馆</h1>
+</header>
 
-  <section class="liar-stage" aria-label="游戏牌桌">
-    <div id="players" class="liar-players" aria-live="polite"></div>
+<section class="start">
+  <div class="start-inner">
+    <h2 class="start-title">选择对战方式</h2>
 
-    <div class="liar-center">
-      <div class="liar-target">
-        <span>本局指定牌</span>
-        <strong id="targetRank">K</strong>
-        <small id="targetName">国王</small>
-      </div>
-      <p class="liar-wild">★ JOKER = 万能牌</p>
-      <div id="playedPile" class="liar-pile" aria-label="桌面牌堆" aria-live="polite">
-        <div class="liar-empty">等待出牌</div>
-      </div>
-      <div id="lastClaim" class="liar-claim" aria-live="polite">尚无出牌</div>
-      <div id="turnBanner" class="liar-turn" role="status" aria-live="polite">等待入座</div>
+    <div class="mode-grid">
+      <a class="mode-card" href="liar-online.html?v=l3">
+        <span class="mode-ico">🌐</span>
+        <span class="mode-name">互联网对战</span>
+        <span class="mode-desc">2–4 人实时同桌</span>
+      </a>
+      <a class="mode-card" href="liar-play.html?mode=solo&v=l3">
+        <span class="mode-ico">🃏</span>
+        <span class="mode-name">单人牌局</span>
+        <span class="mode-desc">与三名酒馆老手较量</span>
+      </a>
     </div>
 
-    <aside class="liar-history" aria-label="本局记录">
-      <div class="liar-history-title">酒馆耳语</div>
-      <div id="historyList" class="liar-history-list" aria-live="polite"></div>
-    </aside>
-
-    <div class="liar-player-area">
-      <div class="liar-you-row"><span id="youLabel">你的手牌</span><small id="connectionHint"></small></div>
-      <div id="hand" class="liar-hand" tabindex="-1" aria-label="你的手牌"></div>
-      <div id="selectionHint" class="liar-hint">入座后开始游戏</div>
-      <div class="liar-actions">
-        <button id="challengeBtn" class="liar-action challenge" type="button" disabled>
-          <span>🕵</span>
-          <span><b id="challengeLabel">质疑</b><small id="challengeText">尚无可质疑出牌</small></span>
-        </button>
-        <button id="playBtn" class="liar-action play" type="button" disabled>
-          <span><b>出牌 <em id="selectedCount">0</em></b><small id="claimText">宣称是 K</small></span>
-          <span>▶</span>
-        </button>
-      </div>
-    </div>
-  </section>
-</main>
-
-<!-- ========== 开始/模式选择 ========== -->
-<section id="startScreen" class="liar-overlay liar-start" role="dialog" aria-modal="true" aria-labelledby="startTitle">
-  <div class="liar-start-card">
-    <p class="liar-eyebrow">今晚，只有一个人能离席</p>
-    <h1 id="startTitle"><span>骗子</span>酒馆</h1>
-    <p class="liar-subtitle">LIAR'S TABLE</p>
-    <div id="modeChooser" class="liar-modes">
-      <button id="soloBtn" class="liar-mode primary" type="button">
-        <span class="liar-mode-icon">🃏</span>
-        <b>单人牌局</b><small>与三名酒馆老手较量</small>
-      </button>
-      <button id="onlineBtn" class="liar-mode" type="button">
-        <span class="liar-mode-icon">🌐</span>
-        <b>联机对战</b><small>2–4 人实时同桌</small>
-      </button>
-    </div>
-    <div id="onlinePanel" class="liar-lan" hidden>
-      <div class="liar-field">
-        <label for="playerName">玩家昵称</label>
-        <input id="playerName" maxlength="12" placeholder="输入你的称号" autocomplete="nickname">
-      </div>
-      <div class="liar-lan-actions">
-        <button id="createRoomBtn" class="liar-btn primary compact" type="button">创建房间</button>
-        <span>或</span>
-        <input id="roomCode" class="liar-code" maxlength="4" placeholder="房间码" autocomplete="off">
-        <button id="joinRoomBtn" class="liar-btn primary compact" type="button">加入</button>
-      </div>
-      <button id="backModeBtn" class="liar-text-btn" type="button">← 返回模式选择</button>
-    </div>
-    <p class="liar-tip">只有 JOKER 是万能牌 · 活到最后即获胜</p>
-    <button id="tutorialBtn" class="liar-version-btn" type="button">开始新手教程</button>
-    <button id="rulesBtn" class="liar-version-btn" type="button">游戏规则</button>
-  </div>
-</section>
-
-<!-- ========== 等待室 ========== -->
-<section id="lobbyOverlay" class="liar-overlay" role="dialog" aria-modal="true" hidden>
-  <div class="liar-panel">
-    <p class="liar-eyebrow">联机房间</p>
-    <h2>等待酒客入座</h2>
-    <button id="lobbyCode" class="liar-code-big" type="button" aria-label="复制房间码">----</button>
-    <p id="roomHelp" class="liar-room-help">让朋友输入房间码加入</p>
-    <div id="lobbyPlayers" class="liar-lobby-players" aria-live="polite"></div>
-    <p id="lobbyStatus" class="liar-lobby-status">至少需要 2 名玩家</p>
-    <div class="liar-panel-actions">
-      <button id="leaveRoomBtn" class="liar-btn secondary" type="button">离开房间</button>
-      <button id="startGameBtn" class="liar-btn primary compact" type="button" disabled>开始牌局</button>
+    <div class="btn-row enter-row">
+      <a class="btn ghost" href="liar-rules.html?v=l1">玩法规则 →</a>
     </div>
   </div>
 </section>
 
-<!-- ========== 质疑揭示（左轮） ========== -->
-<section id="revealOverlay" class="liar-overlay" role="alertdialog" aria-modal="true" aria-labelledby="revealTitle" hidden>
-  <div class="liar-panel liar-reveal">
-    <p id="revealEyebrow" class="liar-eyebrow">质疑结果</p>
-    <h2 id="revealTitle">谎言被揭穿</h2>
-    <div id="revealedCards" class="liar-revealed" aria-live="polite"></div>
-    <p id="revealCopy"></p>
-    <div id="roulette" class="liar-roulette">
-      <div class="liar-revolver" aria-hidden="true"><div class="liar-chamber"><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
-      <p id="rouletteText">扣动扳机……</p>
-    </div>
-    <button id="continueBtn" class="liar-btn primary compact" type="button" hidden>继续</button>
-    <p id="onlineContinue" class="liar-auto" hidden>下一局即将自动开始…</p>
-  </div>
-  <div id="eliminationImpact" class="liar-impact" hidden>
-    <i>☠</i><strong id="eliminationName">玩家被淘汰</strong><span>OUT OF THE BAR</span>
-  </div>
-</section>
-
-<!-- ========== 结束 ========== -->
-<section id="endOverlay" class="liar-overlay" role="dialog" aria-modal="true" aria-labelledby="endTitle" hidden>
-  <div class="liar-panel liar-end">
-    <p class="liar-eyebrow">牌局结束</p>
-    <h2 id="endTitle">你活了下来</h2>
-    <p id="endCopy">酒馆记住了最后的赢家。</p>
-    <div class="liar-panel-actions">
-      <button id="endLeaveBtn" class="liar-btn secondary" type="button" hidden>返回游戏室</button>
-      <button id="restartBtn" class="liar-btn primary" type="button"><span>再来一局</span><small>命运重新洗牌</small></button>
-    </div>
-  </div>
-</section>
-
-<!-- ========== 规则 ========== -->
-<section id="rulesOverlay" class="liar-overlay" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" hidden>
-  <div class="liar-panel liar-menu">
-    <button id="closeRulesBtn" class="liar-close" type="button" aria-label="关闭">✕</button>
-    <p class="liar-eyebrow">游戏规则</p>
-    <h2 id="rulesTitle">如何活到最后</h2>
-    <ol class="liar-rules-list">
-      <li><b>认牌</b><span>每局指定 A、K 或 Q；只有 JOKER 是万能牌。</span></li>
-      <li><b>出牌</b><span>选择 1–3 张手牌暗扣，并宣称它们都是本局指定牌。</span></li>
-      <li><b>判断</b><span>轮到你时，可以继续出牌，或质疑上一位玩家；手牌出尽后只能质疑。</span></li>
-      <li><b>惩罚</b><span>质疑成功，撒谎者扣动左轮；质疑失败，则由质疑者受罚。</span></li>
-      <li><b>胜利</b><span>每局重新发牌。左轮击发即淘汰，最后存活者获胜。</span></li>
-      <li><b>快捷</b><span>数字键 1–5 选牌，P 出牌，C 质疑。</span></li>
-    </ol>
-    <div class="liar-panel-actions">
-      <button id="resumeBtn" class="liar-btn primary compact" type="button">回到牌桌</button>
-      <button id="exitGameBtn" class="liar-btn danger compact" type="button" data-default-label="退出牌局" data-confirm-label="确认退出牌局">退出牌局</button>
-    </div>
-  </div>
-</section>
-
-<!-- ========== 教程 ========== -->
-<section id="tutorialOverlay" class="liar-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" hidden>
-  <div class="liar-panel liar-tutorial">
-    <button id="closeTutorialBtn" class="liar-close" type="button" aria-label="关闭">✕</button>
-    <p class="liar-eyebrow">第一次入座</p>
-    <p id="tutorialProgress" class="liar-tut-progress">第 1 / 4 步</p>
-    <div id="tutorialVisual" class="liar-tut-visual" data-step="0" aria-hidden="true"><i></i><i></i><i></i></div>
-    <h2 id="tutorialTitle">看清本局指定牌</h2>
-    <p id="tutorialCopy">每局指定 A、K 或 Q；只有 JOKER 是万能牌，可充当任意指定牌。</p>
-    <div class="liar-tut-actions">
-      <button id="tutorialBackBtn" class="liar-btn secondary compact" type="button">上一步</button>
-      <button id="tutorialNextBtn" class="liar-btn primary compact" type="button">下一步</button>
-    </div>
-  </div>
-</section>
-
-<div id="toast" class="liar-toast" role="status" aria-live="polite" hidden></div>
-
-<script src="../notify.js?v=n3"></script>
-<script src="liar-engine.js?v=l2"></script>
-<script src="liar-ai.js?v=l2"></script>
-<script src="liar-app.js?v=l2"></script>
+  <script src="../device.js?v=d1"></script>
 </body>
 </html>

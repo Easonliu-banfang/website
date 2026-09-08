@@ -327,6 +327,23 @@
 .liar-tut-visual[data-step="3"] i { background: linear-gradient(165deg, #1a2332, #131920); }
 .liar-tut-actions { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
 
+/* 竖屏遮罩（与 UNO 一致） */
+#landscapeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+#landscapeOverlay[hidden] { display: none; }
+#landscapeOverlay .lo-inner { padding: 24px; }
+#landscapeOverlay .lo-phone { font-size: 56px; margin-bottom: 18px; transform: rotate(90deg); opacity: 0.9; }
+#landscapeOverlay h2 { font-family: var(--mono); font-size: 24px; margin-bottom: 10px; color: var(--text); }
+#landscapeOverlay p { color: var(--dim); font-size: 15px; }
+
 /* toast */
 .liar-toast {
   display: none;                    /* 默认隐藏，toast() 调用时显示 */
