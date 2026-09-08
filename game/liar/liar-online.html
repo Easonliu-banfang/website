@@ -11,7 +11,7 @@
 <body>
 
 <header class="head">
-  <a href="liar.html?v=l10" class="back">← 选择模式</a>
+  <a href="liar.html?v=l11" class="back">← 选择模式</a>
   <h1>互联网对战</h1>
 </header>
 
@@ -103,7 +103,8 @@
     menuRow.hidden = true;
     creatingView.classList.add('show');
     setStatus('申请房间码中…', 'connecting');
-    fetch(WORKER + '?game=liar', { method: 'POST' })
+    // 2-4 人房间：cap=4（Worker 端 ?game=liar&cap=4 才扩容，否则默认 2 人 room full）
+    fetch(WORKER + '?game=liar&cap=4', { method: 'POST' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d.code) throw new Error(d.error || '未返回房间码');

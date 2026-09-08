@@ -465,22 +465,26 @@
     app.aiTimer = setTimeout(function () {
       setTimeout(async function () {
         if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId || app.engine.phase !== 'playing') return;
+        // AI 回合：不管质疑还是出牌，先统一显示「正在考虑…」（模拟真人读牌）
+        var aiName = app.engine.player(currentId).name;
+        app.view = app.engine.viewFor(app.youId);
+        render();
+        if (window.Notify) window.Notify.show('🤔 ' + aiName + ' 正在考虑…', 'info', { ttl: 2200 });
+        await sleepMs(1300);   // 考虑时间
+        if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
         if (app.engine.lastPlay && AI.shouldChallenge(app.engine, currentId)) {
-          // 质疑前先「盯一会儿牌」，让玩家看清 AI 在犹豫
-          app.view = app.engine.viewFor(app.youId);
-          render();
-          if (window.Notify) window.Notify.show('🤔 ' + (app.engine.player(currentId).name) + ' 正在考虑要不要质疑…', 'info', { ttl: 2200 });
-          await sleepMs(1200);
+          // 决定质疑：再盯一眼
+          if (window.Notify) window.Notify.show('🕵 ' + aiName + ' 决定质疑！', 'warn', { ttl: 1800 });
+          await sleepMs(700);
           if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
           localChallenge(currentId);
           return;
         }
-        // 出牌前先思考：通知「XX 正在出牌」
-        if (window.Notify) window.Notify.show('🃏 ' + app.engine.player(currentId).name + ' 正在出牌…', 'info', { ttl: 2000 });
+        // 决定出牌
         app.engine.play(currentId, AI.chooseAI(app.engine, currentId));
         refreshLocal();
         maybeRunAI();
-      }, 2000 + Math.random() * 1000);   // 模拟真人：至少 2 秒再出牌
+      }, 2000 + Math.random() * 1000);   // 模拟真人：至少 2 秒再动
     }, 200);
   }
 
