@@ -22,6 +22,7 @@
   var online = null;
   var onlineMode = false;
   var myPlayer = -1;
+  var oppName = null;              // 对手昵称（lobby.names 提供）
   var oppConnected = false;
   var connOk = false;
   var welcomed = false;
@@ -117,7 +118,7 @@
     winTimer && clearTimeout(winTimer);
     hideBanner();
     window.Notify.clearAll();        // 新局：清掉上一局胜负常驻通知
-    el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? '对手' : '玩家二');
+    el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? (oppName || '对手') : '玩家二');
     coinShown = false;
     syncUI();
     playCoin(state.turn, { ai: vsAI, mode: 'local' });
@@ -604,6 +605,7 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
     o.on('lobby', function (d) {
       var fromGame = roomStarted;              // 此前是否已在对局
       myPlayer = d.you; connOk = true;
+      oppName = (d.names && d.names[1 - d.you]) ? String(d.names[1 - d.you]) : null;   // 对手昵称
       roomStarted = !!d.started;
       if (lobby) {
         if (d.started) { window.Notify.clear('🔔 房主提醒你准备'); lobby.hide(); }
@@ -731,7 +733,7 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
     reqPending = false; reqKind = null; incomingKind = null; leftShown = false; wantNew = false; resetSent = false;
     coinShown = false; coinLock = false;
     state = Q.createState();
-    el.p2name.textContent = '对手';
+    el.p2name.textContent = oppName || '对手';
     started = true;
     roomStarted = false; currentRoom = room;
     if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + room; el.roomCodeTag.hidden = false; }
