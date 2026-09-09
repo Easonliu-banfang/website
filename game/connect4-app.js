@@ -255,6 +255,8 @@
     if (state.winner === 1) return '红方获胜！';
     if (state.winner === 2) return '蓝方获胜！';
     if (state.winner === 0) return '🤝 平局';
+    if (onlineMode) return (state.turn === myColor() ? '轮到你落子' : '对手思考中');
+    if (vsAI) return (state.turn === humanColor ? '轮到你落子' : '电脑思考中');
     return '轮到' + (state.turn === 1 ? '红' : '蓝') + '方落子';
   }
   function colorName(c) { return c === 1 ? '红' : '蓝'; }
@@ -271,7 +273,10 @@
     }
     // 回合提示（Notify 一次性）
     if (state && state.winner < 0 && (onlineMode ? roomStarted : true)) {
-      if (!coinLock) window.Notify.setTurn ? window.Notify.show(turnLabel(), 'info', { ttl: 2200 }) : null;
+      if (!coinLock) {
+        var tLabel = turnLabel();
+        if (tLabel !== lastTurnLabel) { lastTurnLabel = tLabel; window.Notify.show(tLabel, 'info', { ttl: 2200 }); }
+      }
     }
     if (el.btnUndo) {
       el.btnUndo.disabled = !(!onlineMode && state && state.history.length > 0);
