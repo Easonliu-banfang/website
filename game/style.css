@@ -868,6 +868,31 @@ body::before {
   padding: 7px 14px;
   border-radius: 999px;
   border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(34, 211, 238, 0.06);
+  color: var(--cyan);
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+/* 服务不可用（20 秒无响应）：红色 + 放大 */
+.status-btn.status-down {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(248, 113, 113, 0.16);
+  color: #f87171;
+  font-size: 14px;
+  padding: 9px 17px;
+  font-weight: 700;
+  animation: status-pulse 1.6s ease-in-out infinite;
+}
+.status-btn.status-down:hover {
+  border-color: rgba(248, 113, 113, 0.9);
+  background: rgba(248, 113, 113, 0.24);
+  box-shadow: 0 0 20px rgba(248, 113, 113, 0.25);
+  transform: translateY(-1px);
+}
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
 .status-btn:hover {
   border-color: rgba(34, 211, 238, 0.65);
   background: rgba(34, 211, 238, 0.12);
