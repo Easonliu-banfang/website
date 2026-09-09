@@ -706,10 +706,12 @@
   var HTTP_BASE = 'https://quoridor-mp.pages.dev/api/room';
 
   function connectRoom(code, host) {
-    // 昵称：优先 URL ?name= 参数（分享/大厅带入），否则随机「酒客·XX」避免全员同名难区分
+    // 昵称：优先登录账号昵称（window.Auth.user），其次 URL ?name=（分享/大厅带入），最后随机「酒客·XX」
     var qn = {};
     (location.search || '').replace(/[?&]([^=&]+)=([^&]*)/g, function (_, k, v) { qn[k] = v; });
-    var name = (qn.name && String(qn.name).trim()) ? String(qn.name).slice(0, 10) : ('酒客·' + Math.floor(10 + Math.random() * 90));
+    var name = (window.Auth && window.Auth.user && String(window.Auth.user).trim())
+      ? String(window.Auth.user).slice(0, 10)
+      : ((qn.name && String(qn.name).trim()) ? String(qn.name).slice(0, 10) : ('酒客·' + Math.floor(10 + Math.random() * 90)));
     openSocket(code, name, host);
   }
 
@@ -724,16 +726,22 @@
       onStart: function () { sendOnline({ type: 'start' }); },
       onNotify: function () { sendOnline({ type: 'notify' }); },
       onLeave: function () { if (app.ws) app.ws.close(); location.href = 'liar.html'; },
+      onAddAI: function (i) { sendOnline({ type: 'add_ai', slot: i }); },
+      onRemoveAI: function (i) { sendOnline({ type: 'remove_ai', slot: i }); },
     });
     app.lobby.setCapacity(4);          // 骗子酒馆 2-4 人
     app.lobby.setMinToStart(2);       // 至少 2 人即可开局（不强制满 4）
     app.lobby.show(code);
     app.lobby.setStatus('已连接，等待准备开始', 'connected');
+    setChatVisible(false);   // 房间页隐藏快捷短语按钮（仅对局中显示）
     var ws = new WebSocket(WS_BASE + encodeURIComponent(code) + '/ws');
     app.ws = ws;
     ws.onopen = function () {
       ws.send(JSON.stringify({ type: 'hello', name: name }));
       app.playerName = name;
+      // 心跳：每 15s 发 ping，避免服务端 30s 无消息判定死连接而被误杀（骗子酒馆掉线根因）
+      if (app._hb) clearInterval(app._hb);
+      app._hb = setInterval(function () { sendOnline({ type: 'ping' }); }, 15000);
     };
     ws.onmessage = function (ev) {
       var msg = JSON.parse(ev.data);
@@ -741,6 +749,7 @@
     };
     ws.onclose = function () {
       app.connOk = false;
+      if (app._hb) { clearInterval(app._hb); app._hb = null; }
       if (app.mode === 'online') toast('连接已断开');
     };
     ws.onerror = function () { toast('连接失败'); };
@@ -750,7 +759,39 @@
     if (app.ws && app.ws.readyState === 1) app.ws.send(JSON.stringify(message));
   }
 
+  // 快捷短语按钮只在对局中显示（房间页/返回房间时隐藏）
+  function setChatVisible(v) {
+    var c = document.getElementById('liarChat');
+    if (c) c.style.display = v ? '' : 'none';
+  }
+
+  // 联机 AI 补位（骗子酒馆）：轮到归我代打的 AI 槽位时，自动出牌/质疑
+  var botPending = false;
+  function maybeLiarBot() {
+    if (botPending || app.introPlaying || !app.controls || !app.view) return;
+    var v = app.view;
+    if (v.phase !== 'playing') return;
+    var acts = null;
+    for (var s = 0; s < (v.players ? v.players.length : 4); s++) {
+      if (!app.controls[s]) continue;
+      if (v.current !== String(s)) continue;
+      var hand = (v.ai && v.ai[s]) ? v.ai[s] : null;
+      if (window.LiarAIBot) acts = window.LiarAIBot.decide(v, s, hand);
+      break;
+    }
+    if (!acts) return;
+    var arr = Array.isArray(acts) ? acts : [acts];
+    botPending = true;
+    arr.forEach(function (a) {
+      setTimeout(function () {
+        botPending = false;
+        sendOnline(a);
+      }, 700);
+    });
+  }
+
   function handleOnlineMessage(message) {
+    if (message.type === 'ping') { sendOnline({ type: 'pong' }); return; }   // 服务端心跳应答
     if (message.type === 'error') {
       toast(message.msg || '操作失败');
       return;
@@ -764,8 +805,10 @@
     if (message.type === 'lobby') {
       app.youId = String(message.you);
       app.connOk = true;
+      app.controls = message.controls || null;   // 记录归我代打的 AI 槽位（用于联机 AI 补位）
       if (!message.started && app.lobby) {
         app.lobby.render(message);
+        setChatVisible(false);                    // 房间页不显示快捷短语按钮
       } else if (app.lobby) {
         app.lobby.hide();
       }
@@ -787,7 +830,9 @@
       app.selected.clear();
       app.busy = message.state.phase !== 'playing';
       showGame();
+      setChatVisible(true);    // 进入对局才显示快捷短语按钮
       render();
+      maybeLiarBot();   // 联机 AI 补位：若轮到归我代打的 AI，则自动出牌/质疑
       if (message.state.phase === 'ended') showEnd();
       else if (isNewRound && !wasIntro) {
         // 联机新局：播与单人一致的开局动画（联机双方各播各的，先手同源）
@@ -846,6 +891,7 @@
       if (app.mode === 'online' && app.lobby) {
         // 联机：返回房间等待室（离开对局）
         app.lobby.show(app.room ? app.room.code : '');
+        setChatVisible(false);   // 回房间页隐藏快捷短语按钮
         els.game.hidden = true;
         els.reveal.hidden = true; els.end.hidden = true;
       } else {

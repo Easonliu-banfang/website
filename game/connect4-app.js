@@ -402,11 +402,14 @@
       syncUI();
       online = new window.Connect4Online();
       online.code = currentRoom;
+      if (window.BotDriver) BotDriver.attach(online, { game: 'c4' });
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
         onStart: function () { if (online) online.sendStart(); },
         onNotify: function () { if (online) online.sendNotify(); if (window.Notify) window.Notify.show('已提醒对方准备', 'info'); },
-        onLeave: function () { if (online) online.sendLeave(); location.href = 'connect4.html'; }
+        onLeave: function () { if (online) online.sendLeave(); location.href = 'connect4.html'; },
+        onAddAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'add_ai', slot: i }); else online.send({ type: 'add_ai', slot: i }); } },
+        onRemoveAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'remove_ai', slot: i }); else online.send({ type: 'remove_ai', slot: i }); } }
       });
       lobby.show(currentRoom);
       lobby.setStatus('连接中…', 'connecting');

@@ -1094,6 +1094,30 @@ body::before {
 .seat-card .seat-tag:not(:empty) { display: inline-block; }
 .seat-card .seat-tag.team-a { color: #6fdc8e; background: rgba(46,189,89,0.14); }
 .seat-card .seat-tag.team-b { color: #6db5ff; background: rgba(62,142,247,0.14); }
+/* AI 补位：空位可点，点击后中央浮出按钮 */
+.seat-card.empty { cursor: pointer; }
+.seat-card.empty:hover { border-color: rgba(167,139,250,0.5); }
+.seat-card .seat-ai-fill {
+  position: absolute;
+  z-index: 5;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(167,139,250,0.6);
+  background: rgba(167,139,250,0.18);
+  color: #c4b5fd;
+  font-family: var(--mono);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: background 0.15s ease;
+}
+.seat-card .seat-ai-fill:hover { background: rgba(167,139,250,0.32); }
+/* AI 已占用的座位 */
+.seat-card.ai-seat { border-color: rgba(167,139,250,0.45); }
+.seat-card.ai-seat .seat-name { color: #c4b5fd; }
 /* 底部：提示 + 按钮 */
 .room-foot { display: flex; flex-direction: column; gap: 10px; }
 .room-hint { font-size: 13px; color: var(--dim); min-height: 18px; }

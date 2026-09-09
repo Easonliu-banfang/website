@@ -70,7 +70,7 @@
       var settled = false;
       ws.onopen = function () {
         self._reconnectAttempts = 0;
-        ws.send(JSON.stringify({ type: 'hello', player: self.preferred }));
+        ws.send(JSON.stringify({ type: 'hello', player: self.preferred, name: (window.Auth && window.Auth.user) || '' }));
         self._startHeartbeat();
         self._status('connected');
       };

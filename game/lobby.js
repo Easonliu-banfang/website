@@ -106,7 +106,28 @@
     this.onNotify = opts.onNotify || function () {};
     this.onLeave = opts.onLeave || function () {};
     this.shareExtra = opts.shareExtra || '';   // 分享链接附加查询参数（如匹配卡牌 &gm=4）
+    // AI 补位（联机）：isAI/controls 来自 lobby 下发；onAddAI/onRemoveAI 由 app 提供（发 add_ai/remove_ai）
+    this.isAI = null;          // [bool] 各槽位是否为 AI
+    this.controls = null;      // [bool] 各槽位 AI 是否归本连接代打
+    this._players = null;      // [bool] 各槽位是否有人（含 AI）
+    this.started = false;
+    this.onAddAI = opts.onAddAI || function () {};
+    this.onRemoveAI = opts.onRemoveAI || function () {};
+    this._aiFillActive = null; // 当前展开的空位/AI 槽位（避免重复弹出）
     var self = this;
+    // 座位点击：空位 → 弹出「AI 补位」；自有的 AI 槽位 → 弹出「移除 AI」；点别处自动收起
+    this.seatEls.forEach(function (seat, idx) {
+      if (!seat) return;
+      seat.addEventListener('click', function (e) {
+        if (self._aiFillActive != null) return;     // 已展开，让 document 点击收起
+        var i = idx;
+        if (self.isAI && self.isAI[i] && self.controls && self.controls[i]) {
+          self._showSeatAction(i, 'remove'); e.stopPropagation(); return;
+        }
+        if (self._canAddAI(i)) { self._showSeatAction(i, 'add'); e.stopPropagation(); }
+      });
+    });
+    document.addEventListener('click', function () { self._hideSeatAction(); });
     if (this.btnReady) this.btnReady.addEventListener('click', function () {
       // 乐观更新：点击立即切换文字（服务端广播随后 render 校正，双保险避免“点了文字不变”）
       if (self.btnReady.disabled) return;   // 房主无准备按钮，点击无效
@@ -240,33 +261,91 @@
     this.statusEl.className = 'room-status' + (cls ? ' status--' + cls : '');
   };
 
-  // 渲染一个座位：i=槽位(0-3)，occupied=是否有人，ready=是否已准备
-  function renderSeat(seat, i, occupied, ready, playerName) {
+  // 房间已入座人数（含 AI 占位）
+  GameLobby.prototype._occupiedCount = function () {
+    var n = 0, cap = this.capacity;
+    for (var i = 0; i < cap; i++) if (this._players && this._players[i]) n++;
+    return n;
+  };
+  // 该空位是否可补 AI：等待室 + 座位启用 + 空位 + 房间已有 ≥1 人（非空房）
+  GameLobby.prototype._canAddAI = function (i) {
+    if (this.started) return false;
+    if (i >= this.capacity) return false;
+    var seat = this.seatEls[i];
+    if (!seat || seat.classList.contains('disabled')) return false;
+    if (this._players && this._players[i]) return false;   // 已有人
+    if (this.isAI && this.isAI[i]) return false;           // 已是 AI
+    return this._occupiedCount() >= 1;
+  };
+  // 在座位中央弹出操作按钮（add=AI补位 / remove=移除AI）
+  GameLobby.prototype._showSeatAction = function (i, type) {
+    this._hideSeatAction();
+    var seat = this.seatEls[i];
+    if (!seat) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'seat-ai-fill';
+    btn.textContent = (type === 'remove') ? '移除 AI' : 'AI 补位';
+    var self = this;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (type === 'remove') self.onRemoveAI(i); else self.onAddAI(i);
+      self._hideSeatAction();
+    });
+    seat.appendChild(btn);
+    this._aiFillActive = i;
+  };
+  GameLobby.prototype._hideSeatAction = function () {
+    if (this._aiFillActive == null) return;
+    var seat = this.seatEls[this._aiFillActive];
+    if (seat) { var b = seat.querySelector('.seat-ai-fill'); if (b) b.parentNode.removeChild(b); }
+    this._aiFillActive = null;
+  };
+
+  // 渲染一个座位：i=槽位(0-3)，d=完整 lobby 数据（含 players/ready/names/isAI）
+  function renderSeat(seat, i, d) {
     if (!seat) return;
     var name = seat.querySelector('.seat-name');
     var dot = seat.querySelector('.seat-dot');
     if (!name) return;
     seat.className = 'seat-card';
+    var isAI = !!(d.isAI && d.isAI[i]);
+    var occupied = !!(d.players && d.players[i]) || isAI;
     if (!occupied) {
       seat.classList.add('empty');
       name.textContent = '玩家 ' + (i + 1);
       if (dot) { dot.textContent = ''; dot.classList.remove('ready', 'notready'); }
       return;
     }
-    name.textContent = (playerName && playerName !== 'null') ? playerName : ('玩家 ' + (i + 1));
-    seat.classList.add(ready ? 'ready' : 'notready');
-    if (dot) {
-      dot.textContent = ready ? '✓' : '⋯';
-      dot.classList.toggle('ready', !!ready);
-      dot.classList.toggle('notready', !ready);
+    var pname = (d.names && d.names[i]) ? String(d.names[i]) : null;
+    if (isAI) {
+      // AI 占用的空位：显示 AI 名 + 绿点（AI 自动准备）
+      seat.classList.add('ai-seat');
+      name.textContent = (pname && pname !== 'null') ? pname : ('AI-' + (i + 1));
+      if (dot) { dot.textContent = '✓'; dot.classList.add('ready'); dot.classList.remove('notready'); }
+    } else {
+      name.textContent = (pname && pname !== 'null') ? pname : ('玩家 ' + (i + 1));
+      var ready = !!(d.ready && d.ready[i]);
+      seat.classList.add(ready ? 'ready' : 'notready');
+      if (dot) {
+        dot.textContent = ready ? '✓' : '⋯';
+        dot.classList.toggle('ready', !!ready);
+        dot.classList.toggle('notready', !ready);
+      }
     }
   }
 
-  // d = { you, players:[bool], ready:[bool], started, host }
+  // d = { you, players:[bool], ready:[bool], started, host, names, isAI, controls }
   GameLobby.prototype.render = function (d) {
     this.you = d.you;
     var you = d.you, self = this;
     var cap = this.capacity;
+    // 记录 AI 补位元数据（供座位点击判断）
+    this.started = !!d.started;
+    this.isAI = d.isAI || null;
+    this.controls = d.controls || null;
+    this._players = d.players || null;
+    this._hideSeatAction();   // 每次重渲清空可能打开的补位弹层
 
     // 渲染全部座位（最多 4 人）；HTML disabled 的座位保持「未开放」，超出容量的座位显示未开放
     for (var i = 0; i < self.seatEls.length; i++) {
@@ -278,8 +357,7 @@
         if (dname) dname.textContent = '未开放';
         continue;
       }
-      var pname = (d.names && d.names[i]) ? String(d.names[i]) : null;
-      renderSeat(self.seatEls[i], i, !!(d.players && d.players[i]), !!(d.ready && d.ready[i]), pname);
+      renderSeat(self.seatEls[i], i, d);
     }
 
     var connected = (you >= 0);

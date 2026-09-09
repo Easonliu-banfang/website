@@ -109,7 +109,7 @@
       .then(function (d) {
         if (!d.code) throw new Error(d.error || '未返回房间码');
         // 获取到房间码后直接进入房间（无需再点「进入游戏」）
-        location.href = 'liar-play.html?mode=online&room=' + encodeURIComponent(d.code) + '&role=host&v=l3';
+        location.href = 'liar-play.html?mode=online&room=' + encodeURIComponent(d.code) + '&role=host&v=l4';
       })
       .catch(function (e) {
         showMenu();
@@ -122,7 +122,7 @@
   btnJoinGo.addEventListener('click', function () {
     var code = (inputCode.value || '').trim().toUpperCase();
     if (!/^\d{4}$/.test(code)) { setStatus('请输入 4 位数字房间码', 'disconnected'); return; }
-    location.href = 'liar-play.html?mode=online&room=' + encodeURIComponent(code) + '&role=guest&v=l3';
+    location.href = 'liar-play.html?mode=online&room=' + encodeURIComponent(code) + '&role=guest&v=l4';
   });
   inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') btnJoinGo.click(); });
 })();

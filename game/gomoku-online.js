@@ -31,8 +31,8 @@
     this._reconnectTimer = null;
   }
 
-  Online.prototype.on = function (type, fn) { this.h[type] = fn; return this; };
-  Online.prototype._emit = function (type, data) { if (this.h[type]) this.h[type](data); };
+  Online.prototype.on = function (type, fn) { (this.h[type] = this.h[type] || []).push(fn); return this; };
+  Online.prototype._emit = function (type, data) { var cbs = this.h[type]; if (cbs) for (var i = 0; i < cbs.length; i++) { try { cbs[i](data); } catch (e) {} } };
 
   Online.prototype._status = function (state, detail) {
     this._emit('status', { state: state, detail: detail || '' });
@@ -101,7 +101,7 @@
       var settled = false;
       ws.onopen = function () {
         self._reconnectAttempts = 0;
-        ws.send(JSON.stringify({ type: 'hello', player: self.preferred }));
+        ws.send(JSON.stringify({ type: 'hello', player: self.preferred, name: (window.Auth && window.Auth.user) || '' }));
         self._startHeartbeat();
         self._status('connected');
       };

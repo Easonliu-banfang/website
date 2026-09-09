@@ -193,7 +193,8 @@
     state.turn = Math.random() < 0.5 ? 0 : 1;   // 随机先手
     el.placePanel.hidden = true;
     window.Notify.setTurn('开火阶段');
-    var first = state.turn === 0 ? (vsAI ? '玩家' : '玩家一') : (vsAI ? '电脑' : '玩家二');
+    var myNick = (window.Auth && window.Auth.user && String(window.Auth.user).trim()) ? String(window.Auth.user).slice(0, 10) : '玩家';
+    var first = state.turn === 0 ? (vsAI ? myNick : '玩家一') : (vsAI ? '电脑' : '玩家二');
     showBanner(first + ' 先手！', false);
     syncUI(); updateFleet();
     maybeAI();
@@ -584,11 +585,14 @@
       syncUI();
       online = new window.BattleshipOnline();
       online.code = room;               // 必须设置房间码，否则 WS 连到 /api/room/null/ws 永远收不到 welcome
+      if (window.BotDriver) BotDriver.attach(online, { game: 'bs' });
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
         onStart: function () { if (online) online.sendStart(); },
         onNotify: function () { if (online) online.sendNotify(); window.Notify.show('已提醒对方准备', 'info'); },
-        onLeave: function () { if (online) online.sendLeave(); location.href = 'battleship-online.html'; }
+        onLeave: function () { if (online) online.sendLeave(); location.href = 'battleship-online.html'; },
+        onAddAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'add_ai', slot: i }); else online.send({ type: 'add_ai', slot: i }); } },
+        onRemoveAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'remove_ai', slot: i }); else online.send({ type: 'remove_ai', slot: i }); } }
       });
       lobby.show(room);
       lobby.setStatus('连接中…', 'connecting');

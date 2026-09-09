@@ -740,11 +740,14 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
 
     online = new window.QuoridorOnline();
     online.code = room;
+    if (window.BotDriver) BotDriver.attach(online, { game: 'qr' });
     lobby = new window.GameLobby({
       onReady: function () { if (online) online.sendReady(); },
       onStart: function () { if (online) online.sendStart(); },
         onNotify: function () { if (online) online.sendNotify(); window.Notify.show('已提醒对方准备', 'info'); },
-      onLeave: function () { if (online) online.sendLeave(); location.href = 'online.html'; }
+      onLeave: function () { if (online) online.sendLeave(); location.href = 'online.html'; },
+      onAddAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'add_ai', slot: i }); else online.send({ type: 'add_ai', slot: i }); } },
+      onRemoveAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'remove_ai', slot: i }); else online.send({ type: 'remove_ai', slot: i }); } }
     });
     lobby.show(room);
     lobby.setStatus('连接中…', 'connecting');

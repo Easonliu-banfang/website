@@ -574,11 +574,14 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
       syncUI();
       online = new window.GomokuOnline();
       online.code = room;               // 必须设置房间码，否则 WS 连到 /api/room/null/ws 永远收不到 welcome
+      if (window.BotDriver) BotDriver.attach(online, { game: 'wm' });
       lobby = new window.GameLobby({
         onReady: function () { if (online) online.sendReady(); },
         onStart: function () { if (online) online.sendStart(timerCfg && timerCfg.mode !== 'off' ? timerCfg : null); },
         onNotify: function () { if (online) online.sendNotify(); window.Notify.show('已提醒对方准备', 'info'); },
-        onLeave: function () { if (online) online.sendLeave(); location.href = 'gomoku-online.html'; }
+        onLeave: function () { if (online) online.sendLeave(); location.href = 'gomoku-online.html'; },
+        onAddAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'add_ai', slot: i }); else online.send({ type: 'add_ai', slot: i }); } },
+        onRemoveAI: function (i) { if (online) { if (online._wsSend) online._wsSend({ type: 'remove_ai', slot: i }); else online.send({ type: 'remove_ai', slot: i }); } }
       });
       lobby.show(room);
       lobby.setStatus('连接中…', 'connecting');

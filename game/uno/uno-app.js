@@ -382,6 +382,7 @@
 
     o = new window.UnoOnline();
     o.code = currentRoom;
+    if (window.BotDriver) BotDriver.attach(o, { game: 'uno' });
 
     // 统一等待室（与四款游戏同构）
     lobby = new window.GameLobby({
@@ -389,6 +390,8 @@
       onStart: function () { if (o) o.sendStart(); },
       onNotify: function () { if (o) o.sendNotify(); if (window.Notify) window.Notify.show('已提醒对方准备', 'info'); },
       onLeave: function () { if (o) o.sendLeave(); location.href = 'uno.html'; },
+      onAddAI: function (i) { if (o) { if (o._wsSend) o._wsSend({ type: 'add_ai', slot: i }); else o.send({ type: 'add_ai', slot: i }); } },
+      onRemoveAI: function (i) { if (o) { if (o._wsSend) o._wsSend({ type: 'remove_ai', slot: i }); else o.send({ type: 'remove_ai', slot: i }); } },
       shareExtra: '&gm=' + encodeURIComponent(mode)
     });
     lobby.setCapacity(capacityOf());
