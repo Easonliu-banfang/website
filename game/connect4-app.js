@@ -148,7 +148,7 @@
 
   function onWin(winner) {
     if (winner === 0) {                    // 平局（满盘无人四连）
-      showBanner('🤝 平局', true, true);
+      showBanner('平局', true, true);
       return;
     }
     var txt;
@@ -254,7 +254,7 @@
     if (!state) return '';
     if (state.winner === 1) return '红方获胜！';
     if (state.winner === 2) return '蓝方获胜！';
-    if (state.winner === 0) return '🤝 平局';
+    if (state.winner === 0) return '平局';
     if (onlineMode) return (state.turn === myColor() ? '轮到你落子' : '对手思考中');
     if (vsAI) return (state.turn === humanColor ? '轮到你落子' : '电脑思考中');
     return '轮到' + (state.turn === 1 ? '红' : '蓝') + '方落子';
@@ -268,7 +268,7 @@
     R.render(board, { interactive: interactive });
     if (el.boardTitle) {
       if (!state) el.boardTitle.textContent = '棋盘';
-      else if (state.winner >= 0) el.boardTitle.textContent = (state.winner === 0 ? '🤝 平局' : (colorName(state.winner) + '方获胜'));
+      else if (state.winner >= 0) el.boardTitle.textContent = (state.winner === 0 ? '平局' : (colorName(state.winner) + '方获胜'));
       else el.boardTitle.textContent = colorName(state.turn) + '方回合';   // 去掉左侧红 emoji（用户要求）
     }
     // 回合提示（Notify 一次性）

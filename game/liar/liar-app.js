@@ -434,7 +434,7 @@ var app = {
     els.pile.innerHTML = cards;    // 桌面只有反扣牌（徽标已删，出牌信息走顶部通知）
     // 出牌横幅（顶部通知，开局动画期间不弹）
     if (arriving > 0 && view.lastPlay && window.Notify && !app.introPlaying) {
-      window.Notify.show('🃏 ' + actor + ' 宣称打出 ' + view.lastPlay.count + ' 张 ' + view.target, 'info', { ttl: 3000 });
+      window.Notify.show(actor + ' 宣称打出 ' + view.lastPlay.count + ' 张 ' + view.target, 'info', { ttl: 3000 });
     }
   }
 
@@ -484,7 +484,7 @@ var app = {
       var turnKey = view.current + '|' + view.lastPlayCount;
       if (myTurn && lastTurnId !== 'me-' + turnKey) {
         lastTurnId = 'me-' + turnKey;
-        window.Notify.show('👉 轮到你了！', 'info', { ttl: 2500 });
+        window.Notify.show('轮到你了！', 'info', { ttl: 2500 });
       } else if (!myTurn && lastTurnId !== view.current + '|' + turnKey) {
         lastTurnId = view.current + '|' + turnKey;
         if (current && current.bot) window.Notify.show((current.name) + ' 的回合…', 'info', { ttl: 2000 });
@@ -550,12 +550,12 @@ var app = {
         var aiName = app.engine.player(currentId).name;
         app.view = app.engine.viewFor(app.youId);
         render();
-        if (window.Notify) window.Notify.show('🤔 ' + aiName + ' 正在考虑…', 'info', { ttl: 2200 });
+        if (window.Notify) window.Notify.show(aiName + ' 正在考虑…', 'info', { ttl: 2200 });
         await sleepMs(1300);   // 考虑时间
         if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
         if (app.engine.lastPlay && AI.shouldChallenge(app.engine, currentId)) {
           // 决定质疑：再盯一眼（顺便甩一句短语，从它头像旁冒出）
-          if (window.Notify) window.Notify.show('🕵 ' + aiName + ' 决定质疑！', 'warn', { ttl: 1800 });
+          if (window.Notify) window.Notify.show(aiName + ' 决定质疑！', 'warn', { ttl: 1800 });
           showBubble(currentId, 2);
           await sleepMs(700);
           if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
@@ -618,10 +618,10 @@ var app = {
       var aliveNow = app.view.players.filter(function (p) { return p.alive !== false && p.id !== result.loser; }).length;
       if (aliveNow > 1) {
         els.revealCopy.textContent += ' 还剩 ' + aliveNow + ' 人继续。';
-        if (window.Notify) window.Notify.show('💀 ' + loserName + ' 被淘汰，还剩 ' + aliveNow + ' 人', 'error', { ttl: 4000 });
+        if (window.Notify) window.Notify.show(loserName + ' 被淘汰，还剩 ' + aliveNow + ' 人', 'error', { ttl: 4000 });
       } else {
         els.revealCopy.textContent += ' 最后一人！';
-        if (window.Notify) window.Notify.show('🏆 仅剩 1 人，冠军即将揭晓！', 'win', { ttl: 4000 });
+        if (window.Notify) window.Notify.show('🏆 仅剩 1 人，游戏结束', 'win', { ttl: 4000 });
       }
     }
     if (sequence !== app.revealSequence) return;
@@ -701,7 +701,7 @@ var app = {
     els.endTitle.textContent = won ? '🏆 你成为冠军！' : ('🏆 ' + wname + ' 夺冠');
     els.endCopy.textContent = app.mode === 'online' ? ('酒馆最后的赢家是 ' + wname + '。') : (won ? '三名酒客都倒下了，只有你站着。' : '下次胆子大一点，' + wname + ' 赢下了今晚。');
     // 冠军横幅（顶部通知，4 秒）
-    if (window.Notify) window.Notify.show('🏆 ' + wname + ' 成为最后的赢家！', 'win', { ttl: 4000 });
+    if (window.Notify) window.Notify.show('🏆 仅剩 1 人，游戏结束', 'win', { ttl: 4000 });
     els.endLeaveBtn.hidden = app.mode !== 'online';
     els.end.hidden = false;
   }
