@@ -132,6 +132,75 @@
     }).join('');
   }
 
+  /* ---------- 快捷短语（只传代号 1/2/3，客户端映射文字） ---------- */
+  var PHRASES = { 1: '有本事就质疑我！', 2: '质疑他！', 3: '干得漂亮' };
+
+  // 在指定玩家头像旁冒出短语气泡（固定定位，挂到 body 级气泡层，不被舞台 overflow 裁剪）
+  function showBubble(playerId, code) {
+    var text = PHRASES[code];
+    if (!text) return;
+    var host = null;
+    if (String(playerId) === String(app.youId)) {
+      // 自己：冒在底部「你的手牌」标签旁
+      host = els.youLabel;
+    } else {
+      // 对手：找对应座位卡片（按名字匹配）
+      var opps = document.querySelectorAll('.liar-opp');
+      var me = (app.view && app.view.players) ? app.view.players.filter(function (p) { return String(p.id) === String(playerId); })[0] : null;
+      var name = me ? me.name : '';
+      for (var i = 0; i < opps.length; i++) {
+        var el = opps[i];
+        if (!name || (el.textContent || '').indexOf(name) >= 0) { host = el; break; }
+      }
+    }
+    if (!host || !host.getBoundingClientRect) return;
+    var rect = host.getBoundingClientRect();
+    var layer = document.getElementById('liarBubbleLayer');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.id = 'liarBubbleLayer';
+      layer.className = 'liar-bubble-layer';
+      document.body.appendChild(layer);
+    }
+    var bub = document.createElement('span');
+    bub.className = 'liar-bubble';
+    bub.textContent = text;
+    // 固定在头像/标签上方居中，尾巴朝下指向头像
+    bub.style.left = (rect.left + rect.width / 2) + 'px';
+    bub.style.top = (rect.top - 8) + 'px';
+    layer.appendChild(bub);
+    setTimeout(function () { if (bub && bub.parentNode) bub.parentNode.removeChild(bub); }, 2700);
+  }
+
+  // 发送短语：联机走服务端转发代号（气泡由广播统一回显，含自己，避免重复）；
+  // 单人本地直接冒出
+  function sendPhrase(code) {
+    if (app.mode === 'online') {
+      sendOnline({ type: 'phrase', code: parseInt(code, 10) });
+    } else {
+      showBubble(app.youId, code);
+    }
+  }
+
+  // 绑定聊天按钮与快捷短语面板
+  function bindChat() {
+    var btn = document.getElementById('chatBtn');
+    var panel = document.getElementById('liarQuick');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      panel.hidden = !panel.hidden;
+    });
+    document.addEventListener('click', function () { if (!panel.hidden) panel.hidden = true; });
+    panel.addEventListener('click', function (e) {
+      var item = e.target.closest ? e.target.closest('.liar-quick-item') : null;
+      if (!item) return;
+      e.stopPropagation();
+      panel.hidden = true;
+      sendPhrase(item.getAttribute('data-code'));
+    });
+  }
+
   // 开局动画（严格串行）：① 先手轮盘(4s) → ② 真实牌桌轮流发牌 → ③ 底牌轮盘
   function sleepMs(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
@@ -480,8 +549,9 @@
         await sleepMs(1300);   // 考虑时间
         if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
         if (app.engine.lastPlay && AI.shouldChallenge(app.engine, currentId)) {
-          // 决定质疑：再盯一眼
+          // 决定质疑：再盯一眼（顺便甩一句短语，从它头像旁冒出）
           if (window.Notify) window.Notify.show('🕵 ' + aiName + ' 决定质疑！', 'warn', { ttl: 1800 });
+          showBubble(currentId, 2);
           await sleepMs(700);
           if (session !== app.session || app.paused || app.busy || !app.engine || app.engine.current !== currentId) return;
           localChallenge(currentId);
@@ -701,6 +771,11 @@
       }
       return;
     }
+    if (message.type === 'phrase') {
+      // 别人发的短语（只含代号）：在自己屏幕上从对方头像旁冒出
+      showBubble(message.player, message.code);
+      return;
+    }
     if (message.type === 'state') {
       // 新局检测：round 前进且 phase=playing → 播开局动画（先手/底牌/发牌）
       var isNewRound = message.state.phase === 'playing' && (!app.view || message.state.round > (app.view.round || 0));
@@ -823,6 +898,7 @@
   /* ---------- 启动：URL 驱动开局 ---------- */
   function boot() {
     bind();
+    bindChat();          // 快捷短语按钮与面板
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 120); });

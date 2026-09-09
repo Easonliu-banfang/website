@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0a0e14">
 <title>骗子酒馆 · Liar's Table</title>
 <link rel="stylesheet" href="../style.css?v=b19">
-<link rel="stylesheet" href="liar.css?v=l13">
+<link rel="stylesheet" href="liar.css?v=l14">
 </head>
 <body class="liar-body">
 
@@ -80,7 +80,16 @@
       </div>
     </div>
   </section>
-</main>
+    <!-- 快捷短语：右侧圆形按钮 + 左侧弹出面板 -->
+    <div class="liar-chat" id="liarChat">
+      <div class="liar-quick" id="liarQuick" hidden>
+        <button type="button" class="liar-quick-item" data-code="1">有本事就质疑我！</button>
+        <button type="button" class="liar-quick-item" data-code="2">质疑他！</button>
+        <button type="button" class="liar-quick-item" data-code="3">干得漂亮</button>
+      </div>
+      <button type="button" class="liar-chat-btn" id="chatBtn" aria-label="快捷短语">短语</button>
+    </div>
+  </main>
 
 <!-- ========== 等待室（统一 lobby 组件样式，对齐其余游戏） ========== -->
 <div id="lobby" class="lobby" hidden>
@@ -199,7 +208,7 @@
 <script src="../lobby.js?v=l10"></script>
 <script src="liar-engine.js?v=l13"></script>
 <script src="liar-ai.js?v=l13"></script>
-<script src="liar-app.js?v=l13"></script>
+<script src="liar-app.js?v=l14"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>
 </html>
