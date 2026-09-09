@@ -4,6 +4,12 @@
  */
 (function () {
   'use strict';
+  // 我的昵称（登录账号）；未登录兜底「你」
+  function myName() {
+    return (window.Auth && window.Auth.user && String(window.Auth.user).trim())
+      ? String(window.Auth.user).slice(0, 10) : '你';
+  }
+
 
   var G = window.Connect4;
   var boardCanvas = document.getElementById('c4board');
@@ -96,10 +102,10 @@
     setTimeout(function () {
       var firstLabel, sub;
       if (opts.ai) {
-        firstLabel = first === 0 ? '你（红）先手' : '电脑（蓝）先手';
+        firstLabel = first === 0 ? myName() + '（红）先手' : '电脑（蓝）先手';
         sub = first === 0 ? '你执红，开始！' : '电脑执蓝，稍候…';
       } else if (opts.mode === 'online') {
-        firstLabel = (first === myPlayer) ? '你（红）先手' : '对手（蓝）先手';
+        firstLabel = (first === myPlayer) ? myName() + '（红）先手' : '对手（蓝）先手';
         sub = (first === myPlayer) ? '你执红，开始！' : '对手执红，你执蓝';
       } else {
         firstLabel = first === 0 ? '玩家一（红）先手' : '玩家二（蓝）先手';

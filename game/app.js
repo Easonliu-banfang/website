@@ -18,6 +18,11 @@
   var coinShown = false;    // 本局是否已播放过抛硬币（联机重开时复位，避免重复播放）
   var winTimer = null;
 
+  // 我的昵称（登录账号）；未登录兜底「你」
+  function myName() {
+    return (window.Auth && window.Auth.user && String(window.Auth.user).trim())
+      ? String(window.Auth.user).slice(0, 10) : '你';
+  }
   // 联机模式
   var online = null;
   var onlineMode = false;
@@ -79,7 +84,7 @@
     setTimeout(function () {
       var firstLabel, sub;
       if (opts.ai) {
-        firstLabel = first === 0 ? '🟥 你（红方）先手' : '🟪 电脑（紫方）先手';
+        firstLabel = first === 0 ? '🟥 ' + myName() + '（红方）先手' : '🟪 电脑（紫方）先手';
         sub = first === 0 ? '你先手，开始！' : '电脑先手，稍候…';
       } else if (opts.mode === 'online') {
         firstLabel = first === 0 ? '🟥 红方先手' : '🟪 紫方先手';
@@ -134,11 +139,11 @@
 
     if (state.winner < 0 && !coinLock && (roomStarted || !onlineMode)) {
       if (onlineMode) {
-        window.Notify.setTurn((state.turn === myPlayer ? '你' : '对手') + ' 行动');
+        window.Notify.setTurn((state.turn === myPlayer ? myName() : (oppName || '对手')) + ' 行动');
       } else if (aiThinking) {
         window.Notify.setTurn('电脑思考中');
       } else {
-        window.Notify.setTurn((state.turn === 0 ? '玩家一' : (vsAI ? '电脑' : '玩家二')) + ' 行动');
+        window.Notify.setTurn((state.turn === 0 ? (vsAI ? myName() : '玩家一') : (vsAI ? '电脑' : '玩家二')) + ' 行动');
       }
     }
 

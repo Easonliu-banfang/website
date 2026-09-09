@@ -3,6 +3,12 @@
  */
 (function () {
   'use strict';
+  // 我的昵称（登录账号）；未登录兜底「你」
+  function myName() {
+    return (window.Auth && window.Auth.user && String(window.Auth.user).trim())
+      ? String(window.Auth.user).slice(0, 10) : '你';
+  }
+
 
   var G = window.Gomoku;
   var boardCanvas = document.getElementById('board');
@@ -106,10 +112,10 @@
     setTimeout(function () {
       var firstLabel, sub;
       if (opts.ai) {
-        firstLabel = first === 0 ? '⚫ 你（黑）先手' : '⚪ 电脑（白）先手';
+        firstLabel = first === 0 ? '⚫ ' + myName() + '（黑）先手' : '⚪ 电脑（白）先手';
         sub = first === 0 ? '你执黑，开始！' : '电脑执白，稍候…';
       } else if (opts.mode === 'online') {
-        firstLabel = (first === myPlayer) ? '⚫ 你（黑）先手' : '⚪ 对手（白）先手';
+        firstLabel = (first === myPlayer) ? '⚫ ' + myName() + '（黑）先手' : '⚪ 对手（白）先手';
         sub = (first === myPlayer) ? '你执黑，开始！' : '对手执黑，你执白';
       } else {
         firstLabel = first === 0 ? '⚫ 玩家一（黑）先手' : '⚪ 玩家二（白）先手';
@@ -151,8 +157,8 @@
       else if (t.mode === 'blitz') el.timerTag.textContent = '包干 ' + Math.round(t.baseMs / 60000) + ' 分钟';
       else el.timerTag.textContent = '读秒 ' + Math.round(t.baseMs / 60000) + ' 分 + ' + t.byoCount + '×' + Math.round(t.byoMs / 1000) + ' 秒';
     }
-    if (el.clockName0) el.clockName0.textContent = onlineMode ? (myPlayer === 0 ? '你' : '对手') : names[0];
-    if (el.clockName1) el.clockName1.textContent = onlineMode ? (myPlayer === 1 ? '你' : '对手') : names[1];
+    if (el.clockName0) el.clockName0.textContent = onlineMode ? (myPlayer === 0 ? myName() : '对手') : names[0];
+    if (el.clockName1) el.clockName1.textContent = onlineMode ? (myPlayer === 1 ? myName() : '对手') : names[1];
   }
 
   function renderClock() {

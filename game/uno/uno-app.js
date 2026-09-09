@@ -12,7 +12,8 @@
   var KIND_LABEL = { s: '跳过', r: '反转', d: '+2', w: '万色', w4: '万色+4' };
 
   var o = null;                    // UnoOnline
-  var me = -1;                     // 我的座次
+  var me = -1;
+  var names = null;   // 联机房间各槽位昵称（lobby.names）                     // 我的座次
   var isHost = false;
   var state = null;                // 最近一次裁剪视图
   var roomStarted = false;
@@ -153,10 +154,10 @@
       msg = winnerText();
       cls = ' win';
     } else if (state.nextDraw > 0) {
-      msg = '玩家 ' + (state.turn + 1) + ' 需摸 ' + state.nextDraw + ' 张';
+      msg = ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 需摸 ' + state.nextDraw + ' 张';
       cls = ' warn';
     } else if (state.awaitColor) {
-      msg = '等待玩家 ' + (state.turn + 1) + ' 选色';
+      msg = '等待 ' + ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 选色';
       cls = ' warn';
     } else if (me === state.turn) {
       msg = '轮到你出牌' + (state.justDrew ? '（摸牌后可出刚摸的牌或点「过」）' : '');
@@ -218,7 +219,7 @@
       var myTeam = teamOfMe();
       return w === myTeam ? '🎉 你的队伍获胜！' : '😔 对方队伍获胜';
     }
-    return w === me ? '🎉 恭喜你胜利了！' : ('😔 玩家 ' + (w + 1) + ' 获胜');
+    return w === me ? '🎉 恭喜你胜利了！' : ('😔 ' + ((names && names[w]) ? names[w] : ('玩家 ' + (w + 1))) + ' 获胜');
   }
   function showResult() {
     var r = el.resultBanner;
@@ -318,6 +319,7 @@
     });
     online.on('lobby', function (d) {
       me = d.you;
+      names = (d.names && d.names.length) ? d.names : null;   // 各槽位昵称（胜负横幅/摸牌提示用）
       var fromGame = roomStarted;
       roomStarted = !!d.started;
       if (lobby) {

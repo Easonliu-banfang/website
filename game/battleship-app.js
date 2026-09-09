@@ -3,6 +3,12 @@
  */
 (function () {
   'use strict';
+  // 我的昵称（登录账号）；未登录兜底「你」
+  function myName() {
+    return (window.Auth && window.Auth.user && String(window.Auth.user).trim())
+      ? String(window.Auth.user).slice(0, 10) : '你';
+  }
+
 
   var B = window.Battleship;
   var oceanCanvas = document.getElementById('ocean');
@@ -402,14 +408,14 @@
       if (!roomStarted) return;   // 等待室阶段不提示回合（开局后才显示）
       window.Notify.setTurn(phase === 'place'
         ? (placedLocal ? '等待对手布阵…' : '布置你的舰队')
-        : (state.turn === myPlayer ? '你开火' : '对手开火'));
+        : (state.turn === myPlayer ? myName() + '开火' : '对手开火'));
     } else if (phase === 'place') {
       window.Notify.setTurn(mode === 'local'
         ? ('玩家' + (placeTurn + 1) + ' 布阵')
         : '布置你的舰队');
     } else {
       window.Notify.setTurn(state.turn === 0
-        ? (vsAI ? '你开火' : '玩家一 开火')
+        ? (vsAI ? myName() + ' 开火' : '玩家一 开火')
         : (vsAI ? '电脑开火' : '玩家二 开火'));
     }
     el.btnNew.disabled = reqPending;

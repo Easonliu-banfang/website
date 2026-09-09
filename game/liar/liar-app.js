@@ -15,7 +15,12 @@
     { id: 'a3', name: '神婆小娜', avatar: '♦', bot: true },
   ];
 
-  var app = {
+    // 我的昵称（登录账号）；未登录兜底「你」
+  function myName() {
+    return (window.Auth && window.Auth.user && String(window.Auth.user).trim())
+      ? String(window.Auth.user).slice(0, 10) : '你';
+  }
+var app = {
     mode: 'none',            // none | solo | online
     engine: null,
     view: null,
@@ -252,7 +257,7 @@
     var winner = alive[pickIdx];
     phase.textContent = '🎯 先手';
     var main = document.getElementById('introMain');
-    if (main) main.textContent = (winner.isMe ? '你' : winner.name) + ' 先出牌';
+    if (main) main.textContent = (winner.isMe ? myName() : winner.name) + ' 先出牌';
     els[pickIdx].classList.add('winner');
     await sleepMs(1200);
     wheels.hidden = true;
@@ -509,7 +514,7 @@
     app.selected.clear();
     app.busy = false;
     app.paused = false;
-    app.engine = new GameEngine([{ id: 'you', name: '你', avatar: '♠' }].concat(AI_PLAYERS));
+    app.engine = new GameEngine([{ id: 'you', name: myName(), avatar: '♠' }].concat(AI_PLAYERS));
     app.engine.start();
     app.handsHidden = true;               // 开局抽取阶段不露手牌
     app.introPlaying = true;
