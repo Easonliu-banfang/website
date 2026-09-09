@@ -6,7 +6,7 @@
   <title>登录 · 游戏室</title>
   <meta name="description" content="登录后进入游戏室" data-page-node-id="7uwcdtYecvMO18rTlaZGgy">
   <meta name="theme-color" content="#0a0e14" data-page-node-id="xtYsq71ZKot9nVBDifiDbK">
-  <link rel="stylesheet" href="style.css?v=b15" data-page-node-id="hkPgOULPoUGXgrnb0J2XY9">
+  <link rel="stylesheet" href="style.css?v=b16" data-page-node-id="hkPgOULPoUGXgrnb0J2XY9">
   <style>
     /* ---------- 登录/注册页 ---------- */
     .login-body {
@@ -82,13 +82,6 @@
     .login-msg.err { color: #f87171; }
     .login-msg.ok { color: #34d399; }
 
-    .login-skip {
-      display: block; margin: 16px auto 0; padding: 8px 18px; border: none; background: none;
-      font-size: 13px; color: var(--dim); cursor: pointer; font-family: var(--mono);
-      transition: color 0.18s ease;
-    }
-    .login-skip:hover { color: var(--cyan); }
-    .login-foot { text-align: center; font-size: 11.5px; color: var(--faint); margin-top: 18px; line-height: 1.6; }
   </style>
 </head>
 <body class="login-body" data-page-node-id="gKQ1qJGllr9i3OqiqZ0k8b">
@@ -97,7 +90,7 @@
     <div class="login-brand" data-page-node-id="Smqau8Lmia8a2ocG9heIEQ">
       <div class="login-logo" data-page-node-id="JdYvGYKrF2tqlNL3Q381D9">🎮</div>
       <h1 data-page-node-id="SYekEALHWOtz5MXKyrWys9">游戏室</h1>
-      <p id="loginHint" data-page-node-id="ENpPxb3n5DKhEaIViXVhEu">登录后可保存你的游戏进度</p>
+      
     </div>
 
     <!-- 切换：登录 / 注册 -->
@@ -119,8 +112,6 @@
       <div class="login-msg" id="loginMsg" data-page-node-id="9PfUhqn8JGllWLe7I3BXR6"></div>
     </form>
 
-先跳过，直接进入游戏室 →</button>
-    <div class="login-foot" data-page-node-id="foot">登录后会自动记住账号，本设备无需重复登录。</div>
   </div>
 
 <script>
@@ -146,7 +137,7 @@
     $('tabLogin').classList.toggle('on', m === 'login');
     $('tabRegister').classList.toggle('on', m === 'register');
     $('btnSubmit').textContent = m === 'login' ? '登 录' : '注 册';
-    $('loginHint').textContent = m === 'login' ? '登录后可保存你的游戏进度' : '创建一个新账号，无需邮箱验证';
+    
     $('loginMsg').textContent = '';
     $('loginMsg').className = 'login-msg';
     if (savedUser && m === 'login' && !$('username').value) $('username').value = savedUser;

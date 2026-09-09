@@ -45,7 +45,7 @@
         } catch (e) {}
       }
       clearLocal();
-      window.location.href = '../index.html';
+      window.location.href = 'login.html';
     },
     // 切换账号：清本地 → 回登录页
     switchAccount: function () {
