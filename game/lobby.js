@@ -1,3 +1,80 @@
+/* 各游戏分享元信息：名称 + 自制 SVG 图标（无 emoji） */
+  var GAME_META = {
+    qr:   { name: '步步为营', icon: svgQR() },
+    gomoku: { name: '五子棋', icon: svgGomoku() },
+    go:   { name: '围棋', icon: svgGo() },
+    connect4: { name: '四子棋', icon: svgC4() },
+    battleship: { name: '海战棋', icon: svgBS() },
+    liar: { name: '骗子酒馆', icon: svgLiar() },
+    uno:  { name: '优诺UNO！', icon: svgUno() },
+  };
+  function detectGame() {
+    var p = window.location.pathname;
+    if (p.indexOf('/uno/') >= 0) return 'uno';
+    if (p.indexOf('/liar/') >= 0) return 'liar';
+    if (p.indexOf('gomoku') >= 0) return 'gomoku';
+    if (p.indexOf('go-') >= 0 || p.indexOf('/go.') >= 0 || p.indexOf('go.html') >= 0) return 'go';
+    if (p.indexOf('connect4') >= 0) return 'connect4';
+    if (p.indexOf('battleship') >= 0) return 'battleship';
+    return 'qr';   // 步步为营 play.html/online.html 兜底
+  }
+  function svgUno() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="18" y="14" width="28" height="38" rx="6" fill="#ef4444"/><text x="32" y="42" font-size="22" font-weight="700" fill="#fff" text-anchor="middle" font-family="monospace">7</text>' +
+      '<rect x="50" y="14" width="28" height="38" rx="6" fill="#3b82f6"/><text x="64" y="42" font-size="20" font-weight="700" fill="#fff" text-anchor="middle" font-family="monospace">+2</text>' +
+      '<rect x="18" y="56" width="28" height="34" rx="6" fill="#f59e0b"/><text x="32" y="80" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="monospace">J</text>' +
+      '<rect x="50" y="56" width="28" height="34" rx="6" fill="#22c55e" transform="rotate(8 64 73)"/><text x="64" y="80" font-size="16" font-weight="700" fill="#fff" text-anchor="middle" font-family="monospace">&#187;&#187;</text>' +
+      '</svg>';
+  }
+  function svgLiar() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="16" y="20" width="30" height="56" rx="5" fill="#1a2332" stroke="rgba(255,255,255,0.3)"/><text x="31" y="55" font-size="26" fill="#e6edf3" text-anchor="middle" font-family="monospace">&#9824;</text>' +
+      '<rect x="50" y="20" width="30" height="56" rx="5" fill="#f8fafc" stroke="rgba(0,0,0,0.2)"/><text x="65" y="55" font-size="26" fill="#dc2626" text-anchor="middle" font-family="monospace">&#9829;</text>' +
+      '</svg>';
+  }
+  function svgQR() {
+    var cells = '', r, c;
+    for (r = 0; r < 3; r++) for (c = 0; c < 3; c++) cells += '<rect x="' + (24 + c * 18) + '" y="' + (24 + r * 18) + '" width="16" height="16" rx="2" fill="' + ((r + c) % 2 ? 'rgba(34,211,238,0.25)' : 'rgba(34,211,238,0.55)') + '"/>';
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' + cells +
+      '<rect x="42" y="30" width="6" height="34" rx="1" fill="#a78bfa" transform="rotate(12 45 47)"/>' +
+      '<circle cx="33" cy="33" r="5" fill="#e6edf3"/><circle cx="69" cy="69" r="5" fill="#0a0e14" stroke="#e6edf3"/>' +
+      '</svg>';
+  }
+  function svgGomoku() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="14" y="14" width="68" height="68" rx="8" fill="#b4824b"/>' +
+      '<line x1="14" y1="48" x2="82" y2="48" stroke="rgba(0,0,0,0.35)" stroke-width="2"/>' +
+      '<line x1="48" y1="14" x2="48" y2="82" stroke="rgba(0,0,0,0.35)" stroke-width="2"/>' +
+      '<circle cx="48" cy="48" r="11" fill="#0a0e14"/><circle cx="31" cy="31" r="11" fill="#f8fafc"/><circle cx="65" cy="65" r="11" fill="#0a0e14"/>' +
+      '</svg>';
+  }
+  function svgGo() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="14" y="14" width="68" height="68" rx="8" fill="#d9a961"/>' +
+      '<g stroke="rgba(0,0,0,0.3)" stroke-width="1.5">' +
+      '<line x1="26" y1="26" x2="26" y2="70"/><line x1="48" y1="26" x2="48" y2="70"/><line x1="70" y1="26" x2="70" y2="70"/>' +
+      '<line x1="26" y1="26" x2="70" y2="26"/><line x1="26" y1="48" x2="70" y2="48"/><line x1="26" y1="70" x2="70" y2="70"/></g>' +
+      '<circle cx="26" cy="48" r="8" fill="#0a0e14"/><circle cx="70" cy="48" r="8" fill="#f8fafc"/>' +
+      '</svg>';
+  }
+  function svgC4() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="14" y="20" width="68" height="56" rx="8" fill="#1d4ed8"/>' +
+      '<circle cx="31" cy="37" r="9" fill="#ef4444"/><circle cx="48" cy="37" r="9" fill="#f8fafc"/><circle cx="65" cy="37" r="9" fill="#f59e0b"/>' +
+      '<circle cx="31" cy="59" r="9" fill="#f8fafc"/><circle cx="48" cy="59" r="9" fill="#ef4444"/><circle cx="65" cy="59" r="9" fill="#22c55e"/>' +
+      '</svg>';
+  }
+  function svgBS() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<g stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none">' +
+      '<rect x="14" y="14" width="68" height="68" rx="6"/>' +
+      '<line x1="37" y1="14" x2="37" y2="82"/><line x1="59" y1="14" x2="59" y2="82"/>' +
+      '<line x1="14" y1="37" x2="82" y2="37"/><line x1="14" y1="59" x2="82" y2="59"/></g>' +
+      '<rect x="16" y="39" width="42" height="16" rx="4" fill="#64748b"/>' +
+      '<path d="M63 39 l17 17 M63 56 l17 -17" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+
 /* 联机房间（等待室）v3 —— 全屏房间布局（所有游戏共用）
  * 布局：左侧玩法预览（图+名+房间码），右侧 2×2 四座位卡片，底部状态+按钮条
  *   - 座位有人：显示「玩家 N」，右上圆点 已准备=绿✓ / 未准备=红⋯
@@ -41,15 +118,86 @@
     if (this.btnNotify) this.btnNotify.addEventListener('click', function () { self.onNotify(); });
     if (this.btnLeave) this.btnLeave.addEventListener('click', function () { self.onLeave(); });
     if (this.btnShareLink) this.btnShareLink.addEventListener('click', function () {
-      // 分享加入链接：当前页 ?mode=online&room=ROOM&role=guest（可带 shareExtra 如 &gm=4），对方点开直接以加入方进入
-      var code = self.codeEl ? self.codeEl.textContent : '';
-      var url = location.origin + location.pathname + '?mode=online&room=' + encodeURIComponent(code) + '&role=guest' + (self.shareExtra || '');
-      function done() { if (window.Notify) window.Notify.show('邀请链接已复制，发给朋友即可直接加入', 'success'); }
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(function () { fallbackCopy(url); done(); });
-      else { fallbackCopy(url); done(); }
-      function fallbackCopy(v) { var ta = document.createElement('textarea'); ta.value = v; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta); }
+      self.showShareModal();
     });
   }
+
+  // ---------- 分享弹窗（所有游戏共用）----------
+  // 构建/获取加入链接
+  GameLobby.prototype.shareUrl = function () {
+    var code = this.codeEl ? this.codeEl.textContent : '';
+    return window.location.origin + window.location.pathname + '?mode=online&room=' + encodeURIComponent(code) + '&role=guest' + (this.shareExtra || '');
+  };
+  GameLobby.prototype.shareCopy = function (url, done) {
+    function fallbackCopy(v) {
+      var ta = document.createElement('textarea');
+      ta.value = v; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(function () { fallbackCopy(url); done(); });
+    } else { fallbackCopy(url); done(); }
+  };
+  GameLobby.prototype.showShareModal = function () {
+    var self = this;
+    var meta = GAME_META[detectGame()] || GAME_META.qr;
+    var code = this.codeEl ? this.codeEl.textContent : '';
+    var url = this.shareUrl();
+
+    // 复用已存在的弹窗
+    var mask = document.getElementById('shareModalMask');
+    if (mask) { mask.parentNode.removeChild(mask); }
+    mask = document.createElement('div');
+    mask.id = 'shareModalMask';
+    mask.className = 'share-mask';
+    mask.innerHTML =
+      '<div class="share-panel" role="dialog" aria-modal="true" aria-label="分享房间">' +
+        '<button type="button" class="share-close" aria-label="关闭">&#215;</button>' +
+        '<h2 class="share-title">请选择分享方式</h2>' +
+        '<div class="share-game">' +
+          '<div class="share-icon">' + meta.icon + '</div>' +
+          '<div class="share-gname">' + meta.name + '</div>' +
+          '<div class="share-room">房间号 <b>' + code + '</b></div>' +
+        '</div>' +
+        '<div class="share-btns">' +
+          '<button type="button" class="share-btn ghost" id="shareCopyBtn">复制链接</button>' +
+          '<button type="button" class="share-btn wx" id="shareWxBtn">分享到微信</button>' +
+        '</div>' +
+        '<p class="share-hint" id="shareHint"></p>' +
+      '</div>';
+    document.body.appendChild(mask);
+
+    function close() { if (mask.parentNode) mask.parentNode.removeChild(mask); }
+    mask.addEventListener('click', function (e) { if (e.target === mask) close(); });
+    mask.querySelector('.share-close').addEventListener('click', close);
+
+    // 复制链接
+    mask.querySelector('#shareCopyBtn').addEventListener('click', function () {
+      self.shareCopy(url, function () {
+        var hint = mask.querySelector('#shareHint');
+        if (hint) hint.textContent = '链接已复制，去粘贴给朋友吧';
+        if (window.Notify) window.Notify.show('邀请链接已复制', 'success');
+      });
+    });
+
+    // 分享到微信：移动端调系统分享面板（可选拉微信）；桌面端复制 + 提示
+    mask.querySelector('#shareWxBtn').addEventListener('click', function () {
+      var hint = mask.querySelector('#shareHint');
+      if (navigator.share) {
+        navigator.share({
+          title: '来一局 ' + meta.name,
+          text: '房间号 ' + code + '，点击链接直接加入对战',
+          url: url,
+        }).then(function () {}).catch(function () {});
+      } else {
+        self.shareCopy(url, function () {
+          if (hint) hint.textContent = '已复制链接，请打开微信粘贴发送给好友';
+          if (window.Notify) window.Notify.show('已复制，请在微信中粘贴发送', 'success');
+        });
+      }
+    });
+  };
 
   // 设置房间人数容量（默认 2）。>2 时启用更多座位卡、提示文案按人数计算
   GameLobby.prototype.setCapacity = function (n) {
