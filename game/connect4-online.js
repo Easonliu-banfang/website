@@ -133,7 +133,7 @@
   Online.prototype.sendNotify = function () { this.send({ type: 'notify' }); };
   Online.prototype.sendDrop = function (col) { this.send({ type: 'drop', col: col, player: this.player }); };
   Online.prototype.sendReset = function () { this.send({ type: 'reset', player: this.player }); };
-  Online.prototype.sendUndo = function () { this.send({ type: 'undo', player: this.player }); };
+  Online.prototype.sendUndo = function () { this.send({ type: 'req_undo', player: this.player }); };
 
   Online.prototype.sendLeave = function () {
     this.send({ type: 'leave', player: this.player });
