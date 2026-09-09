@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="zh-CN" data-page-node-id="yXPXWRCchvwOrYQLbBeY9H">
+<head data-page-node-id="SB5e8NmvnqKGw6ahpVs3lw">
+  <meta charset="UTF-8" data-page-node-id="tTk9t3Log3J1wG8xRUCCmQ">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="6RcrQx0vZkgsOqoke8CZOI">
   <title>登录 · 游戏室</title>
-  <meta name="description" content="登录后进入游戏室">
-  <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b14">
+  <meta name="description" content="登录后进入游戏室" data-page-node-id="7uwcdtYecvMO18rTlaZGgy">
+  <meta name="theme-color" content="#0a0e14" data-page-node-id="xtYsq71ZKot9nVBDifiDbK">
+  <link rel="stylesheet" href="style.css?v=b15" data-page-node-id="hkPgOULPoUGXgrnb0J2XY9">
   <style>
     /* ---------- 登录/注册页 ---------- */
     .login-body {
@@ -91,36 +91,36 @@
     .login-foot { text-align: center; font-size: 11.5px; color: var(--faint); margin-top: 18px; line-height: 1.6; }
   </style>
 </head>
-<body class="login-body">
+<body class="login-body" data-page-node-id="gKQ1qJGllr9i3OqiqZ0k8b">
 
-  <div class="login-card">
-    <div class="login-brand">
-      <div class="login-logo">🎮</div>
-      <h1>游戏室</h1>
-      <p id="loginHint">登录后可保存你的游戏进度</p>
+  <div class="login-card" data-page-node-id="O3j99ox1O5n0uqxiqh7srw">
+    <div class="login-brand" data-page-node-id="Smqau8Lmia8a2ocG9heIEQ">
+      <div class="login-logo" data-page-node-id="JdYvGYKrF2tqlNL3Q381D9">🎮</div>
+      <h1 data-page-node-id="SYekEALHWOtz5MXKyrWys9">游戏室</h1>
+      <p id="loginHint" data-page-node-id="ENpPxb3n5DKhEaIViXVhEu">登录后可保存你的游戏进度</p>
     </div>
 
     <!-- 切换：登录 / 注册 -->
-    <div class="login-tabs">
-      <button class="login-tab on" id="tabLogin" type="button">登录</button>
-      <button class="login-tab" id="tabRegister" type="button">注册</button>
+    <div class="login-tabs" data-page-node-id="I4TaCD03V3iAdH88zhlXxZ">
+      <button class="login-tab on" id="tabLogin" type="button" data-page-node-id="lZ3icOh06MzOPEJ5mDokiD">登录</button>
+      <button class="login-tab" id="tabRegister" type="button" data-page-node-id="OLsnyshWMOhWYIRBMFs0UC">注册</button>
     </div>
 
-    <form id="loginForm" autocomplete="on">
-      <div class="login-field">
-        <label for="username">用户名</label>
-        <input class="login-input" id="username" name="username" maxlength="16" placeholder="2-16 位，中英文/数字/下划线" autocomplete="username" spellcheck="false" />
+    <form id="loginForm" autocomplete="on" data-page-node-id="roSC6XbFib1Aj6ByYd33Cs">
+      <div class="login-field" data-page-node-id="sNGp4BH6jrlroKdnUjhLhf">
+        <label for="username" data-page-node-id="UYUMU0nDt36nRNOu4u4DLC">用户名</label>
+        <input class="login-input" id="username" name="username" maxlength="10" placeholder="1-10 位，中英文/数字（可混合）" autocomplete="username" spellcheck="false" data-page-node-id="MgDii3upjWG80LBqmC3YIQ" />
       </div>
-      <div class="login-field">
-        <label for="password">密码</label>
-        <input class="login-input" id="password" name="password" type="password" maxlength="64" placeholder="6-64 位" autocomplete="current-password" />
+      <div class="login-field" data-page-node-id="GCMh7u1uTgW086eR3Hh5VN">
+        <label for="password" data-page-node-id="ZSdo0kbXGJwPLTH6LNYlPE">密码</label>
+        <input class="login-input" id="password" name="password" type="password" maxlength="64" placeholder="6-64 位" autocomplete="current-password" data-page-node-id="awLJDeLlFU3tJGdy6idtww" />
       </div>
-      <button class="login-submit" id="btnSubmit" type="submit">登 录</button>
-      <div class="login-msg" id="loginMsg"></div>
+      <button class="login-submit" id="btnSubmit" type="submit" data-page-node-id="w0CSRrVMh8M02PHJT4bSR8">登 录</button>
+      <div class="login-msg" id="loginMsg" data-page-node-id="9PfUhqn8JGllWLe7I3BXR6"></div>
     </form>
 
-    <button class="login-skip" id="btnSkip" type="button">先跳过，直接进入游戏室 →</button>
-    <div class="login-foot">登录后在同一设备上会自动记住账号，下次直接进入。</div>
+先跳过，直接进入游戏室 →</button>
+    <div class="login-foot" data-page-node-id="foot">登录后会自动记住账号，本设备无需重复登录。</div>
   </div>
 
 <script>
@@ -136,6 +136,10 @@
 
   var savedUser = null;
   try { savedUser = localStorage.getItem('game_username'); } catch (e) {}
+  // 已登录（本地有 token）→ 直接进入，无需重复登录
+  try {
+    if (localStorage.getItem('game_token')) { location.replace(returnTo); return; }
+  } catch (e) {}
 
   function setMode(m) {
     mode = m;
@@ -154,15 +158,6 @@
   function enter() {
     location.href = returnTo;
   }
-
-  // 跳过：存标记（本次会话 + 记住 7 天），直接进入
-  $('btnSkip').addEventListener('click', function () {
-    try {
-      localStorage.setItem('game_skip_auth', '1');
-      localStorage.setItem('game_skip_auth_at', String(Date.now()));
-    } catch (e) {}
-    enter();
-  });
 
   $('loginForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -183,11 +178,13 @@
       .then(function (res) {
         if (!res.ok) { showMsg(res.d.err || '操作失败', 'err'); return; }
         if (mode === 'register') {
-          // 注册成功 → 自动切登录并回填
-          showMsg('注册成功，请登录', 'ok');
-          setMode('login');
-          $('password').value = '';
-          $('password').focus();
+          // 注册成功 → 自动登录（直接发 token，无需再手动登录）
+          try {
+            localStorage.setItem('game_token', res.d.token);
+            localStorage.setItem('game_username', res.d.username);
+            localStorage.removeItem('game_skip_auth');
+          } catch (err) {}
+          enter();
         } else {
           // 登录成功 → 存 token + 记住账号 → 进入
           try {

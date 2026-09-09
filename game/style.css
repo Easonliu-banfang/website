@@ -92,6 +92,36 @@ body::before {
 /* ---------- 游戏室 ---------- */
 
 .room-head { position: relative; z-index: 1; max-width: 1020px; margin: 0 auto; padding: 32px 24px 4px; }
+.account-wrap { position: absolute; top: 26px; right: 150px; z-index: 10; }
+.account-btn {
+  font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.5px;
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(167,139,250,0.35);
+  background: rgba(167,139,250,0.10); color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.18s ease;
+}
+.account-btn:hover { border-color: rgba(167,139,250,0.6); background: rgba(167,139,250,0.16); }
+.account-caret { font-style: normal; font-size: 10px; color: var(--dim); }
+.account-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  min-width: 150px; background: var(--bg-elev);
+  border: 1px solid var(--card-edge); border-radius: 12px;
+  overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+}
+.account-menu button {
+  padding: 11px 16px; text-align: left; border: none; background: none;
+  font-family: var(--mono); font-size: 13px; color: var(--text);
+  cursor: pointer; transition: background 0.15s ease;
+}
+.account-menu button:hover { background: rgba(255,255,255,0.06); }
+.account-menu button:first-child { border-bottom: 1px solid var(--card-edge); }
+.account-menu button:last-child { color: var(--cyan); }
+@media (max-width: 700px) {
+  .account-wrap { position: static; margin: 12px 24px 0; }
+  .account-btn { position: absolute; top: 26px; right: 150px; }
+}
 .room-head h1 {
   font-family: var(--mono);
   font-size: clamp(26px, 5vw, 38px);
