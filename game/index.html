@@ -6,19 +6,21 @@
   <title>游戏室 · Eason 的个人网站</title>
   <meta name="description" content="Eason 的游戏室 —— 步步为营、海战棋、五子棋、围棋等小游戏集合" data-page-node-id="Jx0Yo6EQUnypWgDUqwuh52">
   <meta name="theme-color" content="#0a0e14" data-page-node-id="02zVyQ05Aa3sFvvGafVcen">
-  <link rel="stylesheet" href="style.css?v=b16" data-page-node-id="um8lXTOhz8jQ8k0soF8cbV">
+  <link rel="stylesheet" href="style.css?v=b17" data-page-node-id="um8lXTOhz8jQ8k0soF8cbV">
 </head>
 <body data-page-node-id="uHZaCcoEBJBNDyVTklrRrx">
   <header class="room-head" data-page-node-id="YuXM2G8G5BbxHJ5yXyzP3w">
     <a href="../index.html?v=b3" class="back" data-page-node-id="R6BxeWFZtkiTd2BqZTSaBq">← 返回主页</a>
-    <a href="server-status.html?v=b1" class="status-btn">⚡ 服务器状态</a>
-    <div class="account-wrap" id="accountWrap">
-      <button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">
-        👤 <span id="accountName">账号：…</span> <i class="account-caret">▾</i>
-      </button>
-      <div class="account-menu" id="accountMenu" hidden>
-        <button type="button" id="btnSwitch">切换账号</button>
-        <button type="button" id="btnLogout">退出登录</button>
+    <div class="head-actions">
+      <a href="server-status.html?v=b1" class="status-btn">⚡ 服务器状态</a>
+      <div class="account-wrap" id="accountWrap">
+        <button class="account-btn" id="accountBtn" type="button" aria-haspopup="true" aria-expanded="false">
+          <span id="accountName">账号：…</span> <i class="account-caret">▾</i>
+        </button>
+        <div class="account-menu" id="accountMenu" hidden>
+          <button type="button" id="btnSwitch">切换账号</button>
+          <button type="button" id="btnLogout">退出登录</button>
+        </div>
       </div>
     </div>
   </header>
@@ -279,31 +281,53 @@
 <script>
 (function () {
   'use strict';
-  var $ = function (id) { return document.getElementById(id); };
+  function $(id) { return document.getElementById(id); }
+  function getName() { try { return window.localStorage.getItem('game_username') || ''; } catch (e) { return ''; } }
+  function clearLocal() {
+    try {
+      window.localStorage.removeItem('game_token');
+      window.localStorage.removeItem('game_username');
+      window.localStorage.removeItem('game_skip_auth');
+    } catch (e) {}
+  }
+  function goLogin() {
+    clearLocal();
+    window.location.href = 'login.html';
+  }
   var nameEl = $('accountName');
   var menuEl = $('accountMenu');
   var btn = $('accountBtn');
-  // 显示当前账号（auth-check.js 已注入 window.Auth）
-  function render() {
-    if (nameEl && window.Auth && window.Auth.user) nameEl.textContent = '账号：' + window.Auth.user;
-    else if (nameEl) nameEl.textContent = '账号：游客';
+  if (nameEl) {
+    var u = getName();
+    nameEl.textContent = u ? ('账号：' + u) : '账号：游客';
   }
-  render();
   if (btn && menuEl) {
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      var open = menuEl.hidden;
-      menuEl.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
+      menuEl.hidden = !menuEl.hidden;
     });
-    // 点击外部关闭菜单
-    document.addEventListener('click', function () { if (menuEl && !menuEl.hidden) menuEl.hidden = true; });
-    // 退出登录 → 回主页（Auth.logout 已清本地+跳主页）
-    var lo = $('btnLogout');
-    if (lo && window.Auth) lo.addEventListener('click', function () { window.Auth.logout(); });
-    // 切换账号 → 回登录页
+    document.addEventListener('click', function () {
+      if (!menuEl.hidden) menuEl.hidden = true;
+    });
+    // 菜单项：逻辑内联，不依赖外部脚本（点击必生效）
     var sw = $('btnSwitch');
-    if (sw && window.Auth) sw.addEventListener('click', function () { window.Auth.switchAccount(); });
+    if (sw) sw.addEventListener('click', function (e) { e.stopPropagation(); goLogin(); });
+    var lo = $('btnLogout');
+    if (lo) lo.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // 通知服务端作废 token（失败不阻塞跳转）
+      var token = null;
+      try { token = window.localStorage.getItem('game_token'); } catch (err) {}
+      if (token) {
+        try {
+          fetch('https://quoridor-mp.pages.dev/api/auth/logout', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token }),
+          }).catch(function () {});
+        } catch (err) {}
+      }
+      goLogin();
+    });
   }
 })();
 </script>
