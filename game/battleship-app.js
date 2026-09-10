@@ -102,6 +102,8 @@
     vsAI = !!ai;
     state = B.createState();
     phase = 'place';
+    // 重置棋盘视图状态，避免上一局残留导致新局开局也延迟切换
+    _shownBoard = null; _pendingBoard = null; _pendingAt = 0; _viewTarget = null;
     placeTurn = 0;
     curShip = 0;
     horizontal = false;
@@ -620,16 +622,23 @@
     var which = activeBoard();
     var now = Date.now();
     if (_shownBoard === null) { applyBoard(which); return; }        // 首次立即显示
-    if (which === _shownBoard) { _pendingBoard = null; return; }    // 无需切换，取消待切换
-    if (_pendingBoard !== which) {                                   // 新目标：开始计时（先不动）
-      _pendingBoard = which; _pendingAt = now; return;
+    // 已锁定待切换目标：到点就切，期间不因 turn 抖动而取消。
+    // 关键：AI 落子只 650ms（比 SWITCH_DELAY 短），会反复翻转 which；一旦锁定目标就必须提交，
+    // 否则 pending 被反复重置、1.8s 永远到不了，棋盘卡死不切换。
+    if (_pendingBoard !== null) {
+      if (now - _pendingAt >= SWITCH_DELAY) {                        // 到点：切换到锁定的目标并立即重绘
+        var target = _pendingBoard;
+        _pendingBoard = null; _pendingAt = 0;
+        applyBoard(target);
+        var vp = viewPlayer();
+        if (target === 'track') trackR.draw(state, vp, { canFire: myTurnToFire() });
+        else oceanR.draw(state, vp, { viewTarget: curTarget() });
+      }
+      return;
     }
-    if (now - _pendingAt >= SWITCH_DELAY) {                          // 到点：切换并立即重绘
-      _pendingBoard = null;
-      applyBoard(which);
-      var vp = viewPlayer();
-      if (which === 'track') trackR.draw(state, vp, { canFire: myTurnToFire() });
-      else oceanR.draw(state, vp, { viewTarget: curTarget() });
+    // 无待切换：仅在需要切换时启动计时（锁定为当前目标）
+    if (which !== _shownBoard) {
+      _pendingBoard = which; _pendingAt = now;
     }
   }
 
