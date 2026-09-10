@@ -10,16 +10,18 @@
     cell: '#1c2635',
     cellAlt: '#212d3e',
     cellEdge: '#2c3847',
-    p1a: '#4ee8f7', p1b: '#0d8faf',
-    p2a: '#c9b8fd', p2b: '#7446d4',
-    goal1: 'rgba(34,211,238,0.09)',
-    goal2: 'rgba(167,139,250,0.09)',
+    p1a: '#ef5b5b', p1b: '#8f2d2d',   // 红方棋子（亮/暗）
+    p2a: '#5b9bff', p2b: '#2a55a8',   // 蓝方棋子（亮/暗）
+    goal1: 'rgba(239,91,91,0.10)',    // 红方目标行
+    goal2: 'rgba(91,155,255,0.10)',   // 蓝方目标行
     wallTop: '#55677f',
     wallBot: '#2a3443',
     wallLine: '#6d829c',
-    ok: 'rgba(34,211,238,0.42)',
+    ok1: 'rgba(239,91,91,0.38)',      // 红方墙可放（暗红）
+    ok2: 'rgba(91,155,255,0.38)',     // 蓝方墙可放（暗蓝）
     bad: 'rgba(226,75,74,0.42)',
-    hint: '#22d3ee'
+    hint1: 'rgba(239,91,91,0.62)',    // 红方走子提示（暗红）
+    hint2: 'rgba(91,155,255,0.62)'    // 蓝方走子提示（暗蓝）
   };
 
   function Renderer(canvas) {
@@ -31,7 +33,7 @@
     this.hover = null;
     this.hints = [];
     this.pulse = 0;
-    this.flip = false;   // true 时棋盘上下翻转：让后手(紫方)也能看到自己在底部
+    this.flip = false;   // true 时棋盘上下翻转：让后手(蓝方)也能看到自己在底部
     this.resize();
   }
 
@@ -115,6 +117,7 @@
     g.clearRect(0, 0, this.w, this.h);
     this.pulse = (Date.now() % 1400) / 1400;
 
+    this._turn = (state && state.turn === 1) ? 1 : 0;   // 提示色跟随当前走子方（红/蓝）
     this.drawBoard();
     this.drawGoals();
     this.drawCells(state);
@@ -149,9 +152,9 @@
     // 上/下起点染色：flip 时交换，使每位玩家看到的自己起点都在底部
     var topColor = this.flip ? C.goal1 : C.goal2;
     var botColor = this.flip ? C.goal2 : C.goal1;
-    g.fillStyle = topColor;   // P1(紫) 起点 / flip 时为 P0(青) 起点
+    g.fillStyle = topColor;   // P1(蓝) 起点 / flip 时为 P0(红) 起点
     g.fillRect(top.x, top.y, top.w, top.h);
-    g.fillStyle = botColor;   // P0(青) 起点 / flip 时为 P1(紫) 起点
+    g.fillStyle = botColor;   // P0(红) 起点 / flip 时为 P1(蓝) 起点
     g.fillRect(bot.x, bot.y, bot.w, bot.h);
   };
 
@@ -199,10 +202,10 @@
     g.save();
     if (ghost) {
       g.globalAlpha = 0.85;
-      g.fillStyle = valid ? C.ok : C.bad;
+      g.fillStyle = valid ? (this._turn === 1 ? C.ok2 : C.ok1) : C.bad;
       this.roundRect(x, y, w, h, rad);
       g.fill();
-      g.strokeStyle = valid ? 'rgba(34,211,238,0.95)' : 'rgba(226,75,74,0.95)';
+      g.strokeStyle = valid ? (this._turn === 1 ? 'rgba(91,155,255,0.95)' : 'rgba(239,91,91,0.95)') : 'rgba(226,75,74,0.95)';
       g.lineWidth = 1.4;
       g.setLineDash([5, 4]);
       g.stroke();
@@ -252,8 +255,8 @@
       cy = rect.y + rect.s / 2;
       g.save();
       g.globalAlpha = a;
-      g.fillStyle = C.hint;
-      g.shadowColor = C.hint;
+      g.fillStyle = (this._turn === 1) ? C.hint2 : C.hint1;
+      g.shadowColor = g.fillStyle;
       g.shadowBlur = 12;
       g.beginPath();
       g.arc(cx, cy, Math.max(4, rect.s * 0.14), 0, Math.PI * 2);

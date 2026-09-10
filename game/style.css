@@ -167,12 +167,12 @@ body::before {
 
 /* ---------- 游戏卡片网格 ---------- */
 
-.game-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 22px;
-  max-width: 1080px;
-  margin: 0 auto;
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));   /* 随窗口宽度实时变换列数（大屏3列/中屏2列/窄屏1列） */
+    gap: 22px;
+    max-width: 1160px;
+    margin: 0 auto;
   padding: 4px 24px 72px;
 }
 
@@ -256,7 +256,7 @@ body::before {
 }
 
 @media (max-width: 760px) {
-  .game-grid { grid-template-columns: 1fr; gap: 16px; padding: 4px 18px 56px; }
+  .game-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; padding: 4px 18px 56px; }
   .gc-preview { height: 152px; }
   .hero { padding-bottom: 28px; }
 }
@@ -862,6 +862,9 @@ body::before {
 .c4-frame { max-width: 480px; }
 /* 服务器状态入口（游戏室右上角小按钮） */
 .status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--mono);
   font-size: 12.5px;
   letter-spacing: 0.5px;
@@ -872,6 +875,20 @@ body::before {
   color: var(--cyan);
   text-decoration: none;
   transition: all 0.18s ease;
+}
+/* 状态点：绿=可用 / 红=不可用 */
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 9px;
+  background: #4ade80;
+  box-shadow: 0 0 6px rgba(74, 222, 128, 0.75);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+.status-btn.status-down .status-dot {
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.8);
 }
 /* 服务不可用（20 秒无响应）：红色 + 放大 */
 .status-btn.status-down {

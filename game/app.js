@@ -69,7 +69,7 @@
     hideBanner();
   }
 
-  // 抛硬币决定先手：first = 先手玩家(0 红 / 1 紫)
+  // 抛硬币决定先手：first = 先手玩家(0 红 / 1 蓝)
   function playCoin(first, opts) {
     opts = opts || {};
     coinLock = true;
@@ -84,13 +84,13 @@
     setTimeout(function () {
       var firstLabel, sub;
       if (opts.ai) {
-        firstLabel = first === 0 ? '🟥 ' + myName() + '（红方）先手' : '🟪 电脑（紫方）先手';
+        firstLabel = first === 0 ? '🟥 ' + myName() + '（红方）先手' : '🔵 电脑（蓝方）先手';
         sub = first === 0 ? '你先手，开始！' : '电脑先手，稍候…';
       } else if (opts.mode === 'online') {
-        firstLabel = first === 0 ? '🟥 红方先手' : '🟪 紫方先手';
+        firstLabel = first === 0 ? '🟥 红方先手' : '🔵 蓝方先手';
         sub = (first === myPlayer) ? '你先手，开始！' : '对手先手';
       } else {
-        firstLabel = first === 0 ? '🟥 红方先手' : '🟪 紫方先手';
+        firstLabel = first === 0 ? '🟥 红方先手' : '🔵 蓝方先手';
         sub = first === 0 ? '玩家一先手' : '玩家二先手';
       }
       el.coinResult.textContent = firstLabel;

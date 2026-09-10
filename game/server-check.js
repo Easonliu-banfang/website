@@ -19,17 +19,24 @@
     return btn;
   }
 
+  // 状态点：绿=可用 / 红=不可用（按钮文字保持「服务器状态」，不再用 textContent 覆盖子元素）
+  function setDot(down) {
+    if (!btn) return;
+    var dot = btn.querySelector('.status-dot');
+    if (dot) dot.classList.toggle('down', !!down);
+  }
+
   function setDown() {
     if (!btn) return;
     btn.classList.add('status-down');
-    btn.textContent = '⚠ 服务不可用';
+    setDot(true);
     btn.setAttribute('title', '服务器 20 秒内无响应，请稍后重试');
   }
 
   function setUp() {
     if (!btn) return;
     btn.classList.remove('status-down');
-    btn.textContent = '⚡ 服务器状态';
+    setDot(false);
     btn.removeAttribute('title');
   }
 

@@ -106,7 +106,7 @@
   };
 
   // 建立 WebSocket，发 hello 领取自己的玩家编号，开始接收同步
-  // preferred: 期望的玩家编号（0=红先手 / 1=紫后手），服务端按真实连接分配
+  // preferred: 期望的玩家编号（0=红先手 / 1=蓝后手），服务端按真实连接分配
   Online.prototype.connect = function (preferred) {
     this.preferred = (preferred === 0 || preferred === 1) ? preferred : -1;
     this._intentionalClose = false;
