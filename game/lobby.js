@@ -183,7 +183,7 @@
         '</div>' +
         '<div class="share-btns">' +
           '<button type="button" class="share-btn ghost" id="shareCopyBtn">复制链接</button>' +
-          '<button type="button" class="share-btn wx" id="shareWxBtn">分享到微信</button>' +
+          '<button type="button" class="share-btn wx" id="shareWxBtn">转发给朋友</button>' +
         '</div>' +
         '<p class="share-hint" id="shareHint"></p>' +
       '</div>';
