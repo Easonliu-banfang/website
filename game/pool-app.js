@@ -190,7 +190,7 @@
     shotStartT = world.simTime;
     var basePocketed = world.pocketed.length;
     var shotParams = { aimX: aim.x, aimY: aim.y, power: Math.max(0.06, power), top: top, side: side, callPocket: needCall ? callPocket : null };
-    if (match.isBreak) { world.breakMode = true; cue.breakSpeed = 12; }   // 开球：白球更高初速炸开球堆
+    if (match.isBreak) { world.breakMode = true; cue.breakSpeed = 16; }   // 开球：白球更高初速炸开球堆
     P.strike(cue, shotParams.aimX, shotParams.aimY, shotParams.power, top, side);
     world.quiet = false;      // 防陈旧静止标志 → 结算器过早触发
     syncUI();
@@ -427,7 +427,8 @@
       var pi = pocketAt(w.x, w.y);
       if (pi !== null) { callPocket = pi; syncUI(); return; }
     }
-    // 按下：锁定当前方向 → 拖拽只蓄力，方向不再乱转
+    // 按下：先把方向对准「落点相对白球」的方向（避免沿用还没缓动到位的旧瞄准），再锁定蓄力
+    setAimByPointer(w.x, w.y);
     aimLocked = aim;
     charging = { downX: wx.x, downY: wx.y };
     power = 0.25;

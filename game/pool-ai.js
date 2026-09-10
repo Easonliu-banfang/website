@@ -168,9 +168,11 @@
     if (match.isBreak && !hand && (!match.groups[0] && !match.groups[1])) {
       var nb = nearestTarget(world, targets, cx, cy);
       if (nb) {
-        var ddx = nb.x - cx, ddy = nb.y - cy;
+        // 侧切开球：瞄球堆顶点略偏 + 侧塞，真正炸开球堆（死砸正中反而打不散）
+        var ty2 = nb.y - 0.022;
+        var ddx = nb.x - cx, ddy = ty2 - cy;
         var ddn = Math.hypot(ddx, ddy) || 1;
-        shot = { aimX: ddx / ddn, aimY: ddy / ddn, power: 0.98, top: 0.6, side: 0, pocket: -1, break: true };
+        shot = { aimX: ddx / ddn, aimY: ddy / ddn, power: 0.98, top: 0.6, side: 0.38, pocket: -1, break: true };
       }
     }
 

@@ -270,29 +270,29 @@
     diamond(g, ox - 5.5, oy + H * 0.5, 5, 5);
     diamond(g, ox + W + 5.5, oy + H * 0.5, 5, 5);
 
-    // 口袋（皮革圆环 + 深邃洞心 + 高光）
+    // 口袋（皮革圆环 + 深邃洞心 + 高光，尺寸按真实袋口≈2球宽）
     var pockets = P.POCKETS;
     for (var p = 0; p < pockets.length; p++) {
       var px = ox + pockets[p].x * sc, py = oy + pockets[p].y * sc;
       var pr = pockets[p].r * sc;
       // 皮革环
-      var rmg = g.createRadialGradient(px - pr * 0.2, py - pr * 0.2, pr * 0.2, px, py, pr * 1.35);
+      var rmg = g.createRadialGradient(px - pr * 0.2, py - pr * 0.2, pr * 0.2, px, py, pr * 1.28);
       rmg.addColorStop(0, '#4a3a28');
       rmg.addColorStop(0.7, '#2e2114');
       rmg.addColorStop(1, '#1a1209');
       g.fillStyle = rmg;
-      g.beginPath(); g.arc(px, py, pr * 1.35, 0, 6.2832); g.fill();
+      g.beginPath(); g.arc(px, py, pr * 1.28, 0, 6.2832); g.fill();
       // 洞心
-      var hole = g.createRadialGradient(px - pr * 0.25, py - pr * 0.25, 1, px, py, pr);
+      var hole = g.createRadialGradient(px - pr * 0.25, py - pr * 0.25, 1, px, py, pr * 0.9);
       hole.addColorStop(0, '#000000');
       hole.addColorStop(0.75, '#05080d');
       hole.addColorStop(1, '#0d1626');
       g.fillStyle = hole;
-      g.beginPath(); g.arc(px, py, pr * 0.92, 0, 6.2832); g.fill();
+      g.beginPath(); g.arc(px, py, pr * 0.9, 0, 6.2832); g.fill();
       // 高光弧
-      g.strokeStyle = 'rgba(255,255,255,0.18)';
-      g.lineWidth = 1.6;
-      g.beginPath(); g.arc(px, py, pr * 1.12, Math.PI * 0.9, Math.PI * 1.55); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.16)';
+      g.lineWidth = 1.5;
+      g.beginPath(); g.arc(px, py, pr * 1.1, Math.PI * 0.9, Math.PI * 1.55); g.stroke();
     }
   };
 
