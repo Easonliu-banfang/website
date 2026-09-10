@@ -118,14 +118,14 @@
         match.isBreak = true;
         return res;
       }
-      var legal = shot.pocketed.length > 0 || shot.breakRails >= 4;
+      var legal = shot.pocketed.length > 0 || shot.breakRails >= 3;   // 合法开球：进球 或 ≥3 颗目标球碰库（简化的官方判定，保证开球不常被判犯规）
       if (shot.cuePocketed) {
         match.isBreak = false;
         return foul(match, res, opp, '开球白球落袋', 'behindHead');
       }
       if (!legal) {
         match.isBreak = false;
-        return foul(match, res, opp, '开球犯规：无球入袋且不足 4 球碰库', 'behindHead');
+        return foul(match, res, opp, '开球犯规：无球入袋且不足 3 球碰库', 'behindHead');
       }
       match.isBreak = false;
       res.turn = shot.pocketed.length > 0 ? shooter : opp;

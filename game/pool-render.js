@@ -71,16 +71,15 @@
     if (ui.placing) this._drawPlacement(g, ui.placing, ui.placeOK);
     if (ui.callPocket !== undefined && ui.callPocket !== null) this._drawCallPocket(g, ui.callPocket, Date.now());
 
+    // 球杆画在球层之下（杆尖被白球遮住 = 真实的"贴球"感）
+    if (ui.aim) this._drawCue(g, ui);
+
     // 球
     this._drawBalls(g, world, ui);
 
-    // 瞄准线 + 球杆（仅击球方操作且球静止）
-    if (ui.aim) {
-      this._drawAim(g, world, ui);
-      this._drawCue(g, ui);
-    }
+    // 瞄准虚线（球层之上，指向鼠标）
+    if (ui.aim) this._drawAim(g, world, ui);
     this._drawHUD(g, ui);
-    // 桌中央提示（可选）
   };
 
   /* 力度 / 旋转 HUD + 蓄力环 */
@@ -155,92 +154,158 @@
 
   PoolRender.prototype._drawTable = function (g, ui) {
     var P = this.P, sc = this.scale;
-    // 木框外衬
-    var fx = this.ox - 26 * (sc / 140), fy = this.oy - 26 * (sc / 140);
-    var fw = P.TABLE_W * sc + 52 * (sc / 140), fh = P.TABLE_H * sc + 52 * (sc / 140);
+    var W = P.TABLE_W * sc, H = P.TABLE_H * sc;
+    var ox = this.ox, oy = this.oy;
+
+    // 桌面投影（桌下深色光晕）
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.55)';
+    g.shadowBlur = 34;
+    g.shadowOffsetY = 14;
+    roundRect(g, ox - 20, oy - 18, W + 40, H + 36, 28);
+    g.fillStyle = 'rgba(8,12,20,0.0001)';
+    g.fill();
+    g.restore();
+
+    // 外层木板（深胡桃木渐变）
+    var fx = ox - 30, fy = oy - 28, fw = W + 60, fh = H + 56;
     var wood = g.createLinearGradient(fx, fy, fx + fw, fy + fh);
-    wood.addColorStop(0, '#6b4a2b');
-    wood.addColorStop(0.5, '#4e3418');
-    wood.addColorStop(1, '#3a2510');
+    wood.addColorStop(0, '#7a5630');
+    wood.addColorStop(0.28, '#5d3d1e');
+    wood.addColorStop(0.6, '#4a2f15');
+    wood.addColorStop(1, '#38220c');
     g.fillStyle = wood;
-    roundRect(g, fx, fy, fw, fh, 26 * (sc / 140) + 6);
+    roundRect(g, fx, fy, fw, fh, 26);
     g.fill();
-    g.strokeStyle = 'rgba(0,0,0,0.55)';
+    // 木纹细节（横向细纹）
+    g.save();
+    roundRect(g, fx, fy, fw, fh, 26);
+    g.clip();
+    g.strokeStyle = 'rgba(0,0,0,0.18)';
     g.lineWidth = 2;
-    roundRect(g, fx, fy, fw, fh, 26 * (sc / 140) + 6);
+    for (var wl = 0; wl < 9; wl++) {
+      var wy = fy + 8 + wl * (fh - 16) / 8 + (wl % 2) * 4;
+      g.beginPath(); g.moveTo(fx, wy); g.lineTo(fx + fw, wy); g.stroke();
+    }
+    g.restore();
+    // 边框高光（上缘受光）
+    g.strokeStyle = 'rgba(255,214,150,0.25)';
+    g.lineWidth = 2;
+    roundRect(g, fx + 1.5, fy + 1.5, fw - 3, fh - 3, 26);
     g.stroke();
 
-    // 橡胶库边
-    var bx = this.ox - 8, by = this.oy - 10;
-    var bw = P.TABLE_W * sc + 16, bh = P.TABLE_H * sc + 20;
+    // 内侧装饰条（金属/浅木）
+    var ix = fx + 13, iy = fy + 13, iw = fw - 26, ih = fh - 26;
+    var band = g.createLinearGradient(ix, iy, ix, iy + ih);
+    band.addColorStop(0, '#8a6a44');
+    band.addColorStop(0.5, '#6b4a2a');
+    band.addColorStop(1, '#4c3218');
+    g.fillStyle = band;
+    roundRect(g, ix, iy, iw, ih, 17);
+    g.fill();
+
+    // 橡胶库边（带立体感：暗边 + 顶部受光面）
+    var bx = ox - 9, by = oy - 12, bw = W + 18, bh = H + 24;
     var rubber = g.createLinearGradient(bx, by, bx, by + bh);
-    rubber.addColorStop(0, '#0d5c46');
-    rubber.addColorStop(1, '#083c2f');
+    rubber.addColorStop(0, '#0e6b50');
+    rubber.addColorStop(0.28, '#0b4f3c');
+    rubber.addColorStop(1, '#073a2c');
     g.fillStyle = rubber;
-    roundRect(g, bx, by, bw, bh, 14);
+    roundRect(g, bx, by, bw, bh, 15);
     g.fill();
-    // 库边内缘亮线
-    g.strokeStyle = 'rgba(103,232,190,0.16)';
-    g.lineWidth = 1.5;
-    roundRect(g, bx, by, bw, bh, 14);
+    // 库边内缘上下受光
+    g.strokeStyle = 'rgba(125,255,214,0.30)';
+    g.lineWidth = 2.5;
+    roundRect(g, bx, by, bw, bh, 15);
+    g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.5)';
+    g.lineWidth = 2;
+    roundRect(g, bx + 2, by + 3, bw - 4, bh - 6, 14);
     g.stroke();
 
-    // 毛毡
-    var fg = g.createLinearGradient(this.ox, this.oy, this.ox, this.oy + P.TABLE_H * sc);
-    fg.addColorStop(0, '#12735a');
-    fg.addColorStop(1, '#0c5642');
+    // 毛毡（深青绿渐变 + 中央亮部）
+    var fg = g.createRadialGradient(ox + W * 0.5, oy + H * 0.42, 20, ox + W * 0.5, oy + H * 0.5, Math.max(W, H) * 0.85);
+    fg.addColorStop(0, '#1a8566');
+    fg.addColorStop(0.55, '#11654c');
+    fg.addColorStop(1, '#0a4436');
     g.fillStyle = fg;
-    roundRect(g, this.ox, this.oy, P.TABLE_W * sc, P.TABLE_H * sc, 10);
+    roundRect(g, ox, oy, W, H, 10);
     g.fill();
-    // 毛毡质感（微弱噪点线条）
-    g.strokeStyle = 'rgba(255,255,255,0.018)';
+    // 毛毡质感：细密横纹
+    g.save();
+    roundRect(g, ox, oy, W, H, 10);
+    g.clip();
+    g.strokeStyle = 'rgba(255,255,255,0.025)';
     g.lineWidth = 1;
-    for (var i = 0; i < 14; i++) {
-      var yy = this.oy + (i + 0.5) * (P.TABLE_H * sc) / 14;
-      g.beginPath();
-      g.moveTo(this.ox, yy); g.lineTo(this.ox + P.TABLE_W * sc, yy);
-      g.stroke();
+    for (var t = 0; t < 26; t++) {
+      var yy = oy + (t + 0.5) * H / 26;
+      g.beginPath(); g.moveTo(ox, yy); g.lineTo(ox + W, yy); g.stroke();
     }
-    // 头线 & 中央点（装饰）
-    g.strokeStyle = 'rgba(255,255,255,0.08)';
-    g.setLineDash([5, 6]);
+    // 角落柔光
+    var vg = g.createRadialGradient(ox + W * 0.5, oy + H * 0.5, 10, ox + W * 0.5, oy + H * 0.5, Math.max(W, H) * 0.6);
+    vg.addColorStop(0, 'rgba(255,255,255,0.06)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.10)');
+    g.fillStyle = vg;
+    g.fillRect(ox, oy, W, H);
+    g.restore();
+
+    // 头线 + 头/脚点
+    g.strokeStyle = 'rgba(255,255,255,0.14)';
+    g.lineWidth = 1.5;
     g.beginPath();
-    g.moveTo(this.ox + P.TABLE_W * 0.25 * sc, this.oy);
-    g.lineTo(this.ox + P.TABLE_W * 0.25 * sc, this.oy + P.TABLE_H * sc);
+    g.moveTo(ox + P.TABLE_W * 0.25 * sc, oy + 3);
+    g.lineTo(ox + P.TABLE_W * 0.25 * sc, oy + H - 3);
     g.stroke();
-    g.setLineDash([]);
-    g.fillStyle = 'rgba(255,255,255,0.10)';
-    g.beginPath();
-    g.arc(this.ox + P.TABLE_W * 0.75 * sc, this.oy + P.TABLE_H / 2 * sc, 3, 0, 6.2832);
-    g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.30)';
+    g.beginPath(); g.arc(ox + P.TABLE_W * 0.25 * sc, oy + H / 2, 3.5, 0, 6.2832); g.fill();   // 头点
+    g.beginPath(); g.arc(ox + P.TABLE_W * 0.75 * sc, oy + H / 2, 3.5, 0, 6.2832); g.fill();   // 脚点
 
-    // 金属包角
-    var corners = [[0, 0], [P.TABLE_W, 0], [0, P.TABLE_H], [P.TABLE_W, P.TABLE_H]];
-    for (var c = 0; c < corners.length; c++) {
-      var cx = this.ox + corners[c][0] * sc, cy = this.oy + corners[c][1] * sc;
-      var sg = g.createRadialGradient(cx, cy, 2, cx, cy, 16);
-      sg.addColorStop(0, 'rgba(148,163,184,0.9)');
-      sg.addColorStop(0.6, 'rgba(51,65,85,0.85)');
-      sg.addColorStop(1, 'rgba(31,41,55,0.9)');
-      g.fillStyle = sg;
-      g.beginPath();
-      g.arc(cx, cy, 14, 0, 6.2832);
-      g.fill();
+    // 库边钻石标记（12 颗：两长边各 3 + 两短边各 1）
+    g.fillStyle = 'rgba(238,230,214,0.85)';
+    var dpos = [0.25, 0.5, 0.75];
+    for (var q = 0; q < dpos.length; q++) {
+      diamond(g, ox + P.TABLE_W * dpos[q] * sc, oy - 5.5, 5, 5);
+      diamond(g, ox + P.TABLE_W * dpos[q] * sc, oy + H + 5.5, 5, 5);
     }
+    diamond(g, ox - 5.5, oy + H * 0.5, 5, 5);
+    diamond(g, ox + W + 5.5, oy + H * 0.5, 5, 5);
 
-    // 口袋（最后画，盖住台呢边缘）
+    // 口袋（皮革圆环 + 深邃洞心 + 高光）
     var pockets = P.POCKETS;
     for (var p = 0; p < pockets.length; p++) {
-      var px = this.ox + pockets[p].x * sc, py = this.oy + pockets[p].y * sc;
+      var px = ox + pockets[p].x * sc, py = oy + pockets[p].y * sc;
       var pr = pockets[p].r * sc;
-      var pg = g.createRadialGradient(px - pr * 0.3, py - pr * 0.3, 1, px, py, pr);
-      pg.addColorStop(0, '#0a0d12');
-      pg.addColorStop(0.8, '#05070a');
-      pg.addColorStop(1, 'rgba(5,7,10,0)');
-      g.fillStyle = pg;
-      g.beginPath(); g.arc(px, py, pr * 1.15, 0, 6.2832); g.fill();
+      // 皮革环
+      var rmg = g.createRadialGradient(px - pr * 0.2, py - pr * 0.2, pr * 0.2, px, py, pr * 1.35);
+      rmg.addColorStop(0, '#4a3a28');
+      rmg.addColorStop(0.7, '#2e2114');
+      rmg.addColorStop(1, '#1a1209');
+      g.fillStyle = rmg;
+      g.beginPath(); g.arc(px, py, pr * 1.35, 0, 6.2832); g.fill();
+      // 洞心
+      var hole = g.createRadialGradient(px - pr * 0.25, py - pr * 0.25, 1, px, py, pr);
+      hole.addColorStop(0, '#000000');
+      hole.addColorStop(0.75, '#05080d');
+      hole.addColorStop(1, '#0d1626');
+      g.fillStyle = hole;
+      g.beginPath(); g.arc(px, py, pr * 0.92, 0, 6.2832); g.fill();
+      // 高光弧
+      g.strokeStyle = 'rgba(255,255,255,0.18)';
+      g.lineWidth = 1.6;
+      g.beginPath(); g.arc(px, py, pr * 1.12, Math.PI * 0.9, Math.PI * 1.55); g.stroke();
     }
   };
+
+  /* 菱形标记 */
+  function diamond(g, x, y, w, h) {
+    g.beginPath();
+    g.moveTo(x, y - h);
+    g.lineTo(x + w, y);
+    g.lineTo(x, y + h);
+    g.lineTo(x - w, y);
+    g.closePath();
+    g.fill();
+  }
 
   PoolRender.prototype._drawBalls = function (g, world, ui) {
     var P = this.P;
@@ -349,19 +414,28 @@
       g.fillStyle = 'rgba(167,139,250,0.35)';
       g.beginPath(); g.arc(tpx, tpy, 4, 0, 6.2832); g.fill();
     }
-    // 瞄准虚线
-    var len = Math.min(P.TABLE_W, Math.hypot(dx, dy) + 0.01);
+    // 瞄准虚线（沿鼠标方向，带箭头）
     var nx = dx / Math.hypot(dx, dy) || 1, ny = dy / Math.hypot(dx, dy) || 0;
+    var lineLen = 110;
+    var sx = px + nx * (P.R * this.scale + 4), sy = py + ny * (P.R * this.scale + 4);
+    var ex = px + nx * (P.R * this.scale + 4 + lineLen), ey = py + ny * (P.R * this.scale + 4 + lineLen);
     g.setLineDash([7, 8]);
-    g.strokeStyle = 'rgba(34,211,238,0.55)';
-    g.lineWidth = 2;
+    g.strokeStyle = 'rgba(34,211,238,0.6)';
+    g.lineWidth = 2.2;
     g.beginPath();
-    g.moveTo(px + nx * (P.R * this.scale + 3), py + ny * (P.R * this.scale + 3));
-    g.lineTo(px + nx * (P.R * this.scale + 3 + 60), py + ny * (P.R * this.scale + 3 + 60));
+    g.moveTo(sx, sy);
+    g.lineTo(ex - 10, ey - 10);
     g.stroke();
     g.setLineDash([]);
-    g.fillStyle = 'rgba(34,211,238,0.75)';
-    g.beginPath(); g.arc(px + nx * (P.R * this.scale + 3 + 60), py + ny * (P.R * this.scale + 3 + 60), 3, 0, 6.2832); g.fill();
+    // 箭头
+    var ang = Math.atan2(ny, nx);
+    g.fillStyle = 'rgba(34,211,238,0.9)';
+    g.beginPath();
+    g.moveTo(ex, ey);
+    g.lineTo(ex - 13 * Math.cos(ang - 0.42), ey - 13 * Math.sin(ang - 0.42));
+    g.lineTo(ex - 13 * Math.cos(ang + 0.42), ey - 13 * Math.sin(ang + 0.42));
+    g.closePath();
+    g.fill();
   };
 
   PoolRender.prototype._drawCue = function (g, ui) {
@@ -373,26 +447,19 @@
     var px = this.ox + cue.x * this.scale, py = this.oy + cue.y * this.scale;
     var dx = ui.aim.x, dy = ui.aim.y;
     var h = Math.hypot(dx, dy) || 1;
-    var nx = -dx / h, ny = -dy / h;   // 球杆指向（远离瞄准方向）
-    var pull = 0.35 + ui.power * 0.65;                 // 后拉量
-    var stickLen = 2.1 * this.scale;
-    var x0 = px + nx * (cue.r * this.scale * 1.15 + pull * 40);
-    var y0 = py + ny * (cue.r * this.scale * 1.15 + pull * 40);
-    var x1 = x0 + nx * stickLen, y1 = y0 + ny * stickLen;
-    var shaftLen = stickLen * 0.55;
+    var fx = dx / h, fy = dy / h;                 // 瞄准方向 = 鼠标方向（杆朝鼠标指）
+    var pull = 0.3 + (ui.power || 0) * 0.7;       // 后拉量：越大杆越"收"
+    var stickLen = 1.9 * this.scale;
+    var back = pull * 52;                          // 蓄力时杆尖后移（收杆）
+    var x0 = px + fx * (cue.r * this.scale * 1.05 - back);
+    var y0 = py + fy * (cue.r * this.scale * 1.05 - back);
+    var x1 = x0 + fx * stickLen, y1 = y0 + fy * stickLen;
     var ang = Math.atan2(y1 - y0, x1 - x0);
+    var shaftLen = stickLen * (1 - pull * 0.18);
     g.save();
     g.translate(x0, y0);
     g.rotate(ang);
-    // 后把
-    var bp = g.createLinearGradient(0, -5, 0, 5);
-    bp.addColorStop(0, '#3d2413');
-    bp.addColorStop(0.5, '#5c3a1e');
-    bp.addColorStop(1, '#2f1809');
-    g.fillStyle = bp;
-    roundedRectAt(g, shaftLen, -4.6, stickLen - shaftLen, 9.2, 4.5);
-    g.fill();
-    // 前节
+    // 前节（靠近球的一端，浅木色）
     var sp = g.createLinearGradient(0, -4.2, 0, 4.2);
     sp.addColorStop(0, '#f3e5c8');
     sp.addColorStop(0.5, '#fbf2dc');
@@ -401,8 +468,23 @@
     roundedRectAt(g, 0, -4.2, shaftLen, 8.4, 4.2);
     g.fill();
     // 皮头
-    g.fillStyle = '#7fb3e8';
-    g.fillRect(-3, -4.2, 7, 8.4);
+    g.fillStyle = '#8ec4ee';
+    roundedRectAt(g, -2, -4.0, 8, 8.0, 3.5);
+    g.fill();
+    // 后把（远端深木色带渐变）
+    var bp = g.createLinearGradient(0, -5.4, 0, 5.4);
+    bp.addColorStop(0, '#3d2413');
+    bp.addColorStop(0.5, '#5c3a1e');
+    bp.addColorStop(1, '#2f1809');
+    g.fillStyle = bp;
+    roundedRectAt(g, shaftLen, -4.6, Math.max(40, stickLen - shaftLen), 9.2, 4.5);
+    g.fill();
+    // 底部装饰环 + 尾珠
+    g.fillStyle = '#e9e2d2';
+    roundedRectAt(g, stickLen - 6, -4.0, 6, 8.0, 2);
+    g.fill();
+    g.fillStyle = '#0f0a06';
+    g.beginPath(); g.arc(stickLen + 3, 0, 5.5, 0, 6.2832); g.fill();
     g.restore();
   };
 

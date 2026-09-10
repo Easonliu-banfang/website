@@ -114,8 +114,8 @@
         // 首碰球必须是合法目标（否则犯规；开球除外——开球在 app/AI 特判中处理）
         var first = firstBallOnRay(world, cx, cy, ax, ay);
         if (first && !isLegalTarget(targets, first.type)) continue;
-        var power = 0.3 + Math.min(0.6, (dd + dP) / 2.6) * 0.95;
-        power = Math.max(0.28, Math.min(0.95, power));
+        var power = 0.42 + Math.min(0.6, (dd + dP) / 2.0) * 1.05;
+        power = Math.max(0.34, Math.min(0.98, power));
         var score = 100 - cut * 150 - Math.abs(power - 0.6) * 70 - (dd + dP) * 5;
         var cand = { type: targets[ti], pocket: pi, cut: cut, power: power, score: score, aimX: ax, aimY: ay };
         if (!best || score > best.score) best = cand;
@@ -170,7 +170,7 @@
       if (nb) {
         var ddx = nb.x - cx, ddy = nb.y - cy;
         var ddn = Math.hypot(ddx, ddy) || 1;
-        shot = { aimX: ddx / ddn, aimY: ddy / ddn, power: 0.82, top: 0.55, side: 0, pocket: -1, break: true };
+        shot = { aimX: ddx / ddn, aimY: ddy / ddn, power: 0.98, top: 0.6, side: 0, pocket: -1, break: true };
       }
     }
 
@@ -192,7 +192,7 @@
       if (!nb) return { place: hand ? { x: cx, y: cy } : null, shot: null };
       var dx = nb.x - cx, dy = nb.y - cy;
       var d = Math.hypot(dx, dy) || 1;
-      shot = { aimX: dx / d, aimY: dy / d, power: 0.28, top: 0.2, side: 0, pocket: -1, safety: true };
+      shot = { aimX: dx / d, aimY: dy / d, power: 0.34, top: 0.2, side: 0, pocket: -1, safety: true };
     }
 
     // 微小的瞄准散布（拟人化，避免 AI 杆杆精准）

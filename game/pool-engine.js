@@ -24,9 +24,10 @@
   var SIDE = 0.102;         // 中袋捕获半径（开口略大）
 
   var G = 9.8;             // 重力加速度（m/s²）
-  var MU_S = 0.30;         // 滑动摩擦系数（台呢）
-  var MU_R = 0.012;        // 滚动摩擦系数
-  var E_BALL = 0.95;       // 球-球恢复系数
+  var MU_S = 0.45;         // 滑动摩擦系数（台呢，撞击瞬间明显减速）
+  var MU_R = 0.030;        // 滚动摩擦系数
+  var DRAG_K = 2.2;        // 台呢线性速度衰减（指数减速 1/s）：中等力度约 0.8 桌长停下，球不会永远滑行
+  var E_BALL = 0.97;       // 球-球恢复系数
   var E_CUSH = 0.80;       // 库边恢复系数
   var MU_CUSH = 0.10;      // 库边切向摩擦
 
@@ -58,6 +59,7 @@
       cueFirstContactT: null,  // 本杆白球首次碰到目标球的 simTime（击球前由外部重置）
       cueFirstContactType: null,
       railEvents: [],       // 库边碰撞事件 [{t, id}]（击球前由外部清空）
+      breakMode: false,     // 开球加力：白球首次撞球时给目标球 ×1.3（一次性），让开球真正炸开球堆
     };
   }
 
@@ -115,7 +117,10 @@
     }
     var balls = [];
     for (i = 0; i < pos.length; i++) {
-      balls.push(makeBall(arr[i], pos[i].x, pos[i].y, arr[i]));
+      // 微小随机间隙（±1% 直径）：真实球堆并非完美贴死，这样开球才会自然炸开而非整块平移
+      var jx = (rnd() - 0.5) * D * 0.02;
+      var jy = (rnd() - 0.5) * D * 0.02;
+      balls.push(makeBall(arr[i], pos[i].x + jx, pos[i].y + jy, arr[i]));
     }
     return { balls: balls, cue: makeBall(0, TABLE_W * 0.25, TABLE_H / 2, 0), pos: pos };
   }
@@ -212,6 +217,9 @@
       return;
     }
     var ux = b.vx / v, uy = b.vy / v;
+    // 台呢线性衰减（指数减速，力度越大越明显，保证球终会停下且距离合理）
+    var drag = 1 - Math.min(0.5, DRAG_K * h);
+    b.vx *= drag; b.vy *= drag;
     // 滚动条件：v ≈ |w|·R（w 方向与 v 一致为正）
     var rollV = b.w * R;
     var slide = Math.abs(v - rollV) > 0.05 * v + 0.03;
@@ -238,7 +246,7 @@
     }
     // 绝对停止阈值
     var v3 = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-    if (v3 < 0.008) { b.vx = 0; b.vy = 0; if (Math.abs(b.w) < 0.8) b.w = 0; }
+    if (v3 < 0.014) { b.vx = 0; b.vy = 0; if (Math.abs(b.w) < 0.8) b.w = 0; }
   }
 
   /* 库边反弹 */
@@ -327,7 +335,7 @@
       var pocket = POCKETS[p];
       var dx = b.x - pocket.x, dy = b.y - pocket.y;
       var d = Math.sqrt(dx * dx + dy * dy);
-      var capR = pocket.r * 0.94;
+      var capR = pocket.r * (p < 4 ? 1.10 : 1.08);   // 角袋/中袋捕获半径（略大于袋口球心容纳，开球也能偶尔落袋）
       if (d < capR) {
         // 进袋：移除球
         b.dead = true;
@@ -342,13 +350,14 @@
 
   /* 击球：对白球施加初速与旋转。offset: [0.5..1.5] 力度；topback: -1(拉杆)..1(高杆)；leftright: -1(左塞)..1(右塞) */
   function strike(cue, dirX, dirY, power, topback, leftright) {
-    // power 0..MAX_POWER 映射到初速
-    var MAX_V = 9.0;
+    // power 0..MAX_POWER 映射到初速；开球（breakSpeed>0）给白球更高初速，才能像真实开球一样炸开球堆
+    var MAX_V = (cue.breakSpeed > 0) ? cue.breakSpeed : 7.4;
     var v = clamp(power, 0, 1) * MAX_V;
     cue.vx = dirX * v;
     cue.vy = dirY * v;
     cue.w = clamp(topback, -1, 1) * SPIN_MAX_W * (0.5 + 0.5 * v / MAX_V);
     cue.s = clamp(leftright, -1, 1) * SPIN_MAX_S;
+    if (cue.breakSpeed > 0) cue.breakSpeed = 0;   // 一次性
   }
 
   /* 白球落位（球手自由球）：返回是否合法（不与任何球重叠、不出界） */

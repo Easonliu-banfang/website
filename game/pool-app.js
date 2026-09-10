@@ -152,8 +152,7 @@
     if (!cue) return;
     var dx = cx - cue.x, dy = cy - cue.y;
     var d = Math.hypot(dx, dy);
-    // 死区：鼠标离白球太近时方向会剧烈抖（近点 180° 翻转），忽略
-    if (d < P.R * 2.6) return;
+    if (d < 1e-4) return;   // 恰好压在球心才不更新（防 normalize(0,0)）；其余位置始终跟随鼠标
     aimTarget = { x: dx / d, y: dy / d };
     if (aimLocked === null) aim = aimTarget;
   }
@@ -191,6 +190,7 @@
     shotStartT = world.simTime;
     var basePocketed = world.pocketed.length;
     var shotParams = { aimX: aim.x, aimY: aim.y, power: Math.max(0.06, power), top: top, side: side, callPocket: needCall ? callPocket : null };
+    if (match.isBreak) { world.breakMode = true; cue.breakSpeed = 12; }   // 开球：白球更高初速炸开球堆
     P.strike(cue, shotParams.aimX, shotParams.aimY, shotParams.power, top, side);
     world.quiet = false;      // 防陈旧静止标志 → 结算器过早触发
     syncUI();
@@ -346,6 +346,8 @@
       if (!dead) { world.balls.push(P.makeBall(0, px, py, 0)); }
       else { dead.x = px; dead.y = py; dead.vx = 0; dead.vy = 0; }
       match.hand = null;
+      // 关键：犯规后 phase 仍是 'place'，不切回 'aim' 会导致 fire() 直接 return（电脑自由球无反应）
+      phase = 'aim'; busy = false;
       syncUI();
     }
     // 打黑八报袋
