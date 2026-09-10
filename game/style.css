@@ -1334,3 +1334,39 @@ body::before {
   .share-btns { flex-direction: column; }
   .share-room b { font-size: 22px; letter-spacing: 4px; }
 }
+
+/* ---------- 八球台球（8-Ball Pool） ---------- */
+.pool-layout { max-width: 1020px; }
+.pool-frame { max-width: 880px; }
+#poolCanvas {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  background: #060a12;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  touch-action: none;
+  cursor: crosshair;
+}
+.pool-cap { font-family: var(--mono); letter-spacing: 1.5px; }
+.pool-groups { display: grid; gap: 8px; margin-top: 4px; }
+.pool-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px; padding: 9px 12px;
+}
+.pool-pl { font-size: 13px; color: var(--dim); width: 52px; text-align: left; }
+.pool-g { flex: 1; font-size: 13.5px; color: var(--text); font-weight: 600; text-align: left; }
+.pool-left { font-family: var(--mono); font-size: 12.5px; color: var(--cyan); }
+.pool-keys { display: grid; gap: 8px; }
+.pool-keys .keys { color: var(--dim); }
+.pool-keys b { color: var(--cyan); font-family: var(--mono); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.d-solid { background: #e63946; box-shadow: 0 0 8px rgba(230,57,70,0.6); }
+.d-stripe { background: repeating-linear-gradient(135deg, #eef2f6 0 3px, #2f6ff7 3px 6px); box-shadow: 0 0 8px rgba(47,111,247,0.5); }
+.rules .card + .card { margin-top: 12px; }
+.rules .card p { color: var(--dim); line-height: 1.8; font-size: 14.5px; margin: 8px 0 0; }
+.rules .card p b, .rules .card ul b { color: var(--text); }
+@media (max-width: 780px) {
+  .pool-frame { max-width: 100%; }
+}

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>八球台球 · 对局</title>
+  <meta name="description" content="八球台球 8-Ball Pool —— 细腻物理 + 官方规则">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="style.css?v=b24">
+</head>
+<body class="pool-body">
+
+<!-- 全局通知栏 -->
+<div id="notifyBar" class="notify-bar" hidden></div>
+
+<header class="head">
+  <a href="pool.html?v=p1" class="back">← 选择模式</a>
+  <h1>八球台球</h1>
+  <span id="poolTurn" class="mode-tag">…</span>
+</header>
+
+<div class="layout pool-layout">
+
+  <div class="board-col">
+    <div class="board-box">
+      <div class="board-title"><span class="cap pool-cap">8-BALL · 物理桌台</span></div>
+      <div class="board-frame pool-frame">
+        <canvas id="poolCanvas"></canvas>
+      </div>
+      <p class="phase-label" id="poolHint">移动鼠标瞄准 · 按住拖拽蓄力 · 松开击球</p>
+    </div>
+  </div>
+
+  <aside class="panel">
+
+    <div class="card">
+      <span class="cap">分组与剩余</span>
+      <div class="pool-groups">
+        <div class="pool-row">
+          <span class="pool-pl">玩家一</span>
+          <span class="pool-g" id="poolGroup0">未定</span>
+          <span class="pool-left" id="poolLeft0">—</span>
+        </div>
+        <div class="pool-row">
+          <span class="pool-pl">玩家二</span>
+          <span class="pool-g" id="poolGroup1">未定</span>
+          <span class="pool-left" id="poolLeft1">—</span>
+        </div>
+      </div>
+      <div class="meta">
+        <span class="keys">全色 1-7 · 花色 9-15 · 黑八</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="cap">球杆控制</span>
+      <div class="pool-keys">
+        <div class="keys">移动 <b>鼠标</b> 瞄准</div>
+        <div class="keys">按住拖拽 <b>蓄力</b> · 松开击球</div>
+        <div class="keys"><b>W/S</b> 力度&nbsp;&nbsp;<b>Q/E</b> 左右塞&nbsp;&nbsp;<b>Z/C</b> 高低杆</div>
+        <div class="keys">自由球：移动落点 · 点击放置 · 打黑八需先点袋口报袋</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <a class="btn ghost" href="pool-rules.html?v=p1">玩法规则</a>
+        <button id="poolNew" class="btn ghost" type="button">新局</button>
+      </div>
+      <div class="meta">
+        <span class="keys">空格 = 击球</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 对局结束 -->
+<div id="poolModal" class="modal" hidden>
+  <div class="modal-card">
+    <p id="poolModalTitle" class="req-text">对局结束</p>
+    <p id="poolModalSub" class="req-sub"></p>
+    <div class="btn-row">
+      <button id="poolModalClose" class="btn on" type="button">再来一局</button>
+    </div>
+  </div>
+</div>
+
+<!-- 开放桌同杆进两色 → 选组 -->
+<div id="poolChoose" class="modal" hidden>
+  <div class="modal-card">
+    <p class="req-text">选择你的组</p>
+    <p class="req-sub">同一杆打进了两种球，你来决定打哪一组</p>
+    <div class="btn-row">
+      <button id="poolChooseSolid" class="btn on" type="button"><span class="dot d-solid"></span>全色球 1-7</button>
+      <button id="poolChooseStripe" class="btn" type="button"><span class="dot d-stripe"></span>花色球 9-15</button>
+    </div>
+  </div>
+</div>
+
+<script src="pool-engine.js?v=p1"></script>
+<script src="pool-rules.js?v=p1"></script>
+<script src="pool-render.js?v=p1"></script>
+<script src="pool-ai.js?v=p1"></script>
+<script src="notify.js?v=n3"></script>
+<script src="pool-app.js?v=p1"></script>
+  <script src="device.js?v=d1"></script>
+<script src="auth-check.js?v=a2"></script>
+</body>
+</html>
