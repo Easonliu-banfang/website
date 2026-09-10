@@ -61,6 +61,15 @@
       <div class="fleet-status" id="fleetStatus2"></div>
     </div>
 
+    <!-- 对局结束：切换查看自己/对手棋盘 -->
+    <div class="card" id="endViewPanel" hidden>
+      <span class="cap">回看布局</span>
+      <div class="btn-row">
+        <button id="btnViewMine" class="btn on" type="button">我的舰队</button>
+        <button id="btnViewOpp" class="btn" type="button">敌方舰队</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="btn-row">
         <button id="btnNew" class="btn ghost" type="button">新局</button>
@@ -135,14 +144,14 @@
   </div>
 </div>
 
-<script src="battleship-engine.js?v=g3"></script>
-<script src="battleship-render.js?v=g3"></script>
+<script src="battleship-engine.js?v=g4"></script>
+  <script src="battleship-render.js?v=g4"></script>
 <script src="battleship-online.js?v=g10"></script>
 <script src="battleship-ai.js?v=g2"></script>
 <script src="lobby.js?v=l11"></script>
 <script src="bot.js?v=b1"></script>
 <script src="notify.js?v=n3"></script>
-<script src="battleship-app.js?v=g21"></script>
+<script src="battleship-app.js?v=g22"></script>
   <script src="device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>

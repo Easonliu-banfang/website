@@ -18,6 +18,9 @@
   var boxOcean = document.getElementById('boxOcean');
   var boxTrack = document.getElementById('boxTrack');
   var elOceanTitle = document.getElementById('oceanTitle');
+  var elEndView = document.getElementById('endViewPanel');
+  var elBtnViewMine = document.getElementById('btnViewMine');
+  var elBtnViewOpp = document.getElementById('btnViewOpp');
   var elTrackTitle = document.getElementById('trackTitle');
 
   // 缓存破坏版本号（改前端务必同步 bump）
@@ -281,10 +284,15 @@
   }
 
   function fromView(v) {
+    var me = v.you;
+    var opp = 1 - me;
+    var ocean = [v.ocean, v.ocean];
+    if (v.reveal) ocean[opp] = v.reveal;      // 结束后揭示对手布局
     return {
-      ocean: [v.ocean, v.ocean],
+      ocean: ocean,
       fire: [v.tracking, v.tracking],
       incoming: v.incoming || null,   // 对手朝「我」开火的落点（联机由 redact 下发；本地/人机走 state.fire[1-p]）
+      revealed: !!v.reveal,           // 对手布局是否已揭示（对局结束）
       isView: true,                   // 联机裁剪视图标志：缺 incoming 时不回退到 fire[1-p]
       turn: v.turn, winner: v.winner, placed: v.placed,
       ships: v.fleet.map(function (list) {
@@ -561,14 +569,21 @@
   /* ---------- 单盘显示 ----------
    * 一次只显示一个棋盘：布阵阶段/被攻击时看自己的海域（含对方打中的标记）；
    * 轮到我方开火时切换到「敌方海域」（我的攻击记录）。棋盘因此能做得更大。 */
+  function gameOver() { return !!state && state.winner >= 0; }
+  function curTarget() {
+    return (_viewTarget === 0 || _viewTarget === 1) ? _viewTarget : viewPlayer();
+  }
+
   function activeBoard() {
     if (!state) return 'ocean';
+    if (gameOver()) return 'ocean';          // 结束后统一用海域盘，靠 viewTarget 切自己/对手
     if (phase === 'place') return 'ocean';
     var vp = viewPlayer();
     return (state.turn === vp) ? 'track' : 'ocean';
   }
 
   var _shownBoard = null;
+  var _viewTarget = null;        // 结束后回看的目标盘（null = 跟随自己）
   var _pendingBoard = null;      // 待切换的目标盘
   var _pendingAt = 0;            // 开始计时的时刻
   var SWITCH_DELAY = 1800;       // 落子（含 AI）后等 1.8 秒再切换棋盘
@@ -581,13 +596,23 @@
     // 隐藏的 canvas clientWidth 为 0，切换后必须按可见容器重新测量
     if (showOcean) oceanR.resize(); else trackR.resize();
     if (which === 'ocean') {
-      if (elOceanTitle) {
+      if (gameOver()) {
+        if (elOceanTitle) elOceanTitle.textContent = (curTarget() === viewPlayer()) ? '我的舰队' : '敌方舰队（已揭示）';
+      } else if (elOceanTitle) {
         elOceanTitle.textContent = (phase === 'place')
           ? '你的舰队 · 布阵中'
           : '你的舰队 · 对方开火中';
       }
     } else if (elTrackTitle) {
       elTrackTitle.textContent = '敌方海域 · 点格子开火';
+    }
+    // 结束后显示回看切换按钮（联机需服务端已揭示对手布局）
+    var canReveal = gameOver() && (!state.isView || state.revealed);
+    if (elEndView) elEndView.hidden = !canReveal;
+    if (canReveal) {
+      var mine = (curTarget() === viewPlayer());
+      if (elBtnViewMine) elBtnViewMine.className = 'btn' + (mine ? ' on' : '');
+      if (elBtnViewOpp) elBtnViewOpp.className = 'btn' + (mine ? '' : ' on');
     }
   }
 
@@ -604,7 +629,7 @@
       applyBoard(which);
       var vp = viewPlayer();
       if (which === 'track') trackR.draw(state, vp, { canFire: myTurnToFire() });
-      else oceanR.draw(state, vp, {});
+      else oceanR.draw(state, vp, { viewTarget: curTarget() });
     }
   }
 
@@ -614,10 +639,18 @@
       syncBoardView();
       var vp = viewPlayer();
       if (_shownBoard === 'track') trackR.draw(state, vp, { canFire: myTurnToFire() });
-      else oceanR.draw(state, vp, {});
+      else oceanR.draw(state, vp, { viewTarget: curTarget() });
     }
     requestAnimationFrame(loop);
   }
+
+  // 对局结束后回看：切换自己/对手棋盘
+  if (elBtnViewMine) elBtnViewMine.addEventListener('click', function () {
+    _viewTarget = viewPlayer(); _shownBoard = null; syncBoardView();
+  });
+  if (elBtnViewOpp) elBtnViewOpp.addEventListener('click', function () {
+    _viewTarget = 1 - viewPlayer(); _shownBoard = null; syncBoardView();
+  });
 
   var resizeTimer = null;
   window.addEventListener('resize', function () {

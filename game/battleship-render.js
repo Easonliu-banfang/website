@@ -75,6 +75,9 @@
 
   Renderer.prototype.draw = function (state, myPlayer, ui) {
     ui = ui || {};
+    // viewTarget：要显示哪一方的海域（默认自己）；对局结束后可传对手，用于揭示其布局
+    var target = (ui.viewTarget === 0 || ui.viewTarget === 1) ? ui.viewTarget : myPlayer;
+    ui.viewTarget = target;
     var g = this.ctx;
     g.clearRect(0, 0, this.w, this.h);
 
@@ -130,7 +133,8 @@
     g.strokeStyle = C.cellEdge; g.lineWidth = 0.5; g.stroke();
 
     if (this.mode === 'ocean') {
-      var cell = state.ocean[myPlayer][r][c];
+      var tgt = (ui && (ui.viewTarget === 0 || ui.viewTarget === 1)) ? ui.viewTarget : myPlayer;
+      var cell = state.ocean[tgt][r][c];
       if (cell.ship !== -1) {
         var col = SHIP_COLORS[cell.ship];
         g.fillStyle = cell.hit ? 'rgba(248,113,113,0.55)' : col;
@@ -139,11 +143,17 @@
         if (cell.hit) this.drawX(cx, cy, rect.s * 0.3);
       }
       if (cell.hit) this.drawX(cx, cy, rect.s * 0.3);
-      // 对手朝我开火的落点：打空显示白点（打中已由上面的 X 标出）
-      var inc = (state.incoming && state.incoming[r] && state.incoming[r][c]) ||
-                (state.incoming == null && !state.isView && state.fire && state.fire[1 - myPlayer] &&
-                 state.fire[1 - myPlayer][r][c]);
-      if (inc === 1) {
+      // 攻击「这个盘」的一方留下的落点：打空显示白点（打中已由上面的 X 标出）
+      // 看自己的盘 → 对手打我的记录(incoming)；看对手的盘 → 我打对手的记录(fire[myPlayer])
+      var atk = null;
+      if (tgt === myPlayer) {
+        atk = (state.incoming && state.incoming[r] && state.incoming[r][c]) ||
+              (state.incoming == null && !state.isView && state.fire && state.fire[1 - myPlayer] &&
+               state.fire[1 - myPlayer][r][c]);
+      } else if (state.fire && state.fire[myPlayer]) {
+        atk = state.fire[myPlayer][r][c];
+      }
+      if (atk === 1) {
         g.fillStyle = C.missDot;
         g.beginPath(); g.arc(cx, cy, rect.s * 0.1, 0, Math.PI * 2); g.fill();
       }

@@ -164,6 +164,8 @@
       ocean: state.ocean[p],          // 自己的船 + 挨打情况（只发给本人）
       tracking: state.fire[p],        // 你朝对手开火的结果（0/1/2/3）
       incoming: state.fire[1 - p],    // 对手朝「我」开火的落点（打在我盘上，本人可见；不含对手船位信息）
+      // 对局结束后揭示对手真实布局（船位/挨打/空海域），用于回看；进行中为 null 绝不泄露
+      reveal: state.winner >= 0 ? state.ocean[1 - p] : null,
       turn: state.turn,
       winner: state.winner,
       placed: state.placed,
