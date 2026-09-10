@@ -260,18 +260,30 @@
   function maybeAI() {
     if (onlineMode || !vsAI || !state || state.winner >= 0) return;
     if (state.turn !== aiSide) return;
+    scheduleAIMove();
+  }
+
+  // 等棋盘切到「AI 视角」(ocean) 后再落子：先让人类看清自己这手、再看到 AI 打过来。
+  // 否则 AI 在 650ms 就下完，棋盘还停在攻击盘，看起来像"提前下好了"。
+  function scheduleAIMove() {
+    if (!state || state.winner >= 0 || state.turn !== aiSide) return;
     if (aiTimer) clearTimeout(aiTimer);
-    aiTimer = setTimeout(function () {
-      if (!state || state.winner >= 0 || state.turn !== aiSide) return;
-      var mv = window.BattleshipAI.nextShot(state, aiSide);
-      if (!mv) return;
-      var res = B.fire(state, aiSide, mv.r, mv.c);
-      if (!res) { maybeAI(); return; }
-      hideBanner(); syncUI(); updateFleet();
-      if (state.winner >= 0) { onWin(state.winner); return; }
-      // 轮回到人类
-      syncUI();
-    }, 650);
+    if (_shownBoard === 'ocean') {
+      aiTimer = setTimeout(doAIMove, 600);          // 已切到 AI 视角，缓冲一下（AI 思考感）
+    } else {
+      aiTimer = setTimeout(scheduleAIMove, 120);    // 还在等棋盘切换，轮询
+    }
+  }
+
+  function doAIMove() {
+    if (!state || state.winner >= 0 || state.turn !== aiSide) return;
+    var mv = window.BattleshipAI.nextShot(state, aiSide);
+    if (!mv) return;
+    var res = B.fire(state, aiSide, mv.r, mv.c);
+    if (!res) { scheduleAIMove(); return; }
+    hideBanner(); syncUI(); updateFleet();
+    if (state.winner >= 0) { onWin(state.winner); return; }
+    syncUI();                                        // 轮回到人类
   }
 
   /* ---------- 联机事件 ---------- */
