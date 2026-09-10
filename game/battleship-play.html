@@ -6,7 +6,7 @@
   <title>海战棋 · Battleship</title>
   <meta name="description" content="海战棋 Battleship —— 经典版">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="style.css?v=b22">
+  <link rel="stylesheet" href="style.css?v=b23">
 </head>
 <body>
 
@@ -24,13 +24,13 @@
 
   <div class="board-col">
     <div class="boards">
-      <div class="board-box">
+      <div class="board-box" id="boxOcean">
         <div class="board-title" id="oceanTitle">你的舰队</div>
         <div class="board-frame">
           <canvas id="ocean"></canvas>
         </div>
       </div>
-      <div class="board-box">
+      <div class="board-box" id="boxTrack" hidden>
         <div class="board-title" id="trackTitle">你的攻击</div>
         <div class="board-frame">
           <canvas id="tracking"></canvas>
@@ -135,14 +135,14 @@
   </div>
 </div>
 
-<script src="battleship-engine.js?v=g2"></script>
-<script src="battleship-render.js?v=g2"></script>
+<script src="battleship-engine.js?v=g3"></script>
+<script src="battleship-render.js?v=g3"></script>
 <script src="battleship-online.js?v=g10"></script>
 <script src="battleship-ai.js?v=g2"></script>
 <script src="lobby.js?v=l11"></script>
 <script src="bot.js?v=b1"></script>
 <script src="notify.js?v=n3"></script>
-<script src="battleship-app.js?v=g19"></script>
+<script src="battleship-app.js?v=g20"></script>
   <script src="device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>

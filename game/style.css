@@ -820,13 +820,15 @@ body::before {
 
 /* ---------- 海战棋 ---------- */
 
+/* 单盘模式：一次只显示一个棋盘（布阵/被攻击看自己盘，轮到我方开火切攻击盘），棋盘更大更好点 */
 .boards {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 18px;
   width: 100%;
 }
-.board-box { width: 100%; }
+.board-box { width: 100%; max-width: 680px; margin: 0 auto; }
+.board-box[hidden] { display: none; }
 .board-title {
   font-family: var(--mono);
   font-size: 13px;
@@ -838,7 +840,7 @@ body::before {
 .board-frame {
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: 640px;
   margin: 0 auto;
 }
 #ocean, #tracking {

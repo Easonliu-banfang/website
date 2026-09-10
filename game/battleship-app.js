@@ -15,6 +15,10 @@
   var trackCanvas = document.getElementById('tracking');
   var oceanR = new window.BRender(oceanCanvas, 'ocean');
   var trackR = new window.BRender(trackCanvas, 'tracking');
+  var boxOcean = document.getElementById('boxOcean');
+  var boxTrack = document.getElementById('boxTrack');
+  var elOceanTitle = document.getElementById('oceanTitle');
+  var elTrackTitle = document.getElementById('trackTitle');
 
   // 缓存破坏版本号（改前端务必同步 bump）
   var V = 'g2';
@@ -280,6 +284,8 @@
     return {
       ocean: [v.ocean, v.ocean],
       fire: [v.tracking, v.tracking],
+      incoming: v.incoming || null,   // 对手朝「我」开火的落点（联机由 redact 下发；本地/人机走 state.fire[1-p]）
+      isView: true,                   // 联机裁剪视图标志：缺 incoming 时不回退到 fire[1-p]
       turn: v.turn, winner: v.winner, placed: v.placed,
       ships: v.fleet.map(function (list) {
         return list.map(function (s) { return { idx: 0, name: s.name, size: s.size, cells: [], sunk: s.sunk }; });
@@ -552,12 +558,46 @@
     else if (k === 'n') el.btnNew.click();
   });
 
+  /* ---------- 单盘显示 ----------
+   * 一次只显示一个棋盘：布阵阶段/被攻击时看自己的海域（含对方打中的标记）；
+   * 轮到我方开火时切换到「敌方海域」（我的攻击记录）。棋盘因此能做得更大。 */
+  function activeBoard() {
+    if (!state) return 'ocean';
+    if (phase === 'place') return 'ocean';
+    var vp = viewPlayer();
+    return (state.turn === vp) ? 'track' : 'ocean';
+  }
+
+  var _shownBoard = null;
+  function syncBoardView() {
+    var which = activeBoard();
+    var vp = viewPlayer();
+    if (which !== _shownBoard) {
+      _shownBoard = which;
+      var showOcean = (which === 'ocean');
+      if (boxOcean) boxOcean.hidden = !showOcean;
+      if (boxTrack) boxTrack.hidden = showOcean;
+      // 隐藏的 canvas clientWidth 为 0，切换后必须按可见容器重新测量
+      if (showOcean) oceanR.resize(); else trackR.resize();
+    }
+    if (which === 'ocean') {
+      if (elOceanTitle) {
+        elOceanTitle.textContent = (phase === 'place')
+          ? '你的舰队 · 布阵中'
+          : '你的舰队 · 对方开火中';
+      }
+    } else if (elTrackTitle) {
+      elTrackTitle.textContent = '敌方海域 · 点格子开火';
+    }
+  }
+
   /* ---------- 循环 ---------- */
   function loop() {
     if (state) {
+      syncBoardView();
       var vp = viewPlayer();
-      oceanR.draw(state, vp, {});
-      trackR.draw(state, vp, { canFire: myTurnToFire() });
+      if (_shownBoard === 'track') trackR.draw(state, vp, { canFire: myTurnToFire() });
+      else oceanR.draw(state, vp, {});
     }
     requestAnimationFrame(loop);
   }

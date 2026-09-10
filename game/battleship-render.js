@@ -139,6 +139,14 @@
         if (cell.hit) this.drawX(cx, cy, rect.s * 0.3);
       }
       if (cell.hit) this.drawX(cx, cy, rect.s * 0.3);
+      // 对手朝我开火的落点：打空显示白点（打中已由上面的 X 标出）
+      var inc = (state.incoming && state.incoming[r] && state.incoming[r][c]) ||
+                (state.incoming == null && !state.isView && state.fire && state.fire[1 - myPlayer] &&
+                 state.fire[1 - myPlayer][r][c]);
+      if (inc === 1) {
+        g.fillStyle = C.missDot;
+        g.beginPath(); g.arc(cx, cy, rect.s * 0.1, 0, Math.PI * 2); g.fill();
+      }
     } else {
       // tracking：自己朝对手开火的结果
       var f = state.fire[myPlayer][r][c];
