@@ -569,17 +569,17 @@
   }
 
   var _shownBoard = null;
-  function syncBoardView() {
-    var which = activeBoard();
-    var vp = viewPlayer();
-    if (which !== _shownBoard) {
-      _shownBoard = which;
-      var showOcean = (which === 'ocean');
-      if (boxOcean) boxOcean.hidden = !showOcean;
-      if (boxTrack) boxTrack.hidden = showOcean;
-      // 隐藏的 canvas clientWidth 为 0，切换后必须按可见容器重新测量
-      if (showOcean) oceanR.resize(); else trackR.resize();
-    }
+  var _pendingBoard = null;      // 待切换的目标盘
+  var _pendingAt = 0;            // 开始计时的时刻
+  var SWITCH_DELAY = 1800;       // 落子（含 AI）后等 1.8 秒再切换棋盘
+
+  function applyBoard(which) {
+    _shownBoard = which;
+    var showOcean = (which === 'ocean');
+    if (boxOcean) boxOcean.hidden = !showOcean;
+    if (boxTrack) boxTrack.hidden = showOcean;
+    // 隐藏的 canvas clientWidth 为 0，切换后必须按可见容器重新测量
+    if (showOcean) oceanR.resize(); else trackR.resize();
     if (which === 'ocean') {
       if (elOceanTitle) {
         elOceanTitle.textContent = (phase === 'place')
@@ -588,6 +588,23 @@
       }
     } else if (elTrackTitle) {
       elTrackTitle.textContent = '敌方海域 · 点格子开火';
+    }
+  }
+
+  function syncBoardView() {
+    var which = activeBoard();
+    var now = Date.now();
+    if (_shownBoard === null) { applyBoard(which); return; }        // 首次立即显示
+    if (which === _shownBoard) { _pendingBoard = null; return; }    // 无需切换，取消待切换
+    if (_pendingBoard !== which) {                                   // 新目标：开始计时（先不动）
+      _pendingBoard = which; _pendingAt = now; return;
+    }
+    if (now - _pendingAt >= SWITCH_DELAY) {                          // 到点：切换并立即重绘
+      _pendingBoard = null;
+      applyBoard(which);
+      var vp = viewPlayer();
+      if (which === 'track') trackR.draw(state, vp, { canFire: myTurnToFire() });
+      else oceanR.draw(state, vp, {});
     }
   }
 
