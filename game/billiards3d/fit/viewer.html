@@ -1,0 +1,712 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Optimiser</title>
+    <link rel="icon" type="image/png" href="../favicon.png" />
+    <script src="../worker.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 1px;
+        padding: 1px;
+        font-family: monospace;
+        font-size: 11px;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1px;
+      }
+
+      button {
+        padding: 1px 4px;
+      }
+
+      th,
+      td {
+        padding: 0 2px;
+      }
+
+      .tol-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .tol-input {
+        width: 45px;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="font-size: 10px; color: #666">
+      Constants Optimiser - Nelder-Mead / Particle Swarm
+    </div>
+    <div
+      style="display: flex; gap: 2px; align-items: flex-start; margin-top: 2px"
+    >
+      <div style="display: flex; flex-direction: column; align-items: center">
+        <textarea id="simEdit" rows="12" cols="44" disabled></textarea>
+        <div
+          style="
+            display: flex;
+            gap: 1px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 350px;
+          "
+        >
+          <button id="simBtn" disabled>View Shot</button>
+          <button id="saveBtn" disabled>Save JSON</button>
+          <button id="simplifyBtn" disabled>Simplify</button>
+          <label class="tol-label"
+            >MinDist(mm):<input
+              type="range"
+              id="simplifyTol"
+              value="100"
+              min="0"
+              max="1000"
+              step="5"
+              class="tol-input"
+              style="width: 80px"
+            /><span id="simplifyTolVal">100</span></label
+          >
+          <select
+            id="trajectoryShots"
+            style="font-size: 11px; font-family: monospace; width: 18ch"
+          >
+            <option value="">trajectory shots</option>
+          </select>
+          <label style="display: flex; align-items: center; gap: 1px"
+            ><input type="checkbox" id="trackAll" />track all</label
+          >
+          <label style="display: flex; align-items: center; gap: 1px"
+            >cutoff(s):<input
+              type="number"
+              id="cutoffInput"
+              value="4"
+              min="0"
+              step="0.5"
+              style="width: 40px"
+          /></label>
+          <select
+            id="optimiserSelect"
+            style="font-size: 11px; font-family: monospace"
+          >
+            <option value="nm">Nelder-Mead</option>
+            <option value="pso">PSO</option>
+          </select>
+          <button id="optBtn" disabled>Optimise</button>
+          <button id="stopBtn" disabled>Stop</button>
+        </div>
+        <span id="status">Click 'view shot' to see the simulated path</span>
+        <span id="optStatus">Iterations:0</span>
+        <canvas
+          id="rmseCanvas"
+          width="320"
+          height="86"
+          style="margin-top: 1px; border: 1px solid #c0c0c0"
+        ></canvas>
+        <span id="rmseLabel">RMSE</span>
+      </div>
+      <table id="paramTable" style="border-collapse: collapse">
+        <thead>
+          <tr>
+            <th>tune</th>
+            <th>param</th>
+            <th>min</th>
+            <th>max</th>
+            <th>system</th>
+            <th>current</th>
+          </tr>
+        </thead>
+        <tbody id="paramRows"></tbody>
+      </table>
+    </div>
+
+    <div style="position: relative; display: inline-block">
+      <canvas id="c" style="margin-top: 0; border: 1px solid #ccc"></canvas>
+      <button
+        id="playBtn"
+        style="position: absolute; bottom: 4px; right: 36px; font-size: 10px"
+        disabled
+      >
+        play
+      </button>
+      <button
+        id="editBtn"
+        style="position: absolute; bottom: 4px; right: 4px; font-size: 10px"
+        disabled
+      >
+        edit
+      </button>
+    </div>
+    <pre id="report" style="font-size: 9px"></pre>
+    <script type="module">
+      import { runSim } from "./sim.js"
+      import { redraw, HALF_W, HALF_H } from "./plot.js"
+      import { runOptimiseNM, runOptimisePSO } from "./optimise.js"
+      import { simplifyTruth } from "./simplify.js"
+
+      const W = 720,
+        H = Math.round((W * HALF_H) / HALF_W)
+      const canvas = document.getElementById("c")
+      canvas.width = W
+      canvas.height = H
+
+      let simTracks = null,
+        loadedData = null,
+        loadedFile = null
+      let abortController = null,
+        rmseHistory = []
+
+      function drawRMSEGraph(canvas, history) {
+        const ctx = canvas.getContext("2d")
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        const valid = history.filter(
+          (v) => !isNaN(v) && v !== null && v !== Infinity && v > 0
+        )
+        if (valid.length < 2) return
+
+        const logValid = valid.map((v) => Math.log(v))
+        const maxLog = Math.max(...logValid)
+        const minLog = Math.min(...logValid)
+        const range = maxLog - minLog || 1
+
+        ctx.beginPath()
+        ctx.strokeStyle = "#007bff"
+        let first = true
+        for (let i = 0; i < history.length; i++) {
+          const v = history[i]
+          if (isNaN(v) || v === null || v === Infinity || v <= 0) continue
+          const x = (i / (history.length - 1)) * canvas.width
+          const y =
+            canvas.height - ((Math.log(v) - minLog) / range) * canvas.height
+          if (first) {
+            ctx.moveTo(x, y)
+            first = false
+          } else ctx.lineTo(x, y)
+        }
+        ctx.stroke()
+      }
+
+      function readCutoff() {
+        const v = parseFloat(document.getElementById("cutoffInput").value)
+        return Number.isFinite(v) ? v : null
+      }
+
+      function updateDrawing() {
+        if (!loadedData) return
+        const trackAll = document.getElementById("trackAll").checked
+        redraw(canvas, loadedData.truth, simTracks, trackAll, readCutoff())
+      }
+
+      const defaults = {
+        mu: 0.0055,
+        muS: 0.126,
+        rho: 0.045,
+        m: 0.23,
+        R: 0.03275,
+        ee: 0.85,
+        μs: 0.2,
+        μw: 0.2,
+        stronge_omega_ratio: 1.76,
+        stronge_e_n: 0.77,
+        stronge_μ: 0.25,
+        warpClearanceR: 2.05,
+      }
+      function colorCurrent(el) {
+        if (!el) return
+        const sys = parseFloat(el.dataset.sys)
+        const cur = parseFloat(el.textContent)
+        if (isNaN(sys) || isNaN(cur)) return
+        if (Math.abs(cur - sys) < 1e-9) {
+          el.style.background = ""
+        } else if (cur > sys) {
+          el.style.background = "#ffcccc"
+        } else {
+          el.style.background = "#cce5ff"
+        }
+      }
+
+      function buildParamRows(sim) {
+        const tbody = document.getElementById("paramRows")
+        tbody.innerHTML = ""
+        const allParams = { ...sim.params }
+        if (sim.shot) {
+          allParams["shot.angle"] = sim.shot.angle
+          allParams["shot.power"] = sim.shot.power
+          allParams["shot.elevation"] = sim.shot.elevation
+          if (sim.shot.offset) {
+            allParams["shot.offset.x"] = sim.shot.offset.x
+            allParams["shot.offset.y"] = sim.shot.offset.y
+          }
+        }
+
+        for (const [name, val] of Object.entries(allParams)) {
+          const tr = document.createElement("tr")
+          const ranges = {
+            "shot.offset.x": [-0.451, 0.451],
+            "shot.offset.y": [-0.451, 0.451],
+            "shot.power": [0.1, 5.25],
+            "shot.angle": [-Math.PI * 2, Math.PI * 2],
+            "shot.elevation": [0, Math.PI / 4],
+            stronge_omega_ratio: [1.01, 1.99],
+            stronge_e_n: [0.5, 0.99],
+            ee: [0.5, 0.99],
+          }
+          let min, max
+          if (ranges[name]) {
+            ;[min, max] = ranges[name]
+          } else {
+            min = val * 0.5
+            max = val * 1.5
+            if (Math.abs(max - min) < 1e-7) {
+              min = val - 0.1
+              max = val + 0.1
+            }
+          }
+          const sysVal = defaults.hasOwnProperty(name) ? defaults[name] : val
+          tr.innerHTML = `
+      <td><input type="checkbox" data-name="${name}"></td>
+      <td>${name}</td>
+      <td><input type="number" data-role="min" data-name="${name}" value="${min.toFixed(3)}" step="any" style="width:56px"></td>
+      <td><input type="number" data-role="max" data-name="${name}" value="${max.toFixed(3)}" step="any" style="width:56px"></td>
+      <td>${sysVal.toFixed(4)}</td>
+      <td><span id="cur-${name.replace(/\./g, "-")}" data-sys="${sysVal}">${val.toFixed(4)}</span></td>`
+          tbody.appendChild(tr)
+          colorCurrent(tr.querySelector('span[id^="cur-"]'))
+        }
+      }
+
+      function updateParamDisplay(name, val) {
+        const el = document.getElementById(`cur-${name.replace(/\./g, "-")}`)
+        if (el) {
+          el.textContent = typeof val === "number" ? val.toFixed(4) : val
+          colorCurrent(el)
+        }
+      }
+
+      function getSpecs() {
+        const specs = []
+        for (const cb of document.querySelectorAll(
+          "#paramRows input[type=checkbox]"
+        )) {
+          if (!cb.checked) continue
+          const name = cb.dataset.name
+          const min = parseFloat(
+            document.querySelector(`input[data-role=min][data-name="${name}"]`)
+              .value
+          )
+          const max = parseFloat(
+            document.querySelector(`input[data-role=max][data-name="${name}"]`)
+              .value
+          )
+          specs.push({ name, min, max })
+        }
+        return specs
+      }
+
+      function loadData(data) {
+        loadedData = data
+        simTracks = null
+        rmseHistory = []
+        document.getElementById("rmseLabel").textContent =
+          `RMSE - ${loadedFile ?? ""}`
+        drawRMSEGraph(document.getElementById("rmseCanvas"), rmseHistory)
+        document.getElementById("simEdit").value = JSON.stringify(
+          loadedData.sim,
+          null,
+          2
+        )
+        document.getElementById("simEdit").disabled = false
+        document.getElementById("simBtn").disabled = false
+        document.getElementById("saveBtn").disabled = false
+        document.getElementById("simplifyBtn").disabled = false
+        document.getElementById("optBtn").disabled = false
+        document.getElementById("editBtn").disabled = false
+        document.getElementById("playBtn").disabled = false
+        document.getElementById("report").textContent = loadedData.report ?? ""
+        buildParamRows(loadedData.sim)
+        updateDrawing()
+        onRunSim()
+      }
+
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlIndex = urlParams.get("index")
+      const urlShotId = urlParams.get("shot")
+
+      async function onRunSim() {
+        const btn = document.getElementById("simBtn")
+        const status = document.getElementById("status")
+        const trackAll = document.getElementById("trackAll").checked
+        const cutoff = readCutoff()
+        let sim
+        try {
+          sim = JSON.parse(document.getElementById("simEdit").value)
+        } catch (e) {
+          document.getElementById("status").textContent = "Invalid sim JSON"
+          return
+        }
+
+        loadedData.sim = sim
+        btn.disabled = true
+        status.textContent = "Running..."
+        try {
+          const t0 = performance.now()
+          const result = await runSim(
+            loadedData.sim,
+            loadedData.truth,
+            trackAll,
+            cutoff
+          )
+          status.textContent = `Shot done in ${Math.round(performance.now() - t0)}ms — ${result.frames.length} steps`
+          simTracks = result.simTracks
+          if (result.rmse !== null) {
+            status.textContent += `  RMSE=${(result.rmse * 100).toFixed(1)}cm`
+            document.getElementById("optStatus").textContent =
+              `Initial RMSE: ${(result.rmse * 100).toFixed(2)}cm`
+          }
+          updateDrawing()
+        } catch (err) {
+          status.textContent = `Error: ${err.message}`
+        }
+        btn.disabled = false
+      }
+
+      document.getElementById("simBtn").onclick = onRunSim
+      document.getElementById("trackAll").onchange = updateDrawing
+      document.getElementById("cutoffInput").onchange = () => {
+        updateDrawing()
+        onRunSim()
+      }
+
+      const simplifyTolInput = document.getElementById("simplifyTol")
+      const simplifyTolValSpan = document.getElementById("simplifyTolVal")
+      if (simplifyTolInput && simplifyTolValSpan) {
+        simplifyTolInput.addEventListener("input", () => {
+          simplifyTolValSpan.textContent = simplifyTolInput.value
+        })
+      }
+
+      document.getElementById("simplifyBtn").onclick = () => {
+        if (!loadedData || !loadedData.truth) return
+        const tolVal = parseFloat(simplifyTolInput.value)
+        if (isNaN(tolVal) || tolVal < 0) {
+          document.getElementById("status").textContent =
+            "Invalid minimum distance value"
+          return
+        }
+
+        const originalCount = loadedData.truth.length
+        const simplifiedTruth = simplifyTruth(loadedData.truth, tolVal)
+        loadedData.truth = simplifiedTruth
+
+        const newCount = simplifiedTruth.length
+        const removed = originalCount - newCount
+        const pct = ((newCount / originalCount) * 100).toFixed(1)
+        document.getElementById("status").textContent =
+          `Simplified: ${originalCount} -> ${newCount} samples (${removed} points removed, ${pct}%) at ${tolVal}mm`
+
+        updateDrawing()
+      }
+      document.getElementById("trackAll").onchange = updateDrawing
+
+      document.getElementById("optBtn").onclick = async () => {
+        const specs = getSpecs()
+        const trackAll = document.getElementById("trackAll").checked
+        const cutoff = readCutoff()
+        if (specs.length === 0) {
+          document.getElementById("optStatus").textContent =
+            "Check at least one param"
+          return
+        }
+
+        try {
+          loadedData.sim = JSON.parse(document.getElementById("simEdit").value)
+        } catch (e) {
+          document.getElementById("status").textContent = "Invalid sim JSON"
+          return
+        }
+
+        abortController = new AbortController()
+        document.getElementById("optBtn").disabled = true
+        document.getElementById("stopBtn").disabled = false
+        document.getElementById("simEdit").disabled = true
+        document.getElementById("optStatus").textContent = "iter 0"
+        rmseHistory = []
+        drawRMSEGraph(document.getElementById("rmseCanvas"), rmseHistory)
+
+        const onStep = ({ iter, rmse, params }) => {
+          document.getElementById("optStatus").textContent =
+            `iter ${iter}  RMSE=${(rmse * 100).toFixed(2)}cm`
+          rmseHistory.push(rmse)
+          drawRMSEGraph(document.getElementById("rmseCanvas"), rmseHistory)
+
+          for (const [name, val] of Object.entries(params)) {
+            if (name.startsWith("shot.")) {
+              const path = name.split(".").slice(1)
+              let curr = loadedData.sim.shot
+              for (let i = 0; i < path.length - 1; i++) curr = curr[path[i]]
+              curr[path[path.length - 1]] = val
+            } else {
+              loadedData.sim.params[name] = val
+            }
+            updateParamDisplay(name, val)
+          }
+        }
+
+        try {
+          const runOptimise =
+            document.getElementById("optimiserSelect").value === "pso"
+              ? runOptimisePSO
+              : runOptimiseNM
+          await runOptimise(
+            loadedData.sim,
+            loadedData.truth,
+            specs,
+            onStep,
+            abortController.signal,
+            trackAll,
+            cutoff
+          )
+        } catch (err) {
+          document.getElementById("optStatus").textContent =
+            `Error: ${err.message}`
+        }
+
+        document.getElementById("simEdit").value = JSON.stringify(
+          loadedData.sim,
+          null,
+          2
+        )
+        await onRunSim()
+
+        document.getElementById("optBtn").disabled = false
+        document.getElementById("stopBtn").disabled = true
+        document.getElementById("simEdit").disabled = false
+      }
+
+      document.getElementById("stopBtn").onclick = () => {
+        abortController?.abort()
+        document.getElementById("stopBtn").disabled = true
+        document.getElementById("optBtn").disabled = false
+      }
+
+      document.getElementById("editBtn").onclick = () => {
+        if (loadedFile)
+          window.open(
+            "./edit.html?file=" + encodeURIComponent(loadedFile),
+            "_blank"
+          )
+      }
+
+      document.getElementById("playBtn").onclick = () => {
+        const sim = loadedData?.sim
+        if (!sim) return
+        const url = new URL("../index.html", window.location.href)
+        url.searchParams.set("ruletype", "threecushion")
+        url.searchParams.set("practice", "true")
+        if (sim.cushionModel)
+          url.searchParams.set("cushionModel", sim.cushionModel)
+        for (const [key, val] of Object.entries(sim.params ?? {})) {
+          url.searchParams.set(key, val)
+        }
+        url.searchParams.set(
+          "init",
+          JSON.stringify(sim.balls.flatMap((b) => [b.pos.x, b.pos.y]))
+        )
+        url.searchParams.set("initShot", JSON.stringify(sim.shot))
+        window.open(url.toString(), "_blank")
+      }
+
+      document.getElementById("saveBtn").onclick = async () => {
+        let sim
+        try {
+          sim = JSON.parse(document.getElementById("simEdit").value)
+        } catch (e) {
+          document.getElementById("status").textContent = "Invalid sim JSON"
+          return
+        }
+        loadedData.sim = sim
+        const blob = new Blob([JSON.stringify(loadedData, null, 2)], {
+          type: "application/json",
+        })
+        if (window.showSaveFilePicker) {
+          const fh = await window.showSaveFilePicker({
+            suggestedName:
+              loadedData.source?.split("/").pop()?.replace(".txt", ".json") ??
+              "output.json",
+          })
+          const w = await fh.createWritable()
+          await w.write(blob)
+          await w.close()
+        } else {
+          const a = Object.assign(document.createElement("a"), {
+            href: URL.createObjectURL(blob),
+            download: "output.json",
+          })
+          a.click()
+        }
+      }
+      function convertTrajectoryShot(shot) {
+        let moverId = null
+        let minT1 = Infinity
+        for (const [id, ball] of Object.entries(shot.balls)) {
+          if (ball.t.length >= 2 && ball.t[1] < minT1) {
+            minT1 = ball.t[1]
+            moverId = id
+          }
+        }
+        if (moverId === null) {
+          moverId = Object.keys(shot.balls)[0] || "1"
+        }
+
+        const otherIds = Object.keys(shot.balls)
+          .filter((id) => id !== moverId)
+          .sort()
+        const ballMapping = {}
+        ballMapping[moverId] = 0
+        if (otherIds[0] !== undefined) ballMapping[otherIds[0]] = 1
+        if (otherIds[1] !== undefined) ballMapping[otherIds[1]] = 2
+
+        const truth = []
+        for (const [origId, b] of Object.entries(shot.balls)) {
+          const ballId = ballMapping[origId]
+          for (let i = 0; i < b.t.length; i++) {
+            truth.push({
+              ball: ballId,
+              t: b.t[i],
+              x: b.x[i],
+              y: b.y[i],
+            })
+          }
+        }
+        truth.sort((a, b) => {
+          if (a.t !== b.t) return a.t - b.t
+          return a.ball - b.ball
+        })
+
+        const balls = []
+        for (const [origId, b] of Object.entries(shot.balls)) {
+          const ballId = ballMapping[origId]
+          balls.push({
+            id: ballId,
+            pos: {
+              x: b.x[0],
+              y: b.y[0],
+              z: 0,
+            },
+          })
+        }
+        balls.sort((a, b) => a.id - b.id)
+
+        const cueBall = shot.balls[moverId]
+        let angle = 0
+        let power = 0
+        if (cueBall && cueBall.t.length >= 2) {
+          const t0_idx = cueBall.t.length > 1 ? 1 : 0
+          const idx5 = Math.min(5, cueBall.t.length - 1)
+          const dx = cueBall.x[idx5] - cueBall.x[t0_idx]
+          const dy = cueBall.y[idx5] - cueBall.y[t0_idx]
+          const dt = cueBall.t[idx5] - cueBall.t[t0_idx]
+          angle = Math.atan2(dy, dx)
+          power = dt > 0 ? Math.hypot(dx, dy) / dt : 0
+        }
+
+        /* prefer a fitted shot (from fit-shots.mjs) over the kinematic seed */
+        const shotParams = shot.shot
+          ? {
+              cueBallId: 0,
+              angle: shot.shot.angle ?? angle,
+              power: shot.shot.power ?? power,
+              offset: {
+                x: shot.shot.offset?.x ?? 0,
+                y: shot.shot.offset?.y ?? 0,
+              },
+              elevation: shot.shot.elevation ?? 0,
+            }
+          : {
+              cueBallId: 0,
+              angle: angle,
+              power: power,
+              offset: { x: 0, y: 0 },
+              elevation: 0,
+            }
+
+        const sim = {
+          ruleType: "threecushion",
+          cushionModel: "mathavan",
+          shot: shotParams,
+          params: { ...defaults },
+          stepSize: 0.001953125,
+          maxIterations: 20000,
+          balls: balls,
+        }
+
+        return {
+          source: `shots.json (shot ${shot.id})`,
+          report:
+            `Converted Shot ID ${shot.id}\nCue ball: ${moverId} -> 0\nOthers: ${otherIds.join(", ")}` +
+            (shot.fit
+              ? `\nFitted (${shot.fit.optimiser}): ${shot.fit.rmseBeforeCm}cm -> ${shot.fit.rmseAfterCm}cm`
+              : ""),
+          sim: sim,
+          truth: truth,
+        }
+      }
+
+      let trajectories = null
+      fetch("./shots.json")
+        .then((r) => r.json())
+        .then((data) => {
+          trajectories = data
+          const select = document.getElementById("trajectoryShots")
+          select.innerHTML = '<option value="">trajectory shots</option>'
+          data.forEach((shot, index) => {
+            const opt = document.createElement("option")
+            opt.value = index
+            opt.textContent = `Shot ${shot.id ?? index}`
+            select.appendChild(opt)
+          })
+
+          // ?index=N addresses shots.json positionally; ?shot=<id> matches
+          // the shot's own id (ids don't equal array positions).
+          let idx
+          if (urlIndex !== null) {
+            const i = parseInt(urlIndex, 10)
+            idx = !isNaN(i) && data[i] ? i : NaN
+          } else if (urlShotId !== null) {
+            const i = data.findIndex((e) => e.id === Number(urlShotId))
+            idx = i >= 0 ? i : NaN
+          } else {
+            idx = NaN
+          }
+          if (isNaN(idx)) idx = Math.floor(Math.random() * data.length)
+          const shot = data[idx]
+          select.value = idx
+          loadedFile = `shots.json [Shot ${shot.id ?? idx}]`
+          const converted = convertTrajectoryShot(shot)
+          loadData(converted)
+        })
+        .catch((err) => {
+          console.warn("Failed to load shots.json", err)
+        })
+
+      document.getElementById("trajectoryShots").onchange = (e) => {
+        const indexVal = e.target.value
+        if (indexVal === "") return
+        const idx = parseInt(indexVal, 10)
+        if (isNaN(idx) || !trajectories || !trajectories[idx]) return
+
+        const shot = trajectories[idx]
+        loadedFile = `shots.json [Shot ${shot.id ?? idx}]`
+        const converted = convertTrajectoryShot(shot)
+        loadData(converted)
+      }
+    </script>
+  </body>
+</html>

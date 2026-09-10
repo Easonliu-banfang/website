@@ -1,0 +1,490 @@
+html {
+  font-size: 87.5%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Exo, sans-serif;
+  font-weight: 200;
+  background: #1a1a1a;
+  color: #e2e8f0;
+  line-height: 1.4;
+  padding: 0.25rem;
+}
+
+header {
+  position: relative;
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto 0.5rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 200;
+}
+
+.lobby-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, #6366f1, #2563eb, #1d4ed8);
+  color: #fff;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: box-shadow 0.2s;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 30%),
+    inset 0 1px 0 rgb(255 255 255 / 15%);
+  letter-spacing: 0.02em;
+}
+
+.lobby-btn:hover {
+  box-shadow:
+    0 4px 14px rgb(99 102 241 / 45%),
+    inset 0 1px 0 rgb(255 255 255 / 20%);
+}
+
+/* Card grid */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Single card */
+.speedrun-card {
+  background: #1e293b;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 30%);
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #334155;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+
+.speedrun-card:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 16px rgb(99 102 241 / 25%);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-size: 1rem;
+  margin: 0.15rem 0;
+  text-align: center;
+  font-weight: 200;
+}
+
+.card-desc {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  margin-bottom: 0.3rem;
+}
+
+/* SVG table preview */
+.billiards-table {
+  width: 100%;
+  height: auto;
+  background: transparent;
+  display: block;
+}
+
+/* Pool Table Coloring */
+.billiards-table .pool-cloth {
+  fill: url("#pool-blue-gradient");
+}
+
+.billiards-table .pool-surround {
+  fill: url("#premium-wood-gradient");
+  stroke: #1b100b;
+  stroke-width: 0.006;
+}
+
+.billiards-table .pool-cushion {
+  fill: #24699e;
+  stroke: #16466b;
+  filter: url("#cushion-shadow");
+  clip-path: url("#cloth-clip");
+}
+
+.billiards-table .pool-pocket {
+  fill: #111;
+  stroke: #000;
+}
+
+.billiards-table .pool-corner-piece,
+.billiards-table .pool-corner-piece path {
+  fill: none !important;
+  stroke: #160b06 !important;
+  stroke-width: 0.003 !important;
+  opacity: 0.35 !important;
+}
+
+/* Snooker Table Coloring */
+.billiards-table.snooker .pool-cloth {
+  fill: url("#snooker-green-gradient");
+}
+
+.billiards-table.snooker .pool-cushion {
+  fill: #084c23;
+  stroke: #053016;
+}
+
+/* Solid fill for balls on speedrun cards */
+.billiards-table .ball {
+  --ball-fill: var(--ball-stroke);
+}
+
+.play-rank-wrapper {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+  align-items: stretch;
+}
+
+/* Play button */
+.play-btn {
+  display: block;
+  padding: 0.35rem 0.75rem;
+  background: linear-gradient(135deg, #6366f1, #2563eb, #1d4ed8);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition:
+    box-shadow 0.2s,
+    transform 0.15s;
+  flex: 0 0 auto;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 30%),
+    inset 0 1px 0 rgb(255 255 255 / 15%);
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+
+.play-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 25%),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+}
+
+.play-btn:hover {
+  box-shadow:
+    0 4px 14px rgb(99 102 241 / 45%),
+    inset 0 1px 0 rgb(255 255 255 / 20%);
+  transform: translateY(-1px);
+}
+
+.play-btn:hover::before {
+  left: 150%;
+}
+
+/* Rankings */
+.rankings {
+  flex: 1;
+  border-left: 1px solid #334155;
+  padding-left: 0.3rem;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rankings h4 {
+  font-size: 0.7rem;
+  margin-bottom: 0.05rem;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+  font-weight: 200;
+}
+
+.rankings-empty {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.rankings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rankings-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.15rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #1e293b;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.rankings-list li:hover {
+  background: rgb(255 255 255 / 6%);
+}
+
+.rankings-list li:last-child {
+  border-bottom: none;
+}
+
+.rank {
+  font-weight: 700;
+  color: #2563eb;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.rank-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-time {
+  font-family: Exo, monospace;
+  color: #cbd5e1;
+}
+
+.rank-replay {
+  color: #2563eb;
+  font-size: 0.85rem;
+  padding: 0 0.15rem;
+  flex-shrink: 0;
+}
+
+/* Iframe overlay */
+#gameOverlay {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgb(26 26 26 / 90%);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#gameOverlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.iframe-container {
+  width: 90%;
+  height: 90%;
+  background: #1a1a1a;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  transition:
+    transform 0.3s ease-in,
+    opacity 0.3s ease-in;
+}
+
+#gameOverlay.closing .iframe-container {
+  transform: scale(0);
+  opacity: 0;
+}
+
+.iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Timer display */
+.timer-display {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-size: 2.2rem;
+  font-weight: bold;
+  z-index: 10;
+  text-shadow: 0 0 8px rgb(0 0 0 / 60%);
+  pointer-events: none;
+}
+
+/* Close button */
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #fff;
+  color: #000;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: bold;
+  line-height: 1;
+  z-index: 1010;
+}
+
+.close-btn:hover {
+  background: #ddd;
+}
+
+/* Result modal (shared fail + success) */
+#resultModal {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  backdrop-filter: blur(2px);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#resultModal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.result-card {
+  background: #2a2420;
+  border: 1px solid #6b5743;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 90%);
+  max-width: 320px;
+  width: 90%;
+}
+
+.result-card h2 {
+  font-size: 1.3rem;
+  margin-bottom: 0.3rem;
+  font-weight: 200;
+}
+
+.result-card p {
+  font-size: 1rem;
+  color: #d4ccc0;
+  margin-bottom: 0.75rem;
+}
+
+#resultModal.fail .result-card h2 {
+  color: #dc2626;
+}
+
+#resultModal.success .result-card h2 {
+  color: #16a34a;
+}
+
+#resultOkBtn {
+  padding: 0.35rem 1.25rem;
+  background: linear-gradient(135deg, #6366f1, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 30%),
+    inset 0 1px 0 rgb(255 255 255 / 15%);
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.02em;
+}
+
+#resultOkBtn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 25%),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.5s ease;
+}
+
+#resultOkBtn:hover {
+  box-shadow:
+    0 4px 14px rgb(99 102 241 / 45%),
+    inset 0 1px 0 rgb(255 255 255 / 20%);
+}
+
+#resultOkBtn:hover::before {
+  left: 150%;
+}
+
+/* ?run=id filtering — hide all cards except the matching one */
+html[data-run] .card-grid > .speedrun-card:not(.active-run) {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+}
+
+/* Icon buttons on card SVGs */
+.icon-btn:hover {
+  opacity: 0.9 !important;
+  filter: none !important;
+}

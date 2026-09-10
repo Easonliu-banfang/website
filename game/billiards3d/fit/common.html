@@ -1,0 +1,632 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Common Optimiser</title>
+    <link rel="icon" type="image/png" href="../favicon.png" />
+    <script src="../worker.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 1px;
+        padding: 1px;
+        font-family: monospace;
+        font-size: 11px;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      button {
+        padding: 2px 1px;
+        cursor: pointer;
+      }
+
+      th,
+      td {
+        padding: 1px;
+        text-align: left;
+      }
+
+      .container {
+        display: flex;
+        gap: 4px;
+        align-items: flex-start;
+        max-width: 1000px;
+        width: 100%;
+      }
+
+      .controls {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .file-list {
+        border: 1px solid #ccc;
+        padding: 1px;
+        max-height: 200px;
+        overflow-y: auto;
+        background: #f9f9f9;
+      }
+
+      #rmseCanvas {
+        border: 1px solid #c0c0c0;
+        background: white;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      th {
+        background-color: #ddd;
+      }
+
+      #paramTable th:nth-child(n + 7),
+      #paramTable td:nth-child(n + 7) {
+        max-width: 6ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div style="font-size: 14px; font-weight: bold; margin-bottom: 2px">
+      Multi-Shot Physics Optimiser
+    </div>
+
+    <div class="container">
+      <div class="controls">
+        <div style="display: flex; gap: 1px; align-items: center">
+          <button id="loadBtn">Load shots.json</button>
+          <button id="clearBtn">Clear All</button>
+          <button id="resetBtn">Reset</button>
+          <button id="restoreBestBtn" disabled>Restore Best</button>
+        </div>
+
+        <div class="file-list" id="fileList">
+          <label
+            >min RMSE (cm)
+            <input
+              type="number"
+              id="minRmse"
+              value="0"
+              min="0"
+              step="any"
+              style="width: 70px"
+          /></label>
+          <label
+            >max RMSE (cm)
+            <input
+              type="number"
+              id="maxRmse"
+              value="20"
+              min="0"
+              step="any"
+              style="width: 70px"
+          /></label>
+        </div>
+
+        <div
+          style="display: flex; gap: 2px; align-items: center; margin-top: 2px"
+        >
+          <label><input type="checkbox" id="trackAll" /> track all</label>
+          <select id="optimiserSelect">
+            <option value="nm">Nelder-Mead</option>
+            <option value="pso">PSO</option>
+          </select>
+          <button id="optBtn" disabled>Start Optimisation</button>
+          <button id="stopBtn" disabled>Stop</button>
+        </div>
+
+        <div id="status" style="font-weight: bold; margin-top: 2px">
+          Status: Idle
+        </div>
+        <div id="optStatus">Iterations: 0</div>
+
+        <canvas id="rmseCanvas" width="300" height="100"></canvas>
+        <div id="rmseLabel" style="text-align: center">Global RMSE</div>
+      </div>
+
+      <div style="flex: 1">
+        <table id="paramTable">
+          <thead id="paramHeader">
+            <tr>
+              <th>Tune</th>
+              <th>Parameter</th>
+              <th>Min</th>
+              <th>Max</th>
+              <th>System</th>
+              <th>Current</th>
+            </tr>
+          </thead>
+          <tbody id="paramRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div
+      id="plotContainer"
+      style="
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        margin-top: 2px;
+        width: 100%;
+        justify-content: center;
+      "
+    ></div>
+
+    <script type="module">
+      import { runSim } from "./sim.js"
+      import { redraw } from "./plot.js"
+      import { computeSSE } from "./rmse.js"
+      import { runOptimiseNM, runOptimisePSO } from "./optimise.js"
+
+      let allData = []
+      let abortController = null
+      let rmseHistory = []
+      let bestParams = null
+      let bestRmse = Infinity
+
+      const loadBtn = document.getElementById("loadBtn")
+      const paramRows = document.getElementById("paramRows")
+      const optBtn = document.getElementById("optBtn")
+      const stopBtn = document.getElementById("stopBtn")
+      const restoreBestBtn = document.getElementById("restoreBestBtn")
+      const status = document.getElementById("status")
+      const optStatus = document.getElementById("optStatus")
+      const rmseCanvas = document.getElementById("rmseCanvas")
+      const plotContainer = document.getElementById("plotContainer")
+
+      // Mirrors viewer.html convertTrajectoryShot for shots.json entries.
+      function findMover(balls) {
+        let moverId = null
+        let minT1 = Infinity
+        for (const [id, ball] of Object.entries(balls)) {
+          if (ball.t.length >= 2 && ball.t[1] < minT1) {
+            minT1 = ball.t[1]
+            moverId = id
+          }
+        }
+        if (moverId === null) {
+          moverId = Object.keys(balls)[0] || "1"
+        }
+        return moverId
+      }
+
+      // Mirrors viewer.html convertTrajectoryShot for shots.json entries.
+      function convertEntry(entry) {
+        const moverId = entry.mover ?? findMover(entry.balls)
+        const mapping =
+          entry.ballMapping ??
+          (() => {
+            const otherIds = Object.keys(entry.balls)
+              .filter((id) => id !== moverId)
+              .sort()
+            const m = { [moverId]: 0 }
+            if (otherIds[0] !== undefined) m[otherIds[0]] = 1
+            if (otherIds[1] !== undefined) m[otherIds[1]] = 2
+            return m
+          })()
+
+        const truth = []
+        for (const [origId, b] of Object.entries(entry.balls)) {
+          const ballId = mapping[origId]
+          for (let i = 0; i < b.t.length; i++) {
+            truth.push({ ball: ballId, t: b.t[i], x: b.x[i], y: b.y[i] })
+          }
+        }
+        truth.sort((a, b) => (a.t !== b.t ? a.t - b.t : a.ball - b.ball))
+
+        const simBalls = Object.entries(entry.balls).map(([origId, b]) => ({
+          id: mapping[origId],
+          pos: { x: b.x[0], y: b.y[0], z: 0 },
+        }))
+        simBalls.sort((a, b) => a.id - b.id)
+
+        const s = entry.shot ?? {}
+        const sim = {
+          ruleType: "threecushion",
+          cushionModel: "mathavan",
+          shot: {
+            cueBallId: 0,
+            angle: s.angle ?? 0,
+            power: s.power ?? 0,
+            offset: { x: s.offset?.x ?? 0, y: s.offset?.y ?? 0 },
+            elevation: s.elevation ?? 0,
+          },
+          params: { ...defaults },
+          stepSize: 0.001953125,
+          maxIterations: 20000,
+          balls: simBalls,
+        }
+        return { sim, truth }
+      }
+
+      loadBtn.onclick = async () => {
+        const minRmse = parseFloat(document.getElementById("minRmse").value)
+        const maxRmse = parseFloat(document.getElementById("maxRmse").value)
+        if (
+          !Number.isFinite(minRmse) ||
+          minRmse < 0 ||
+          !Number.isFinite(maxRmse) ||
+          maxRmse < 0
+        ) {
+          status.textContent = "Status: invalid RMSE range"
+          return
+        }
+
+        status.textContent = "Status: Loading shots.json..."
+        try {
+          const r = await fetch("./shots.json")
+          const entries = await r.json()
+          allData = []
+          for (const entry of entries) {
+            const rmse = entry.fit?.rmseAfterCm
+            if (!Number.isFinite(rmse) || rmse < minRmse || rmse >= maxRmse)
+              continue
+            const { sim, truth } = convertEntry(entry)
+            allData.push({
+              name: `shot ${entry.id} (${rmse.toFixed(1)}cm)`,
+              sim,
+              truth,
+            })
+          }
+        } catch (err) {
+          console.error("Failed to load shots.json", err)
+          status.textContent = "Status: Error loading shots.json"
+          return
+        }
+
+        bestParams = null
+        bestRmse = Infinity
+        restoreBestBtn.disabled = true
+
+        updateUI()
+        await plotAllData()
+      }
+
+      document.getElementById("clearBtn").onclick = () => {
+        allData = []
+        bestParams = null
+        bestRmse = Infinity
+        restoreBestBtn.disabled = true
+        updateUI()
+      }
+
+      document.getElementById("resetBtn").onclick = async () => {
+        for (const tr of paramRows.querySelectorAll("tr")) {
+          const tds = tr.querySelectorAll("td")
+          const sysText = tds[4].textContent.trim()
+          const sysVal = parseFloat(sysText)
+          if (isNaN(sysVal)) continue
+          const name = tr.querySelector("input[type=checkbox]").dataset.name
+          for (const d of allData) {
+            d.sim.params[name] = sysVal
+          }
+          updateParamDisplay(name, sysVal)
+        }
+        await plotAllData()
+      }
+
+      restoreBestBtn.onclick = async () => {
+        if (!bestParams) return
+        applyParams(
+          bestParams,
+          allData.map((d) => d.sim)
+        )
+        status.textContent = `Status: Restored best RMSE ${(bestRmse * 100).toFixed(3)}cm`
+        await plotAllData()
+      }
+
+      function updateUI() {
+        if (allData.length === 0) {
+          paramRows.innerHTML = ""
+          document.getElementById("paramHeader").innerHTML =
+            "<tr><th>Tune</th><th>Parameter</th><th>Min</th><th>Max</th><th>System</th><th>Current</th></tr>"
+          optBtn.disabled = true
+          status.textContent = "Status: No files loaded"
+          return
+        }
+
+        buildParamTable(allData)
+        optBtn.disabled = false
+        status.textContent = `Status: ${allData.length} files loaded`
+      }
+
+      async function plotAllData() {
+        const trackAll = document.getElementById("trackAll").checked
+        plotContainer.innerHTML = ""
+        for (const d of allData) {
+          const res = await runSim(d.sim, d.truth, trackAll)
+          const wrapper = document.createElement("div")
+          wrapper.style.textAlign = "center"
+          const label = document.createElement("div")
+          label.textContent = d.name
+          const canvas = document.createElement("canvas")
+          canvas.width = 300
+          canvas.height = 150
+          canvas.style.border = "1px solid #ccc"
+          wrapper.appendChild(label)
+          wrapper.appendChild(canvas)
+          plotContainer.appendChild(wrapper)
+          redraw(canvas, d.truth, res.simTracks, trackAll)
+        }
+      }
+
+      const defaults = {
+        mu: 0.0055,
+        muS: 0.126,
+        rho: 0.045,
+        m: 0.23,
+        R: 0.03275,
+        ee: 0.85,
+        μs: 0.2,
+        μw: 0.175,
+        stronge_omega_ratio: 1.76,
+        stronge_e_n: 0.77,
+        stronge_μ: 0.25,
+        warpClearanceR: 2.05,
+      }
+      function buildParamTable(allData) {
+        const sim = allData[0].sim
+
+        // Build dynamic header with per-shot columns (omitted when many
+        // shots are loaded — the shared "Current" column is what matters)
+        const showPerShotCols = allData.length <= 12
+        let headerHtml =
+          "<tr><th>Tune</th><th>Parameter</th><th>Min</th><th>Max</th><th>System</th><th>Current</th>"
+        if (showPerShotCols) {
+          for (const d of allData) {
+            headerHtml += `<th>${d.name}</th>`
+          }
+        }
+        headerHtml += "</tr>"
+        document.getElementById("paramHeader").innerHTML = headerHtml
+
+        // Build parameter rows
+        paramRows.innerHTML = ""
+        const allParams = { ...sim.params }
+
+        for (const [name, val] of Object.entries(allParams)) {
+          const tr = document.createElement("tr")
+          const ranges = {
+            μs: [0.01, 0.99],
+            μw: [0.01, 0.99],
+            ee: [0.5, 0.99],
+            mu: [0.001, 0.02],
+            muS: [0.01, 0.5],
+            rho: [0.001, 0.5],
+          }
+          let [min, max] = ranges[name] || [val * 0.5, val * 1.5]
+          if (Math.abs(max - min) < 1e-7) {
+            min = val - 0.1
+            max = val + 0.1
+          }
+
+          // Build per-shot columns
+          let fileCols = ""
+          if (showPerShotCols) {
+            for (const d of allData) {
+              const fileVal = d.sim.params[name]
+              fileCols += `<td>${fileVal !== undefined ? fileVal.toFixed(3) : "-"}</td>`
+            }
+          }
+
+          tr.innerHTML = `
+            <td><input type="checkbox" data-name="${name}" ${ranges[name] ? "checked" : ""}></td>
+            <td>${name}</td>
+            <td><input type="number" data-role="min" data-name="${name}" value="${min.toFixed(3)}" step="any" style="width:60px"></td>
+            <td><input type="number" data-role="max" data-name="${name}" value="${max.toFixed(3)}" step="any" style="width:60px"></td>
+            <td>${defaults.hasOwnProperty(name) ? defaults[name].toFixed(3) : val.toFixed(3)}</td>
+            <td><span id="cur-${name.replace(/\./g, "-")}" data-sys="${defaults.hasOwnProperty(name) ? defaults[name] : val}" data-cur="${val}">${val.toFixed(3)}</span></td>
+            ${fileCols}`
+          paramRows.appendChild(tr)
+          colorCurrent(tr.querySelector('span[id^="cur-"]'))
+        }
+      }
+
+      function getSpecs() {
+        const specs = []
+        for (const cb of document.querySelectorAll(
+          "#paramRows input[type=checkbox]"
+        )) {
+          if (!cb.checked) continue
+          const name = cb.dataset.name
+          const min = parseFloat(
+            document.querySelector(`input[data-role=min][data-name="${name}"]`)
+              .value
+          )
+          const max = parseFloat(
+            document.querySelector(`input[data-role=max][data-name="${name}"]`)
+              .value
+          )
+          specs.push({ name, min, max })
+        }
+        return specs
+      }
+
+      function colorCurrent(el) {
+        const sys = parseFloat(el.dataset.sys)
+        const cur = parseFloat(el.dataset.cur)
+        if (Math.abs(cur - sys) < 1e-9) {
+          el.style.background = ""
+        } else if (cur > sys) {
+          el.style.background = "#ffcccc"
+        } else {
+          el.style.background = "#cce5ff"
+        }
+      }
+
+      function updateParamDisplay(name, val) {
+        const el = document.getElementById(`cur-${name.replace(/\./g, "-")}`)
+        if (el) {
+          el.dataset.cur = val
+          el.textContent = val.toFixed(3)
+          colorCurrent(el)
+        }
+      }
+
+      function getConfigParam(config, name) {
+        if (name.startsWith("shot.")) {
+          const path = name.split(".").slice(1)
+          let curr = config.shot
+          for (const p of path) curr = curr[p]
+          return curr
+        }
+        return config.params[name]
+      }
+
+      function getCurrentParams(specs, config) {
+        return Object.fromEntries(
+          specs.map((s) => [s.name, getConfigParam(config, s.name)])
+        )
+      }
+
+      function applyParams(params, configs) {
+        for (const [name, val] of Object.entries(params)) {
+          updateParamDisplay(name, val)
+          configs.forEach((c) => {
+            if (name.startsWith("shot.")) {
+              const path = name.split(".").slice(1)
+              let curr = c.shot
+              for (let i = 0; i < path.length - 1; i++) curr = curr[path[i]]
+              curr[path[path.length - 1]] = val
+            } else {
+              c.params[name] = val
+            }
+          })
+        }
+      }
+
+      async function computeGlobalRMSE(configs, truths, trackAll) {
+        let totalSSE = 0
+        let totalCount = 0
+        for (let i = 0; i < configs.length; i++) {
+          const res = await runSim(configs[i], truths[i], trackAll)
+          const { sse, count } = computeSSE(truths[i], res.simTracks, trackAll)
+          totalSSE += sse
+          totalCount += count
+        }
+        return totalCount > 0 ? Math.sqrt(totalSSE / totalCount) : Infinity
+      }
+
+      function drawRMSEGraph(canvas, history) {
+        const ctx = canvas.getContext("2d")
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        const valid = history.filter(
+          (v) => !isNaN(v) && v !== null && v !== Infinity && v > 0
+        )
+        if (valid.length < 2) return
+
+        const logValid = valid.map((v) => Math.log(v))
+        const maxLog = Math.max(...logValid)
+        const minLog = Math.min(...logValid)
+        const range = maxLog - minLog || 1
+
+        ctx.beginPath()
+        ctx.strokeStyle = "#007bff"
+        ctx.lineWidth = 2
+        let first = true
+        for (let i = 0; i < history.length; i++) {
+          const v = history[i]
+          if (isNaN(v) || v === null || v === Infinity || v <= 0) continue
+          const x = (i / (history.length - 1)) * canvas.width
+          const y =
+            canvas.height - ((Math.log(v) - minLog) / range) * canvas.height
+          if (first) {
+            ctx.moveTo(x, y)
+            first = false
+          } else ctx.lineTo(x, y)
+        }
+        ctx.stroke()
+      }
+
+      optBtn.onclick = async () => {
+        const specs = getSpecs()
+        if (specs.length === 0) {
+          alert("Please select at least one parameter to tune.")
+          return
+        }
+
+        const trackAll = document.getElementById("trackAll").checked
+        const method = document.getElementById("optimiserSelect").value
+
+        abortController = new AbortController()
+        optBtn.disabled = true
+        stopBtn.disabled = false
+        rmseHistory = []
+        bestParams = null
+        bestRmse = Infinity
+        restoreBestBtn.disabled = true
+        status.textContent = "Status: Measuring starting RMSE..."
+
+        const configs = allData.map((d) => d.sim)
+        const truths = allData.map((d) => d.truth)
+        bestParams = getCurrentParams(specs, configs[0])
+        try {
+          bestRmse = await computeGlobalRMSE(configs, truths, trackAll)
+        } catch (err) {
+          bestRmse = Infinity
+          console.warn("Failed to measure starting RMSE", err)
+        }
+        restoreBestBtn.disabled = false
+        status.textContent = "Status: Optimising..."
+
+        const onStep = ({ iter, rmse, params }) => {
+          optStatus.textContent = `Iteration ${iter} | Global RMSE: ${(rmse * 100).toFixed(3)}cm`
+          rmseHistory.push(rmse)
+          drawRMSEGraph(rmseCanvas, rmseHistory)
+          applyParams(params, configs)
+          if (Number.isFinite(rmse) && rmse < bestRmse) {
+            bestRmse = rmse
+            bestParams = { ...params }
+            restoreBestBtn.disabled = false
+          }
+        }
+
+        try {
+          const runOptimise = method === "pso" ? runOptimisePSO : runOptimiseNM
+          await runOptimise(
+            configs,
+            truths,
+            specs,
+            onStep,
+            abortController.signal,
+            trackAll
+          )
+          status.textContent = "Status: Finished"
+
+          // Final plotting with optimised parameters
+          await plotAllData()
+        } catch (err) {
+          if (err.name === "AbortError") {
+            status.textContent = "Status: Stopped"
+          } else {
+            status.textContent = `Status: Error - ${err.message}`
+            console.error(err)
+          }
+        }
+
+        optBtn.disabled = false
+        stopBtn.disabled = true
+      }
+
+      stopBtn.onclick = () => {
+        abortController?.abort()
+      }
+    </script>
+  </body>
+</html>

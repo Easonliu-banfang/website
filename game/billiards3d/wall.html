@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Emoji Wall</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Exo:wght@200;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Same three.js version as cue.html -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
+          "emoji-json": "https://cdn.jsdelivr.net/npm/unicode-emoji-json@0.9.0/data-ordered-emoji.json"
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --bg: #12161d;
+        --panel: rgb(18 22 29 / 86%);
+        --panel-border: #2a323e;
+        --text: #e6edf3;
+        --muted: #8b95a5;
+        --accent: #4a9eff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          Exo,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        font-weight: 200;
+        user-select: none;
+      }
+
+      button,
+      input {
+        font-family: inherit;
+        font-weight: 200;
+      }
+
+      #view {
+        position: fixed;
+        inset: 0;
+      }
+
+      #view canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* Emoji picker panel, styled like cue.html's #params */
+      #params {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        width: 180px;
+        padding: 8px;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        box-shadow: 0 8px 28px rgb(0 0 0 / 45%);
+        backdrop-filter: blur(8px);
+        user-select: none;
+        max-height: calc(100vh - 16px);
+        overflow-y: auto;
+      }
+
+      .profile-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .profile-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .profile-name {
+        font-size: 0.85rem;
+        font-weight: 200;
+      }
+
+      /* Emoji picker (ported from emoji.html, dark theme) */
+      .emoji-display-input {
+        width: 100%;
+        height: 40px;
+        font-size: 1.3rem;
+        text-align: center;
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        background: rgb(255 255 255 / 4%);
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+
+      .emoji-display-input:focus {
+        border-color: var(--accent);
+      }
+
+      .emoji-grid-wrapper {
+        height: 330px;
+        margin: 8px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* 6x15 = 90 cells per page */
+      .emoji-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(15, 1fr);
+        gap: 3px;
+        width: 100%;
+        height: 100%;
+      }
+
+      .emoji-cell {
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        background: transparent;
+        border: 1px solid transparent;
+        transition:
+          background-color 0.1s ease,
+          transform 0.1s ease;
+        line-height: 1;
+        padding: 0;
+
+        /* Prevents wide unicode glyphs from expanding grid tracks */
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        color: var(--text);
+      }
+
+      .emoji-cell.empty {
+        cursor: default;
+        pointer-events: none;
+        visibility: hidden;
+      }
+
+      .emoji-cell:hover:not(.empty) {
+        background-color: rgb(255 255 255 / 8%);
+        transform: scale(1.15);
+        z-index: 2;
+      }
+
+      .emoji-cell:active:not(.empty) {
+        transform: scale(0.95);
+      }
+
+      .emoji-cell.selected {
+        background-color: rgb(74 158 255 / 18%);
+        border-color: var(--accent);
+      }
+
+      .emoji-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid var(--panel-border);
+      }
+
+      .emoji-nav-btn {
+        width: 42px;
+        text-align: center;
+        padding: 3px 0;
+        font-size: 0.6rem;
+        font-weight: 200;
+        color: var(--text);
+        background-color: rgb(255 255 255 / 6%);
+        border: 1px solid var(--panel-border);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        flex-shrink: 0;
+      }
+
+      .emoji-nav-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .emoji-nav-btn:hover:not(:disabled) {
+        background-color: rgb(255 255 255 / 12%);
+      }
+
+      .emoji-page-indicator {
+        font-size: 0.55rem;
+        font-weight: 200;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+      }
+
+      .done-row {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--panel-border);
+      }
+
+      .done-row button {
+        width: 100%;
+        padding: 5px 0;
+        border: 1px solid var(--panel-border);
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 11px;
+        cursor: pointer;
+        transition: filter 0.1s ease;
+      }
+
+      .done-row button:hover {
+        filter: brightness(1.15);
+      }
+
+      .done-row button:active {
+        filter: brightness(0.9);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="view"></div>
+
+    <!-- Emoji picker panel -->
+    <aside id="params">
+      <div class="profile-row">
+        <div class="profile-meta">
+          <span id="profile-name" class="profile-name">Lukey</span>
+        </div>
+      </div>
+      <div id="emoji-picker-mount"></div>
+      <div class="done-row">
+        <button id="done">Done</button>
+      </div>
+    </aside>
+
+    <script type="module">
+      import * as THREE from "three"
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js"
+      import emojis from "emoji-json" with { type: "json" }
+
+      const GRID_SIZE = 24
+      const TOTAL_INSTANCES = GRID_SIZE * GRID_SIZE // 576
+
+      // Persisted as `custom.emoji` inside the shared `custom` dict in
+      // localStorage; storage access is guarded so the page works inside a
+      // sandboxed iframe. The dict holds siblings like custom.cue, so we
+      // never write the whole dict. The wall stores only the chosen emoji;
+      // the player name comes from the userName query param and is not
+      // persisted.
+      const DEFAULT_STATE = {
+        emoji: "📺",
+      }
+
+      function readCustom() {
+        try {
+          const res = JSON.parse(localStorage.getItem("custom") || "null")
+          return res && typeof res === "object" && !Array.isArray(res)
+            ? res
+            : {}
+        } catch {
+          return {}
+        }
+      }
+
+      function loadState() {
+        const savedEmoji = readCustom().emoji
+        const emoji =
+          typeof savedEmoji === "string" && savedEmoji.length > 0
+            ? savedEmoji
+            : DEFAULT_STATE.emoji
+        return { emoji }
+      }
+
+      // Read-modify-write: preserve siblings like custom.cue. The wall owns
+      // a single key, custom.emoji; an empty emoji is coerced to the
+      // default so it never persists blank. Any legacy custom.wall dict
+      // from earlier versions is dropped so only custom.emoji remains.
+      function saveState() {
+        try {
+          const custom = readCustom()
+          custom.emoji = state.emoji || DEFAULT_STATE.emoji
+          delete custom.wall
+          localStorage.setItem("custom", JSON.stringify(custom))
+        } catch {}
+      }
+
+      const state = loadState()
+
+      // The player name is passed in by the embedding page and is never
+      // persisted.
+      const userName =
+        new URLSearchParams(window.location.search).get("userName") || ""
+
+      // Emoji picker (ported from dist/emoji.html)
+      class EmojiPicker {
+        constructor(options = {}) {
+          this.container =
+            typeof options.container === "string"
+              ? document.querySelector(options.container)
+              : options.container
+
+          this.pageSize = options.pageSize || 90
+          this.initialEmoji = options.initialEmoji || "📺"
+          this.onSelect = options.onSelect || null
+
+          this.currentPage = 0
+          this.selectedEmoji = this.initialEmoji
+
+          // Full Unicode emoji list (from unicode-emoji-json via the import map)
+          this.emojis = emojis
+
+          this.init()
+        }
+
+        init() {
+          if (!this.container) return
+
+          // Container structure
+          this.pickerEl = document.createElement("div")
+          this.pickerEl.className = "emoji-picker-container"
+
+          // 1. Large Input Box
+          this.inputBox = document.createElement("input")
+          this.inputBox.type = "text"
+          this.inputBox.className = "emoji-display-input"
+          this.inputBox.value = this.selectedEmoji
+
+          this.inputBox.addEventListener("input", (e) => {
+            this.selectedEmoji = e.target.value
+            this.highlightMatchingCell()
+            if (this.onSelect) this.onSelect(this.selectedEmoji)
+          })
+
+          // 2. Emoji Grid Container
+          this.gridWrapper = document.createElement("div")
+          this.gridWrapper.className = "emoji-grid-wrapper"
+
+          this.gridEl = document.createElement("div")
+          this.gridEl.className = "emoji-grid"
+          this.gridWrapper.appendChild(this.gridEl)
+
+          // 3. Navigation Controls
+          this.navEl = document.createElement("div")
+          this.navEl.className = "emoji-nav"
+
+          this.prevBtn = document.createElement("button")
+          this.prevBtn.type = "button"
+          this.prevBtn.className = "emoji-nav-btn"
+          this.prevBtn.textContent = "◀"
+          this.prevBtn.title = "Previous page"
+          this.prevBtn.addEventListener("click", () => this.prevPage())
+
+          this.pageIndicator = document.createElement("span")
+          this.pageIndicator.className = "emoji-page-indicator"
+
+          this.nextBtn = document.createElement("button")
+          this.nextBtn.type = "button"
+          this.nextBtn.className = "emoji-nav-btn"
+          this.nextBtn.textContent = "▶"
+          this.nextBtn.title = "Next page"
+          this.nextBtn.addEventListener("click", () => this.nextPage())
+
+          this.navEl.appendChild(this.prevBtn)
+          this.navEl.appendChild(this.pageIndicator)
+          this.navEl.appendChild(this.nextBtn)
+
+          // Assemble Picker
+          this.pickerEl.appendChild(this.inputBox)
+          this.pickerEl.appendChild(this.gridWrapper)
+          this.pickerEl.appendChild(this.navEl)
+
+          this.container.appendChild(this.pickerEl)
+
+          // Initial render of page 0
+          this.renderPage()
+        }
+
+        renderPage() {
+          if (!this.emojis || this.emojis.length === 0) return
+
+          this.gridEl.innerHTML = ""
+
+          const totalPages = Math.ceil(this.emojis.length / this.pageSize)
+          if (this.currentPage < 0) this.currentPage = 0
+          if (this.currentPage >= totalPages) this.currentPage = totalPages - 1
+
+          const startIndex = this.currentPage * this.pageSize
+          const endIndex = Math.min(
+            startIndex + this.pageSize,
+            this.emojis.length
+          )
+          const pageItems = this.emojis.slice(startIndex, endIndex)
+
+          const fragment = document.createDocumentFragment()
+
+          pageItems.forEach((emojiStr) => {
+            const cell = document.createElement("button")
+            cell.type = "button"
+            cell.className = "emoji-cell"
+            cell.textContent = emojiStr
+            cell.dataset.emoji = emojiStr
+
+            if (emojiStr === this.selectedEmoji) {
+              cell.classList.add("selected")
+            }
+
+            cell.addEventListener("click", () => {
+              this.selectEmoji(emojiStr)
+            })
+
+            fragment.appendChild(cell)
+          })
+
+          // Fill remaining grid slots on incomplete pages with invisible placeholders
+          // so height, width, and button placement remain 100% static
+          const remainingSlots = this.pageSize - pageItems.length
+          for (let i = 0; i < remainingSlots; i++) {
+            const emptyCell = document.createElement("div")
+            emptyCell.className = "emoji-cell empty"
+            fragment.appendChild(emptyCell)
+          }
+
+          this.gridEl.appendChild(fragment)
+
+          // Update Page Controls
+          this.pageIndicator.textContent = `Page ${this.currentPage + 1} of ${totalPages}`
+          this.prevBtn.disabled = this.currentPage === 0
+          this.nextBtn.disabled = this.currentPage === totalPages - 1
+        }
+
+        selectEmoji(emojiStr) {
+          this.selectedEmoji = emojiStr
+          this.inputBox.value = emojiStr
+          this.highlightMatchingCell()
+
+          if (typeof this.onSelect === "function") {
+            this.onSelect(emojiStr)
+          }
+        }
+
+        highlightMatchingCell() {
+          const cells = this.gridEl.querySelectorAll(".emoji-cell")
+          cells.forEach((cell) => {
+            if (cell.dataset.emoji === this.selectedEmoji) {
+              cell.classList.add("selected")
+            } else {
+              cell.classList.remove("selected")
+            }
+          })
+        }
+
+        nextPage() {
+          const totalPages = Math.ceil(this.emojis.length / this.pageSize)
+          if (this.currentPage < totalPages - 1) {
+            this.currentPage++
+            this.renderPage()
+          }
+        }
+
+        prevPage() {
+          if (this.currentPage > 0) {
+            this.currentPage--
+            this.renderPage()
+          }
+        }
+      }
+
+      // Scene Setup
+      const view = document.getElementById("view")
+      const scene = new THREE.Scene()
+      // Z-up like the game: the wall is a YZ plane, vertical is Z, depth is X.
+      scene.up = new THREE.Vector3(0, 0, 1)
+      scene.background = new THREE.Color(0x141a22)
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.01,
+        100
+      )
+      camera.up.set(0, 0, 1)
+      // Camera at +X looking at the wall on the far side of the room.
+      camera.position.set(1.838, 1.838, 0)
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true })
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      // Match the game (src/utils/webgl.ts): no filmic tone-mapping curve.
+      renderer.toneMapping = THREE.NoToneMapping
+      view.appendChild(renderer.domElement)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.05
+      controls.maxDistance = 8
+      controls.minDistance = 1
+      controls.maxPolarAngle = Math.PI / 2 + 0.02
+      controls.target.set(0, 0, 0)
+
+      /**
+       * Creates a static emoji portrait: border, emoji instances, fake
+       * shadows, and an optional name plaque. Geometry is authored in local
+       * YZ space with +X as its facing normal and +Z as up; `orientation`
+       * maps that local frame onto any wall in the scene, `position` places
+       * it, and `scale` sizes it. The overlay is baked once on creation and
+       * never animated, so it can be dropped into any scene (e.g. the
+       * in-game room walls) exactly like a static glTF asset. The background
+       * wall, floor, and lighting remain the caller's responsibility.
+       *
+       * All polygons are single-sided and face +X in local space, so the
+       * wall's normal must point toward the viewer (the interior of the
+       * room) for the portrait to be visible.
+       *
+       * @param {THREE.Scene} scene - Scene to which the overlay is added
+       * @param {object} options - Initial state and wall placement
+       * @param {string} [options.emoji] - Emoji glyph to render (default "📺")
+       * @param {string} [options.name] - Optional name shown on the plaque
+       * @param {THREE.Vector3} [options.position] - Overlay origin
+       * @param {object} [options.orientation] - Wall normal and up vectors
+       * @param {number} [options.scale] - Uniform scale (default 1)
+       * @returns {{setState: function, drawPlate: function}}
+       */
+      function createEmojiWall(scene, options = {}) {
+        const state = {
+          emoji: options.emoji ?? "📺",
+          name: options.name ?? "",
+        }
+        const scale = options.scale ?? 1
+
+        const samplerCanvas = document.createElement("canvas")
+        samplerCanvas.width = GRID_SIZE
+        samplerCanvas.height = GRID_SIZE
+        const samplerCtx = samplerCanvas.getContext("2d", {
+          willReadFrequently: true,
+        })
+
+        function getEmojiPixelData(emoji) {
+          samplerCtx.clearRect(0, 0, GRID_SIZE, GRID_SIZE)
+          samplerCtx.font = "19px sans-serif"
+          samplerCtx.textAlign = "center"
+          samplerCtx.textBaseline = "middle"
+          samplerCtx.fillText(emoji, GRID_SIZE / 2, GRID_SIZE / 2 + 1)
+          return samplerCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE).data
+        }
+
+        // Room Geometry & Materials. Single-sided polygons: every mesh faces
+        // +X in local space, so orient the wall's normal toward the viewer.
+        const borderMat = new THREE.MeshStandardMaterial({
+          color: 0x1f1f1f,
+          roughness: 0.4,
+          metalness: 0.1,
+        })
+        const borderShadowMat = new THREE.MeshBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.35,
+        })
+        /**
+         * Creates a minimal 2D planar rectangular border (hollow rectangle)
+         * geometry in the YZ plane (the wall), facing +X. Uses 8 vertices and
+         * 8 triangles (16 indices). Ported from dist/border.html and
+         * generalized to a rectangle.
+         *
+         * @param {number} width - Inner width of the frame hole (along Y)
+         * @param {number} height - Inner height of the frame hole (along Z)
+         * @param {number} thickness - Width of the border frame
+         * @returns {THREE.BufferGeometry} Minimal polygonal 2D border geometry
+         */
+        function createBorderGeometry(width, height, thickness) {
+          const halfW = width / 2
+          const halfH = height / 2
+          const halfOuterW = halfW + thickness
+          const halfOuterH = halfH + thickness
+
+          // 8 Vertices defining the 2D planar frame in the YZ plane (x = 0).
+          // 0-3: Outer rectangle corners, 4-7: Inner rectangle corners
+          const vertices = new Float32Array([
+            0,
+            -halfOuterW,
+            halfOuterH,
+            0,
+            halfOuterW,
+            halfOuterH,
+            0,
+            halfOuterW,
+            -halfOuterH,
+            0,
+            -halfOuterW,
+            -halfOuterH,
+            0,
+            -halfW,
+            halfH,
+            0,
+            halfW,
+            halfH,
+            0,
+            halfW,
+            -halfH,
+            0,
+            -halfW,
+            -halfH,
+          ])
+
+          // Normals pointing forward (+X, toward the camera)
+          const normals = new Float32Array([
+            1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+            0,
+          ])
+
+          // UV Coordinates
+          const uvs = new Float32Array([
+            0, 1, 1, 1, 1, 0, 0, 0, 0.2, 0.8, 0.8, 0.8, 0.8, 0.2, 0.2, 0.2,
+          ])
+
+          // Triangles with Counter-Clockwise winding order
+          const indices = [
+            0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7, 4, 3, 4,
+            0,
+          ]
+
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(vertices, 3)
+          )
+          geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3))
+          geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
+          geometry.setIndex(indices)
+          return geometry
+        }
+
+        const orientation = options.orientation ?? {}
+        const normal = (orientation.normal ?? new THREE.Vector3(1, 0, 0))
+          .clone()
+          .normalize()
+        const requestedUp = (orientation.up ?? new THREE.Vector3(0, 0, 1))
+          .clone()
+          .normalize()
+        const right = new THREE.Vector3().crossVectors(requestedUp, normal)
+        if (right.lengthSq() === 0) {
+          throw new Error("Emoji wall orientation vectors must not be parallel")
+        }
+        right.normalize()
+        const up = new THREE.Vector3().crossVectors(normal, right).normalize()
+        const wallGroup = new THREE.Group()
+        wallGroup.quaternion.setFromRotationMatrix(
+          new THREE.Matrix4().makeBasis(normal, right, up)
+        )
+        if (options.position) wallGroup.position.copy(options.position)
+        wallGroup.scale.setScalar(scale)
+        scene.add(wallGroup)
+
+        // Flat planar border (same 1.255 x 1.12 outer footprint as the old
+        // cuboids), floating just off the wall surface.
+        const borderGeometry = createBorderGeometry(1.225, 1.09, 0.015)
+        const borderMesh = new THREE.Mesh(borderGeometry, borderMat)
+        borderMesh.position.x = -0.065
+        // TEMP: hide the portrait border frame (matches portrait.ts).
+        borderMesh.visible = false
+        wallGroup.add(borderMesh)
+
+        // Fake drop shadow of the border, offset in local YZ and flush against the wall.
+        const borderShadowMesh = new THREE.Mesh(borderGeometry, borderShadowMat)
+        borderShadowMesh.position.set(-0.069, 0.008, -0.008)
+        borderShadowMesh.visible = false
+        wallGroup.add(borderShadowMesh)
+
+        // Instanced pure planar triangle mesh (1 GPU draw call), lying in the
+        // wall plane (YZ) and facing the camera (+X).
+        const planarTriGeom = new THREE.CircleGeometry(0.029, 3)
+        planarTriGeom.rotateZ(Math.PI / 6)
+        planarTriGeom.rotateY(Math.PI / 2)
+
+        const material = new THREE.MeshStandardMaterial({
+          roughness: 0.9,
+          metalness: 0.1,
+          flatShading: true,
+        })
+
+        const instancedMesh = new THREE.InstancedMesh(
+          planarTriGeom,
+          material,
+          TOTAL_INSTANCES
+        )
+        wallGroup.add(instancedMesh)
+
+        // Dark grey shadow material (no transparency)
+        const shadowMaterial = new THREE.MeshBasicMaterial({
+          color: 0x1a1a1a,
+        })
+
+        // Shadow instanced mesh matching the same geometry and instance count (Single GPU efficiency)
+        const shadowMesh = new THREE.InstancedMesh(
+          planarTriGeom,
+          shadowMaterial,
+          TOTAL_INSTANCES
+        )
+        wallGroup.add(shadowMesh)
+
+        const dummy = new THREE.Object3D()
+        // YXZ order makes rotation.set(spin, tilt, 0) compose as RY(tilt)-RX(spin),
+        // the exact z-up image of the old y-up RX(tilt)-RZ(spin) rotation.
+        dummy.rotation.order = "YXZ"
+        const color = new THREE.Color()
+        const instancesData = []
+
+        // Grid spacing: SPACING_Y across the wall (world Y), SPACING_Z up it
+        // (world Z).
+        const SPACING_Y = 0.0475
+        const SPACING_Z = 0.042
+        const HALF_GRID = (GRID_SIZE - 1) / 2
+
+        for (let gy = 0; gy < GRID_SIZE; gy++) {
+          for (let gx = 0; gx < GRID_SIZE; gx++) {
+            const posY = (gx - HALF_GRID) * SPACING_Y
+            const posZ = (HALF_GRID - gy) * SPACING_Z
+
+            // Static concentric wave orientation: rotX spins the triangle in
+            // the wall plane, rotY tilts it about the wall's horizontal axis.
+            const dist = Math.hypot(gx - HALF_GRID, gy - HALF_GRID)
+            const rotX = dist * 0.4
+            const rotY = Math.sin(dist * 0.5) * 0.3
+
+            instancesData.push({
+              posY,
+              posZ,
+              rotX,
+              rotY,
+              lift: 0,
+              scale: 0.01,
+              r: 0.1,
+              g: 0.1,
+              b: 0.15,
+            })
+          }
+        }
+
+        // Name plate: a thin rectangle mounted on the wall below the border,
+        // textured with the player name.
+
+        /**
+         * Minimal quad in the wall plane (YZ), facing the camera (+X), with
+         * upright UVs: u runs along +Y (horizontal), v along +Z (vertical).
+         */
+        function createWallQuadGeometry(width, height) {
+          const halfW = width / 2
+          const halfH = height / 2
+
+          const positions = new Float32Array([
+            0,
+            -halfW,
+            halfH, // 0 top-left
+            0,
+            halfW,
+            halfH, // 1 top-right
+            0,
+            halfW,
+            -halfH, // 2 bottom-right
+            0,
+            -halfW,
+            -halfH, // 3 bottom-left
+          ])
+          const normals = new Float32Array([1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0])
+          const uvs = new Float32Array([0, 1, 1, 1, 1, 0, 0, 0])
+          const indices = [0, 2, 1, 0, 3, 2]
+
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(positions, 3)
+          )
+          geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3))
+          geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
+          geometry.setIndex(indices)
+          return geometry
+        }
+
+        const plateCanvas = document.createElement("canvas")
+        plateCanvas.width = 256
+        plateCanvas.height = 32
+        const plateCtx = plateCanvas.getContext("2d")
+
+        const plateTexture = new THREE.CanvasTexture(plateCanvas)
+        plateTexture.colorSpace = THREE.SRGBColorSpace
+        // Canvas 2D draws premultiplied, so tell three to match or the text
+        // will pick up a dark fringe against the now-transparent background.
+        plateTexture.premultiplyAlpha = true
+
+        const plateMat = new THREE.MeshBasicMaterial({
+          map: plateTexture,
+          transparent: true,
+          depthWrite: false,
+        })
+
+        // 256/32 = 1.08/0.135, so the texture keeps its aspect ratio on the plane.
+        const plate = new THREE.Mesh(
+          createWallQuadGeometry(1.08, 0.135),
+          plateMat
+        )
+        // Mount the plaque below the portrait.
+        plate.position.set(-0.055, 0, -0.55)
+        wallGroup.add(plate)
+
+        function drawPlate() {
+          plate.visible = state.name.length > 0
+          if (!plate.visible) return
+
+          plateCtx.clearRect(0, 0, plateCanvas.width, plateCanvas.height)
+
+          plateCtx.textAlign = "center"
+          plateCtx.textBaseline = "middle"
+
+          // Names are capped at 12 chars, which fits comfortably at 20px on
+          // the 256px canvas (widest case ~220px vs the 244px limit).
+          plateCtx.font = "700 20px 'Exo', sans-serif"
+
+          // Transparent plaque: no background fill, just the text and a hard
+          // drop shadow. The canvas alpha channel carries both, so the quad
+          // stays see-through everywhere else (the material is already
+          // transparent).
+          plateCtx.shadowColor = "rgba(0, 0, 0, 0.95)"
+          plateCtx.shadowBlur = 1
+          plateCtx.shadowOffsetY = 1
+          plateCtx.fillStyle = "#c9d1d9"
+          plateCtx.fillText(
+            state.name,
+            plateCanvas.width / 2,
+            plateCanvas.height / 2
+          )
+          plateCtx.shadowColor = "transparent"
+          plateCtx.shadowBlur = 0
+          plateCtx.shadowOffsetY = 0
+
+          plateTexture.needsUpdate = true
+        }
+
+        // The wall follows the picker choice (persisted across visits).
+        function updateWall() {
+          const pixelData = getEmojiPixelData(state.emoji)
+
+          for (let i = 0; i < TOTAL_INSTANCES; i++) {
+            const item = instancesData[i]
+            const pixelIndex = i * 4
+
+            const alpha = pixelData[pixelIndex + 3] / 255
+
+            if (alpha > 0.1) {
+              const r = pixelData[pixelIndex] / 255
+              const g = pixelData[pixelIndex + 1] / 255
+              const b = pixelData[pixelIndex + 2] / 255
+              const luminance = 0.299 * r + 0.587 * g + 0.114 * b
+              item.r = r
+              item.g = g
+              item.b = b
+              item.scale = 1.0
+              // The wall front face is at x = -0.07; float the glyphs off it
+              // toward the camera (+X) and lift them by pixel luminance (max 0.02)
+              item.lift = luminance * 0.05 - 0.03
+            } else {
+              // Empty cells are hidden entirely (no background triangles)
+              item.scale = 0
+              item.lift = 0
+            }
+          }
+        }
+
+        function setState(patch) {
+          Object.assign(state, patch)
+          updateWall()
+          bake()
+          drawPlate()
+        }
+
+        // Writes the static instance matrices/colours a single time. The
+        // portrait never changes after this, so there is no per-frame tick:
+        // the transforms are baked on creation and again on each setState.
+        function bake() {
+          for (let i = 0; i < TOTAL_INSTANCES; i++) {
+            const item = instancesData[i]
+
+            // Main triangles
+            dummy.position.set(item.lift, item.posY, item.posZ)
+            dummy.rotation.set(item.rotX, item.rotY, 0)
+            dummy.scale.set(item.scale, item.scale, item.scale)
+            dummy.updateMatrix()
+
+            instancedMesh.setMatrixAt(i, dummy.matrix)
+
+            color.setRGB(item.r, item.g, item.b)
+            instancedMesh.setColorAt(i, color)
+
+            // Fake shadow flat against the wall (in-plane spin only)
+            dummy.position.set(-0.069, item.posY, item.posZ)
+            dummy.rotation.set(item.rotX, 0, 0)
+            dummy.scale.set(item.scale, item.scale, item.scale)
+            dummy.updateMatrix()
+
+            shadowMesh.setMatrixAt(i, dummy.matrix)
+          }
+
+          instancedMesh.instanceMatrix.needsUpdate = true
+          if (instancedMesh.instanceColor)
+            instancedMesh.instanceColor.needsUpdate = true
+
+          shadowMesh.instanceMatrix.needsUpdate = true
+        }
+
+        updateWall()
+        bake()
+        drawPlate()
+
+        return { setState, drawPlate }
+      }
+
+      // Scene-only backdrop, floor, and lighting. The reusable emoji overlay
+      // deliberately does not create or own any of these objects.
+      const wallMat = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        roughness: 0.92,
+        metalness: 0.02,
+      })
+      const backWall = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 5, 3.6),
+        wallMat
+      )
+      backWall.position.set(-0.12, 0, 0)
+      scene.add(backWall)
+
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0xd3dce6,
+        roughness: 0.35,
+        metalness: 0.15,
+      })
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(4, 5), floorMat)
+      floor.position.set(1.8, 0, -1.2)
+      scene.add(floor)
+
+      // Two point lights mirror threecushion.gltf (KHR_lights_punctual), plus
+      // the game's dim green ambient (view.ts).
+      // glTF positions are scaled by the game's R/0.5 import factor (0.0655)
+      // and placed in front of the wall.
+      const ambientLight = new THREE.AmbientLight(0x009922, 0.3)
+      scene.add(ambientLight)
+
+      const warmLight = new THREE.PointLight(0xffffff, 5.435141387578143)
+      warmLight.color.setRGB(
+        0.8555447459220886,
+        0.8347910046577454,
+        0.6743659973144531
+      )
+      warmLight.position.set(1.244, 0.03, 1.244)
+      scene.add(warmLight)
+
+      const coolLight = new THREE.PointLight(0xffffff, 5.435141387578143)
+      coolLight.color.setRGB(
+        0.6981927156448364,
+        0.6981927156448364,
+        0.6981927156448364
+      )
+      coolLight.position.set(1.31, -0.012, 1.31)
+      scene.add(coolLight)
+
+      const emojiWall = createEmojiWall(scene, {
+        ...state,
+        name: userName,
+        orientation: {
+          normal: new THREE.Vector3(1, 0, 0),
+          up: new THREE.Vector3(0, 0, 1),
+        },
+      })
+
+      const profileNameEl = document.getElementById("profile-name")
+
+      const picker = new EmojiPicker({
+        container: "#emoji-picker-mount",
+        pageSize: 90,
+        initialEmoji: state.emoji,
+        onSelect: (emoji) => {
+          state.emoji = emoji
+          emojiWall.setState({ emoji })
+          saveState()
+        },
+      })
+
+      // Drop any persisted emoji the generator no longer produces (e.g. an
+      // illegal skin-tone combo like "💢🏼" saved before the generator was
+      // fixed) and fall back to the default.
+      if (!picker.emojis.includes(state.emoji)) {
+        state.emoji = DEFAULT_STATE.emoji
+        picker.selectedEmoji = state.emoji
+        picker.inputBox.value = state.emoji
+        emojiWall.setState({ emoji: state.emoji })
+        saveState()
+      }
+
+      profileNameEl.textContent = userName
+      // Redraw once the webfont has loaded so the plaque text uses Exo.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(emojiWall.drawPlate)
+      }
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      })
+
+      function animate() {
+        requestAnimationFrame(animate)
+        controls.update()
+        renderer.render(scene, camera)
+      }
+
+      animate()
+
+      // Tell the embedding page we're finished, so it can close the iframe.
+      // `type: "done"` is a shared signal any iframe host can listen for.
+      // Guarded so the page still works standalone (window.parent is then
+      // this window and the message is harmlessly self-posted).
+      const doneBtn = document.getElementById("done")
+      doneBtn?.addEventListener("click", () => {
+        try {
+          window.parent.postMessage({ type: "done" }, "*")
+        } catch {}
+      })
+    </script>
+  </body>
+</html>

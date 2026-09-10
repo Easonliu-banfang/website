@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Billiards Lobby</title>
+    <meta
+      name="description"
+      content="Free multiplayer lobby for Billiards. Find matches, challenge players, and play realistic pool online with accurate physics."
+    />
+    <meta
+      name="keywords"
+      content="billiards lobby, multiplayer pool, online billiards, snooker, 9-ball, 8-ball, pool, carom, three-cushion, free, open source, driebanden, ビリヤード, 9ボール, 3クッション, 無料, オンラインビリヤード, ビリヤードロビー, 당구, 스누커, 3쿠션, 온라인 당구, 당구 로비, 무료 당구, Bida 3 băng, bi-a trực tuyến, sảnh bi-a, chơi bi-a miễn phí, Biliar 3 bantalan, Üç bant, free game, open source"
+    />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://tailuge.github.io/billiards/dist/lobby" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+    <meta property="og:title" content="Tailuge Billiards" />
+    <meta
+      property="og:description"
+      content="Free multiplayer billiards — 무료 온라인 당구 게임. 3쿠션, 9볼, 스누커를 실제 물리 엔진으로 즐기고 다른 플레이어에게 도전하세요."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://tailuge.github.io/billiards/dist/lobby"
+    />
+    <meta
+      property="og:image"
+      content="https://tailuge.github.io/billiards/dist/images/billiards.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:video" content="https://youtu.be/bAeiRQcQuyg" />
+    <meta property="og:video:type" content="text/html" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Multiplayer Billiards - Free" />
+    <meta
+      name="twitter:description"
+      content="Free multiplayer billiards — 무료 온라인 당구 게임. 3쿠션, 9볼, 스누커를 실제 물리 엔진으로 즐기고 다른 플레이어에게 도전하세요."
+    />
+    <meta
+      name="twitter:image"
+      content="https://tailuge.github.io/billiards/dist/images/billiards.png"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Billiards Pool Game",
+        "alternateName": ["온라인 당구 - 무료 멀티플레이어", "당구 로비"],
+        "url": "https://tailuge.github.io/billiards/dist/lobby.html",
+        "image": "https://tailuge.github.io/billiards/dist/images/billiards.png",
+        "description": "Multiplayer lobby for the open source pool and billiards by tailuge",
+        "inLanguage": ["en", "ko"],
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "tailuge"
+        }
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Exo:wght@200;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/png" href="assets/threecushion.png" />
+    <link rel="manifest" href="manifest.json" />
+    <meta
+      name="ocs-site-verification"
+      content="7e2c8724a132bd19fa2cac60ae730ba5"
+    />
+    <meta name="theme-color" content="#1a1a1a" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: auto;
+        scrollbar-width: none;
+        background: #f5f5f5;
+      }
+
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        display: none;
+      }
+
+      html[theme="dark"],
+      html[theme="dark"] body {
+        background: #1a1a1a;
+      }
+    </style>
+    <script>
+      try {
+        const _t = localStorage.getItem("theme") || "dark"
+        document.documentElement.setAttribute("theme", _t)
+      } catch (_e) {
+        document.documentElement.setAttribute("theme", "dark")
+      }
+    </script>
+  </head>
+  <body>
+    <lobby-app></lobby-app>
+
+    <noscript>
+      <h1>무료 온라인 당구 게임 - 멀티플레이어 당구 로비</h1>
+      <p>
+        이 사이트는 무료로 즐기는 온라인 당구 게임입니다. 3쿠션, 9볼, 스누커,
+        포켓볼을 실제 물리 엔진으로 구현한 오픈 소스 당구 게임에서 전 세계
+        플레이어와 대결하세요.
+      </p>
+      <p>
+        당구 로비에 접속하면 온라인 접속자 목록에서 상대를 찾아 바로 대전할 수
+        있습니다. 설치 없이 브라우저만으로 무료 당구 게임을 즐길 수 있으며,
+        모바일과 데스크톱을 모두 지원합니다.
+      </p>
+    </noscript>
+
+    <script src="lobby.js" type="module"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js")
+        })
+      }
+    </script>
+  </body>
+</html>

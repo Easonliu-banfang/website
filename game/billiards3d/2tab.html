@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>2 Player Billiards - Open in Two Tabs | Break Builder</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content="Play multiplayer billiards in two tabs. Ideal for testing multiplayer features or playing against yourself locally."
+    />
+    <meta name="viewport" content="width=device-width" />
+  </head>
+  <body>
+    <p>Opening two player tabs...</p>
+  </body>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search)
+    const websocketserver =
+      urlParams.get("websocketserver") ??
+      (window.location.hostname === "localhost"
+        ? "ws://localhost"
+        : "wss://billiards-network.onrender.com")
+    const ruletype = urlParams.get("ruletype") ?? "nineball"
+    const shotClock = urlParams.get("shotClock")
+    const practice = urlParams.get("practice")
+    const unique = Math.floor(Math.random() * 0xffff).toString(16)
+    let url = `index.html?ruletype=${ruletype}&websocketserver=${websocketserver}&tableId=${unique}`
+    if (shotClock) {
+      url += `&shotClock=${shotClock}`
+    }
+    if (practice) {
+      url += `&practice=${practice}`
+    }
+    console.log(`${url}&userId=p1id&userName=P1&first=true`)
+    console.log(`${url}&userId=p2id&userName=P2`)
+
+    window.open(
+      `${url}&userId=p1id&userName=P1&first=true&opponent.userId=p2id&opponent.userName=P2`,
+      "_blank"
+    )
+    window.open(
+      `${url}&userId=p2id&userName=P2&opponent.userId=p1id&opponent.userName=P1`,
+      "_blank"
+    )
+  </script>
+</html>
