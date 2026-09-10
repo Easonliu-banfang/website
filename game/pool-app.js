@@ -264,6 +264,8 @@
       return;
     }
     if (res.foul) {
+      // ★ 犯规必须先把回合交给对手（res.turn = 对方），否则 AI/面对面模式下轮到对手却永远不动
+      match.turn = res.turn;
       match.hand = res.hand;
       phase = 'place';
       placing = null; placeOK = false; placeKind = res.hand.kind;
@@ -272,7 +274,7 @@
       if (cue) { cue.dead = true; removeFromWorld(cue); }
       if (mode === 'ai' && match.turn === aiSide) { scheduleAI(); return; }
       notify('犯规：' + res.reason + '，' + whoName(res.hand.forPlayer) + ' 自由球', 'warn');
-      resetShotFlags();
+      busy = false;                 // 只清 busy，保留 phase='place'（对手要落位）
       syncUI();
       return;
     }
