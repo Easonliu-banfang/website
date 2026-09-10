@@ -15,6 +15,17 @@
   var isAI = false;
   var aiSide = 1;
 
+  /* 联机 */
+  var onlineMode = false;
+  var online = null;
+  var myPlayer = 0;
+  var roomStarted = false;
+  var currentRoom = null;
+  var connOk = false;
+  var lastShotByMe = false;   // 当前这一杆是否由本端发起（本端用本地乐观仿真，否则用服务端 live 驱动）
+  var liveTarget = null;      // 服务端 live 快照 {id:{x,y}}
+  var lobby = null;
+
   var world = null;
   var match = null;
 
@@ -35,7 +46,9 @@
   var callPocket = null;   // 打黑八时报袋的袋口索引
   var needCall = false;    // 目标只剩黑八 → 必须报袋
 
-  var charging = null;     // 蓄力拖拽 {startX,startY,downX,downY}
+  var charging = null;     // 蓄力拖拽 {downX,downY}
+  var aimLocked = null;    // 按下后锁定的瞄准方向（蓄力期间不再随鼠标转）
+  var aimTarget = null;    // 鼠标期望方向（循环中平滑逼近，避免抖动/180°翻转）
   var aiTimer = null;
   var gameSeq = 0;         // 新局令牌：作废旧 AI 计时
 
@@ -54,6 +67,7 @@
 
   function whoName(p) {
     if (mode === 'ai') return p === aiSide ? '电脑' : '你';
+    if (mode === 'online') return p === myPlayer ? '你' : '对手';
     return '玩家' + (p === 0 ? '一' : '二');
   }
 
@@ -112,7 +126,8 @@
       else if (phase === 'choose') elHint.textContent = '同一杆进了两种球，请选择你的组';
       else if (busy) elHint.textContent = '球在滚动…';
       else if (needCall) elHint.textContent = '打黑八需报袋：点击目标袋口（高亮闪烁）';
-      else elHint.textContent = '移动鼠标瞄准 · 按住拖拽蓄力 · 松开击球（W/S 力度，Q/E 旋转，Z/C 高低杆）';
+      else if (onlineMode && match.turn !== myPlayer) elHint.textContent = '对手回合，等待对方击球…';
+      else elHint.textContent = '移动鼠标瞄准 · 按住并拖拽蓄力 · 松开击球（方向按下即锁定）｜W/S 力度 Q/E 旋转 Z/C 高低杆 空格击球';
     }
   }
 
@@ -137,8 +152,24 @@
     if (!cue) return;
     var dx = cx - cue.x, dy = cy - cue.y;
     var d = Math.hypot(dx, dy);
-    if (d < 0.001) return;
-    aim = { x: dx / d, y: dy / d };
+    // 死区：鼠标离白球太近时方向会剧烈抖（近点 180° 翻转），忽略
+    if (d < P.R * 2.6) return;
+    aimTarget = { x: dx / d, y: dy / d };
+    if (aimLocked === null) aim = aimTarget;
+  }
+
+  /* 平滑转向：把 aim 朝 target 插值（角度空间） */
+  function easeAim() {
+    if (!aimTarget || aimLocked !== null || busy) return;
+    var cur = Math.atan2(aim.y, aim.x);
+    var tgt = Math.atan2(aimTarget.y, aimTarget.x);
+    var diff = tgt - cur;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    var step = diff * 0.28;
+    var n = cur + step;
+    aim = { x: Math.cos(n), y: Math.sin(n) };
+    if (Math.abs(diff) < 0.004) aim = aimTarget;
   }
 
   /******** 开火 ********/
@@ -146,10 +177,11 @@
     var cue = cueBall();
     if (!cue || busy || phase === 'moving' || phase === 'over') return;
     if (phase === 'place') return;          // 必须先落位
+    if (onlineMode && match.turn !== myPlayer) return;
     if (needCall && callPocket === null) { notify('请先点击要报的袋口', 'warn'); return; }
+    if (phase === 'choose') return;
     var targets = Rules.legalTargets(match, world);
     if (targets.length === 0) { notify('桌面上没有你的目标球', 'warn'); return; }
-    if (phase === 'choose') return;
 
     busy = true;
     phase = 'moving';
@@ -158,9 +190,19 @@
     world.railEvents = [];
     shotStartT = world.simTime;
     var basePocketed = world.pocketed.length;
-    P.strike(cue, aim.x, aim.y, Math.max(0.06, power), top, side);
+    var shotParams = { aimX: aim.x, aimY: aim.y, power: Math.max(0.06, power), top: top, side: side, callPocket: needCall ? callPocket : null };
+    P.strike(cue, shotParams.aimX, shotParams.aimY, shotParams.power, top, side);
     world.quiet = false;      // 防陈旧静止标志 → 结算器过早触发
     syncUI();
+
+    if (onlineMode) {
+      // 联机：本地乐观仿真 + 上报服务端权威结算（本端动画与服务器一致）
+      lastShotByMe = true;
+      liveTarget = null;
+      if (online) online.sendShoot(shotParams);
+      return;   // 等服务端 live/state
+    }
+
     // 等待物理静止后结算（由 loop 驱动）
     waitSettle().then(function () {
       settleShot(basePocketed);
@@ -327,6 +369,12 @@
   function chooseGroup(chooseSolid) {
     var shooter = match.turn;
     var g = chooseSolid ? 'solid' : 'stripe';
+    if (onlineMode) {
+      // 联机：上传选择，服务端权威分组后广播
+      hideChoose(); phase = 'aim'; busy = false;
+      if (online) online.sendChoose(g);
+      return;
+    }
     match.groups[shooter] = g;
     match.groups[1 - shooter] = g === 'solid' ? 'stripe' : 'solid';
     hideChoose();
@@ -375,8 +423,10 @@
       var pi = pocketAt(w.x, w.y);
       if (pi !== null) { callPocket = pi; syncUI(); return; }
     }
-    charging = { down: { x: wx.x, y: wx.y }, start: { x: w.x, y: w.y } };
-    power = 0.35;
+    // 按下：锁定当前方向 → 拖拽只蓄力，方向不再乱转
+    aimLocked = aim;
+    charging = { downX: wx.x, downY: wx.y };
+    power = 0.25;
     syncUI();
   });
 
@@ -390,15 +440,15 @@
       return;
     }
     // 报袋高亮悬停
-    if (needCall) {
+    if (needCall && !charging) {
       var pi = pocketAt(w.x, w.y);
       if (pi !== null) { callPocket = pi; syncUI(); return; }
     }
     if (busy || phase === 'moving' || phase === 'over') return;
     if (charging) {
-      // 拖拽蓄力：距离=力度
-      var dx = wx.x - charging.down.x, dy = wx.y - charging.down.y;
-      power = clamp01(0.35 + Math.hypot(dx, dy) / 220);
+      // 蓄力：只取拖拽距离（任意方向都行），方向保持锁定
+      var dx = wx.x - charging.downX, dy = wx.y - charging.downY;
+      power = clamp01(0.25 + Math.hypot(dx, dy) / 210);
       syncUI();
     } else {
       setAimByPointer(w.x, w.y);
@@ -409,11 +459,12 @@
     if (phase === 'place') return;
     if (charging) {
       charging = null;
+      aimLocked = null;
       if (!busy && phase === 'aim') fire();
     }
   }
   canvas.addEventListener('pointerup', onPointerUp);
-  canvas.addEventListener('pointercancel', function () { charging = null; });
+  canvas.addEventListener('pointercancel', function () { charging = null; aimLocked = null; });
 
   /* 白球落位辅助 */
   function clampPlace(x, y) {
@@ -427,6 +478,13 @@
 
   function confirmPlace() {
     if (!placing || !placeOK) return;
+    if (onlineMode) {
+      // 联机：上传落点，由服务端校验并广播权威状态（收到 state 后 phase 自动转为 aim）
+      var px = placing.x, py = placing.y;
+      placing = null; busy = false;
+      if (online) online.sendPlaceCue(px, py);
+      return;
+    }
     var cue = cueBall();
     if (!cue) { world.balls.push(P.makeBall(0, placing.x, placing.y, 0)); }
     else { cue.x = placing.x; cue.y = placing.y; cue.vx = 0; cue.vy = 0; }
@@ -471,25 +529,142 @@
   function clamp(a, b, v) { return v < a ? a : (v > b ? b : v); }
 
   /******** 按钮 ********/
-  if (btnNew) btnNew.addEventListener('click', newGame);
-  if (btnClose) btnClose.addEventListener('click', function () { hideModal(); newGame(); });
+  if (btnNew) btnNew.addEventListener('click', function () {
+    if (onlineMode) { if (online) online.sendReset(); notify('已请求重置棋局', 'info'); return; }
+    newGame();
+  });
+  if (btnClose) btnClose.addEventListener('click', function () {
+    hideModal();
+    if (onlineMode) { if (online) online.sendReset(); }
+    else newGame();
+  });
   if (btnSolid) btnSolid.addEventListener('click', function () { if (phase === 'choose') chooseGroup(true); });
   if (btnStripe) btnStripe.addEventListener('click', function () { if (phase === 'choose') chooseGroup(false); });
+
+  /******** 联机：绑定事件 ********/
+  function bindOnline(o) {
+    o.on('welcome', function (p) {
+      myPlayer = p; connOk = true;
+      if (lobby) { lobby.show(currentRoom); lobby.setStatus('已连接，等待双方准备', 'connected'); }
+    });
+    o.on('lobby', function (d) {
+      var fromGame = roomStarted;
+      myPlayer = d.you; connOk = true;
+      roomStarted = !!d.started;
+      if (lobby) {
+        if (d.started) { lobby.hide(); }
+        else { lobby.show(currentRoom); lobby.render(d); }
+      }
+    });
+    o.on('started', function () { roomStarted = true; if (lobby) lobby.hide(); });
+    o.on('state', function (v) {
+      if (!v || v.kind !== 'pl') return;
+      connOk = true; roomStarted = true;
+      if (lobby) lobby.hide();
+      applyServerState(v);
+    });
+    o.on('live', function (m) {
+      if (!m || !m.balls || !m.balls.length) return;
+      if (lastShotByMe) return;   // 本端自己这杆：用本地乐观仿真，不用 live 驱动
+      liveTarget = {};
+      for (var i = 0; i < m.balls.length; i++) liveTarget[m.balls[i].id] = { x: m.balls[i].x, y: m.balls[i].y };
+    });
+    o.on('disband', function () {});
+    o.on('players', function (ps) {
+      var opp = !!(ps[1 - myPlayer]);
+      if (!roomStarted) { if (lobby) lobby.setStatus(opp ? '双方已就位，准备开始' : '等待对手加入…', opp ? 'connected' : 'connecting'); return; }
+      if (!opp) notify('对手已退出/断开连接，对局暂停', 'warn');
+      else notify('对局进行中', 'info');
+    });
+    o.on('status', function (s) {
+      if (s.state === 'connecting') { connOk = false; }
+      else if (s.state === 'connected') { connOk = true; }
+      else if (s.state === 'reconnecting') { connOk = false; notify(s.detail || '连接中断，重连中…', 'warn'); }
+      else if (s.state === 'disconnected') { connOk = false; notify(s.detail || '连接已断开', 'error'); }
+    });
+    o.on('error', function (msg) { notify('错误：' + msg, 'error'); });
+    o.on('close', function () { connOk = false; notify('连接已断开，点击新局可重连', 'error'); });
+  }
+
+  /* 重建本地世界/匹配（服务端权威状态） */
+  function applyServerState(v) {
+    var nw = P.createWorld();
+    nw.balls = v.balls.map(function (b) {
+      var nb = P.makeBall(b.id, b.x, b.y, b.type);
+      nb.vx = b.vx || 0; nb.vy = b.vy || 0; nb.w = b.w || 0; nb.s = b.s || 0; nb.dead = !!b.dead;
+      nb.ghost = false;
+      return nb;
+    });
+    nw.pocketed = (v.pocketed || []).map(function (pe) { return { type: pe.type, pocketIdx: pe.pocketIdx, t: pe.t, ball: {} }; });
+    nw.simTime = v.simTime || 0; nw.time = nw.simTime; nw.quiet = true;
+    world = nw;
+    // 还原白球对象引用到 pocketed（渲染只用 type，无需）
+    match = JSON.parse(JSON.stringify(v.match));
+    callPocket = (v.callPocket != null) ? v.callPocket : null;
+    if (v.note) notify(v.note, 'info');
+    busy = false; phase = 'aim'; placing = null; liveTarget = null;
+    lastShotByMe = false; hideChoose();
+    var st = match;
+    if (st.winner !== null || st.loser !== null) { showOver(); return; }
+    needCall = false;
+    if (st.needsChoose && st.turn === myPlayer) { phase = 'choose'; showChoose(); }
+    else if (st.needsChoose) { phase = 'aim'; }
+    else if (st.hand && st.hand.forPlayer === myPlayer) { phase = 'place'; placing = null; placeOK = false; }
+    else if (st.hand) { phase = 'aim'; }
+    else { phase = 'aim'; updateNeedCall(); }
+    syncUI();
+  }
+
+  /* 联机启动：mode=online&room=CODE&role=host|guest */
+  function startOnline(room, role) {
+    mode = 'online'; onlineMode = true; myPlayer = role === 'host' ? 0 : 1;
+    currentRoom = room; roomStarted = false;
+    if (lobby) lobby.hide();
+    online = new window.PoolOnline();
+    online.code = room;
+    lobby = new window.GameLobby({
+      onReady: function () { if (online) online.sendReady(); },
+      onStart: function () { if (online) online.sendStart(); },
+      onNotify: function () { if (online) online.sendNotify(); },
+      onLeave: function () { if (online) online.sendLeave(); location.href = 'pool.html'; },
+    });
+    lobby.show(room);
+    bindOnline(online);
+    online.connect(role === 'host' ? 0 : 1).then(function () {}, function () {});
+  }
 
   /******** 主循环 ********/
   var lastT = 0;
   function loop(ts) {
     if (!world) { requestAnimationFrame(loop); return; }
-    // 物理推进
-    if (busy && phase === 'moving' && !world.quiet) {
+    // 联机且对方出杆中：用服务端 live 帧驱动位置（本端不做本地物理推进）
+    if (onlineMode && liveTarget) {
+      var any = false;
+      for (var i = 0; i < world.balls.length; i++) {
+        var b = world.balls[i];
+        var t = liveTarget[b.id];
+        if (!t) continue;
+        var dx = t.x - b.x, dy = t.y - b.y;
+        b.vx = dx * 10; b.vy = dy * 10;
+        b.x += dx * 0.42; b.y += dy * 0.42;
+        any = true;
+      }
+      if (!any) liveTarget = null;
+    } else if (busy && phase === 'moving' && !world.quiet) {
       var dt = lastT ? Math.min(0.05, (ts - lastT) / 1000) : 1 / 60;
       P.step(world, dt);
+    } else {
+      easeAim();   // 瞄准平滑（未在蓄力/持球移动时）
     }
     lastT = ts;
     // 绘制
+    var myTurnAim = onlineMode
+      ? (match.turn === myPlayer && !busy && phase === 'aim')
+      : ((!busy || phase === 'aim') && match.turn !== aiSide);
     var ui = {
-      aim: (!busy || phase === 'aim') && match.turn !== aiSide ? aim : null,
+      aim: myTurnAim ? aim : null,
       power: power, top: top, side: side,
+      charging: !!charging,
       placing: phase === 'place' ? placing : null,
       placeOK: placeOK,
       callPocket: needCall ? callPocket : null,
@@ -504,13 +679,27 @@
     var q = (location.search || '').substr(1);
     var params = {};
     q.split('&').forEach(function (kv) { if (!kv) return; var p = kv.split('='); params[p[0]] = decodeURIComponent(p[1] || ''); });
+    R.resize();
+    window.addEventListener('resize', function () { R.resize(); });
+    requestAnimationFrame(function (t) { lastT = t; requestAnimationFrame(loop); });
+    if (params.mode === 'online') {
+      var room = params.room || '';
+      if (!room) {
+        // 无房间码：进入即建房（房主），等待室展示房间码 + 分享 + 开始
+        mode = 'online'; onlineMode = true;
+        var o = new window.PoolOnline();
+        o.createRoom().then(function (code) {
+          startOnline(code, 'host');
+        }, function () { notify('建房失败，请检查网络', 'error'); });
+        return;
+      }
+      startOnline(room, params.role === 'host' ? 'host' : 'guest');
+      return;
+    }
     mode = params.mode === 'ai' ? 'ai' : 'local';
     isAI = mode === 'ai';
     aiSide = 1;
-    R.resize();
-    window.addEventListener('resize', function () { R.resize(); });
     newGame();
-    requestAnimationFrame(function (t) { lastT = t; requestAnimationFrame(loop); });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

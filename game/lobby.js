@@ -7,6 +7,7 @@
     battleship: { name: '海战棋', icon: svgBS() },
     liar: { name: '骗子酒馆', icon: svgLiar() },
     uno:  { name: '优诺UNO！', icon: svgUno() },
+    pool: { name: '八球台球', icon: svgPool() },
   };
   function detectGame() {
     var p = window.location.pathname;
@@ -16,7 +17,18 @@
     if (p.indexOf('go-') >= 0 || p.indexOf('/go.') >= 0 || p.indexOf('go.html') >= 0) return 'go';
     if (p.indexOf('connect4') >= 0) return 'connect4';
     if (p.indexOf('battleship') >= 0) return 'battleship';
+    if (p.indexOf('pool') >= 0) return 'pool';
     return 'qr';   // 步步为营 play.html/online.html 兜底
+  }
+  function svgPool() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="12" y="10" width="72" height="76" rx="9" fill="#4e3418"/>' +
+      '<rect x="17" y="15" width="62" height="66" rx="5" fill="#12735a"/>' +
+      '<g fill="#0a0d12"><circle cx="19" cy="17" r="5"/><circle cx="77" cy="17" r="5"/><circle cx="19" cy="79" r="5"/><circle cx="77" cy="79" r="5"/><circle cx="48" cy="17" r="5"/><circle cx="48" cy="79" r="5"/></g>' +
+      '<circle cx="56" cy="48" r="9" fill="#f8c742"/><circle cx="66" cy="37" r="9" fill="#e63946"/>' +
+      '<circle cx="66" cy="59" r="9" fill="#2f6ff7"/><circle cx="76" cy="48" r="9" fill="#1c2733"/>' +
+      '<circle cx="31" cy="48" r="9" fill="#f3f6fa"/>' +
+      '</svg>';
   }
   function svgUno() {
     return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +

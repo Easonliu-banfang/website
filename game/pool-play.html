@@ -74,6 +74,52 @@
   </aside>
 </div>
 
+<!-- 联机等待室（与全部游戏统一） -->
+<div id="lobby" class="lobby" hidden>
+  <div class="room">
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="26" y="14" width="188" height="140" rx="12" fill="#4e3418"/>
+        <rect x="36" y="24" width="168" height="120" rx="8" fill="#12735a"/>
+        <g fill="#0a0d12">
+          <circle cx="40" cy="28" r="7"/><circle cx="200" cy="28" r="7"/>
+          <circle cx="40" cy="140" r="7"/><circle cx="200" cy="140" r="7"/>
+          <circle cx="120" cy="28" r="7"/><circle cx="120" cy="140" r="7"/>
+        </g>
+        <circle cx="150" cy="84" r="9" fill="#f8c742"/>
+        <circle cx="166" cy="70" r="9" fill="#e63946"/>
+        <circle cx="166" cy="98" r="9" fill="#2f6ff7"/>
+        <circle cx="182" cy="84" r="9" fill="#1c2733"/>
+        <circle cx="58" cy="84" r="9" fill="#f3f6fa"/>
+        <path d="M64 66 L150 80" stroke="rgba(255,255,255,0.5)" stroke-width="4" stroke-linecap="round"/>
+      </svg></div>
+      <div class="room-name">八球台球</div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b> <button id="btnShareLink" class="btn ghost btn-share" type="button"> 分享链接</button></div>
+    </div>
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title">等待玩家加入</span>
+        <span class="room-caption-sub" id="lobbyStatus">连接中…</span>
+      </div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 对局结束 -->
 <div id="poolModal" class="modal" hidden>
   <div class="modal-card">
@@ -97,12 +143,14 @@
   </div>
 </div>
 
-<script src="pool-engine.js?v=p1"></script>
-<script src="pool-rules.js?v=p1"></script>
-<script src="pool-render.js?v=p1"></script>
-<script src="pool-ai.js?v=p1"></script>
+<script src="pool-engine.js?v=p2"></script>
+<script src="pool-rules.js?v=p2"></script>
+<script src="pool-render.js?v=p2"></script>
+<script src="pool-ai.js?v=p2"></script>
 <script src="notify.js?v=n3"></script>
-<script src="pool-app.js?v=p1"></script>
+<script src="pool-online.js?v=p2"></script>
+<script src="lobby.js?v=l13"></script>
+<script src="pool-app.js?v=p2"></script>
   <script src="device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>

@@ -79,7 +79,62 @@
       this._drawAim(g, world, ui);
       this._drawCue(g, ui);
     }
+    this._drawHUD(g, ui);
     // 桌中央提示（可选）
+  };
+
+  /* 力度 / 旋转 HUD + 蓄力环 */
+  PoolRender.prototype._drawHUD = function (g, ui) {
+    var P = this.P;
+    // 左上角面板
+    g.save();
+    g.font = '600 12px "SF Pro Rounded", system-ui, sans-serif';
+    g.textBaseline = 'middle';
+    var px0 = 16, py0 = 16;
+    g.fillStyle = 'rgba(8,14,24,0.62)';
+    g.beginPath();
+    g.roundRect ? g.roundRect(px0, py0, 176, 54, 10) : g.rect(px0, py0, 176, 54);
+    g.fill();
+    g.strokeStyle = 'rgba(34,211,238,0.18)';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.roundRect ? g.roundRect(px0, py0, 176, 54, 10) : g.rect(px0, py0, 176, 54);
+    g.stroke();
+    g.fillStyle = 'rgba(226,232,240,0.9)';
+    g.fillText('力度 ' + Math.round((ui.power || 0) * 100) + '%', px0 + 12, py0 + 14);
+    // 力度条
+    var bw = 120, bx = px0 + 12, by = py0 + 26;
+    g.fillStyle = 'rgba(255,255,255,0.10)';
+    g.fillRect(bx, by, bw, 7);
+    var pw = (ui.power || 0) * bw;
+    var pg = g.createLinearGradient(bx, by, bx + bw, by);
+    pg.addColorStop(0, '#22d3ee');
+    pg.addColorStop(1, '#f59e0b');
+    g.fillStyle = pg;
+    if (pw > 0) g.fillRect(bx, by, pw, 7);
+    g.fillStyle = 'rgba(148,163,184,0.9)';
+    g.font = '600 11.5px "SF Pro Rounded", system-ui, sans-serif';
+    g.fillText('高/低杆 ' + Math.round(((ui.top === undefined ? 0 : ui.top) + 1) * 50) + '%' +
+      '  侧塞 ' + (ui.side > 0.05 ? '右' : (ui.side < -0.05 ? '左' : '中')), px0 + 12, py0 + 42);
+    g.restore();
+
+    // 蓄力环（围绕白球）
+    if (ui.charging && ui.aim) {
+      var world = ui._world;
+      var cue = null;
+      for (var i = 0; i < world.balls.length; i++) if (world.balls[i].type === 0 && !world.balls[i].dead) { cue = world.balls[i]; break; }
+      if (cue) {
+        var cx = this.ox + cue.x * this.scale, cy = this.oy + cue.y * this.scale;
+        var pr = cue.r * this.scale + 8 + (ui.power || 0) * 16;
+        g.save();
+        g.strokeStyle = 'rgba(34,211,238,0.85)';
+        g.lineWidth = 3;
+        g.beginPath();
+        g.arc(cx, cy, pr, -Math.PI / 2, -Math.PI / 2 + (ui.power || 0) * Math.PI * 2);
+        g.stroke();
+        g.restore();
+      }
+    }
   };
 
   PoolRender.prototype._drawBackdrop = function (g) {
