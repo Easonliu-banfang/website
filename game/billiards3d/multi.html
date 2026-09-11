@@ -91,7 +91,7 @@
     const nonlocal = urlParams.has("nonlocal")
     const wss =
       window.location.hostname !== "localhost" || nonlocal
-        ? "wss://billiards-network.onrender.com"
+        ? "wss://quoridor-mp.pages.dev"
         : "ws://localhost"
     const shotClock = urlParams.get("shotClock")
     const wssparam = `websocketserver=${wss}`
