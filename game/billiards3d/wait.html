@@ -6,13 +6,13 @@
   <title>八球台球 · 房间等待</title>
   <meta name="description" content="八球台球 8-Ball Pool —— 联机房间等待室">
   <meta name="theme-color" content="#0a0e14">
-  <link rel="stylesheet" href="../style.css?v=b25">
+  <link rel="stylesheet" href="../style.css?v=b26">
 </head>
 <body>
 
 <div id="lobby" class="lobby">
   <div class="room">
-    <!-- 左：游戏预览 + 房间码 -->
+    <!-- 左：玩法预览 + 房间码 -->
     <div class="room-preview">
       <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <!-- 球桌 -->
@@ -39,23 +39,26 @@
           <line x1="60" y1="110" x2="86" y2="95" stroke="#f4e2b8" stroke-width="2" stroke-linecap="round"/>
         </svg></div>
       <div class="room-name">八球台球</div>
-      <div class="room-code">房间 <b id="lobbyCode">------</b> <button id="btnShareLink" class="btn ghost btn-share" type="button"> 分享链接</button></div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b> <button id="btnShareLink" class="btn ghost btn-share" type="button"> 分享链接</button></div>
     </div>
-    <!-- 右：席位 + 状态 -->
+    <!-- 右：席位 + 底部 -->
     <div class="room-main">
       <div class="room-caption">
-        <span class="room-caption-title" id="captionTitle">等待玩家加入</span>
+        <span class="room-caption-title">等待玩家加入</span>
         <span class="room-status" id="lobbyStatus">连接中…</span>
       </div>
       <div class="room-seats">
-        <div class="seat-card" id="seat0"><span class="seat-name">房主</span><span class="seat-dot"></span></div>
-        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-dot"></span></div>
-        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
-        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
       </div>
       <div class="room-foot">
         <div class="room-hint" id="lobbyHint"></div>
         <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
           <button id="btnLeave" class="btn ghost">离开房间</button>
         </div>
       </div>
@@ -63,57 +66,28 @@
   </div>
 </div>
 
+<script src="../notify.js?v=n3"></script>
+<script src="online.js?v=p1"></script>
+<script src="../lobby.js?v=l14"></script>
 <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>
 <script>
 (function () {
   'use strict';
 
-  /* 联机中继：与游戏 lobby.js / index.js 完全一致，使用 @tailuge/messaging v1.42.0 协议。
-   * 自有 Worker 反向代理「quoridor-mp.pages.dev/api/nchan」：
-   *   - 发布  POST  {base}/publish/table/{id}   体 = JSON
-   *   - 订阅  WS    {base->wss}/subscribe/table/{id}?uid=..
-   * 服务端是「哑」中继：注入 meta.msgId、缓冲最近消息、广播给所有订阅者；
-   * 客户端据此本地推导 bothJoined（2 个不同 joined id 到齐）与对手掉线。
-   * 这跟旧版「轮询伪 /api/poolroom + 写死座位名 + 固定 2.5s 跳转」完全不同。 */
-
-  var RELAY_HTTP = 'https://quoridor-mp.pages.dev/api/nchan';
-  var RELAY_WS = 'wss://quoridor-mp.pages.dev/api/nchan';
+  var WS_BASE = 'https://quoridor-mp.pages.dev';
+  var WS_RELAY = 'wss://quoridor-mp.pages.dev/api/nchan';
 
   var params = new URLSearchParams(location.search);
   var ROOM = (params.get('room') || '').trim();
   var ROLE = (params.get('role') || 'guest').trim();   // host | guest
 
-  var lobbyStatus = document.getElementById('lobbyStatus');
-  var lobbyHint = document.getElementById('lobbyHint');
-  var captionTitle = document.getElementById('captionTitle');
-  var seat0 = document.getElementById('seat0');   // 房主（先手）
-  var seat1 = document.getElementById('seat1');   // 玩家 2
-
-  var entered = false;
-  var launchTimer = null;
-  var connOpen = false;
-  var bothJoined = false;
-  var opponentName = null;
-  var ws = null;
-  var reconnectTimer = null;
-  var reconnectAttempts = 0;
-
-  function setStatus(m, cls) {
-    lobbyStatus.textContent = m;
-    lobbyStatus.className = 'room-status' + (cls ? ' status--' + cls : '');
-  }
-  function setHint(m) { lobbyHint.textContent = m || ''; }
-  function setDot(seat, txt) { var d = seat.querySelector('.seat-dot'); if (d) d.textContent = txt || ''; }
-
-  // 身份：必须与游戏一致（游戏读 URL 的 userId / userName）
-  function getNick() {
+  function myName() {
     var auth = window.Auth && window.Auth.user;
     var n = null;
     if (auth) n = (typeof auth === 'string') ? auth : (auth.username || auth.name || auth.userName || null);
     if (!n) { try { n = localStorage.getItem('game_username'); } catch (e) {} }
-    if (!n) n = '球友' + Math.floor(1000 + Math.random() * 9000);
-    return n;
+    return (n || '你').slice(0, 12);
   }
   function getUid() {
     try {
@@ -123,201 +97,86 @@
     } catch (e) { return 'p' + Date.now().toString(36); }
   }
 
-  var me = getNick();
+  if (!ROOM || !/^\d{4,6}$/.test(ROOM)) {
+    window.Notify && window.Notify.show('房间码无效，返回创建或加入', 'error', { sticky: true });
+    setTimeout(function () { location.href = 'room.html'; }, 1200);
+    return;
+  }
+
+  var me = myName();
   var uid = getUid();
+  var launched = false;
 
-  var mySeat = (ROLE === 'host') ? seat0 : seat1;
-  var oppSeat = (ROLE === 'host') ? seat1 : seat0;
+  var online = new window.PoolOnline();
+  online.code = ROOM;
 
-  // 我的席位：立即显示昵称 + 就绪
-  mySeat.querySelector('.seat-name').textContent = me;
-  mySeat.classList.remove('empty');
-  mySeat.classList.add('ready');
-  setDot(mySeat, '你');
-
-  // 对手席位：等待加入
-  oppSeat.querySelector('.seat-name').textContent = (ROLE === 'host' ? '玩家 2' : '房主');
-  oppSeat.classList.add('empty');
-
-  document.getElementById('lobbyCode').textContent = ROOM || '------';
-  if (ROOM) {
-    if (ROLE === 'host') {
-      captionTitle.textContent = '等待玩家加入';
-      setStatus('连接中…');
-      setHint('把 6 位房间码发给好友，好友加入后自动开局');
-    } else {
-      captionTitle.textContent = '正在加入房间';
-      setStatus('连接中…');
-      setHint('双人一桌 · 房主先手开球');
+  var lobby = new window.GameLobby({
+    game: 'pool',
+    onReady: function () { if (online) online.sendReady(); },
+    onStart: function () { if (online) online.sendStart(); },
+    onNotify: function () {
+      if (online) online.sendNotify();
+      window.Notify && window.Notify.show('已提醒对方准备', 'info');
+    },
+    onLeave: function () {
+      if (online) online.sendLeave();
+      location.href = '../pool.html';
     }
-  } else {
-    captionTitle.textContent = '房间码缺失';
-    setStatus('缺少房间码', 'err');
-    setHint('请返回重新创建或加入房间');
-  }
+  });
+  lobby.show(ROOM);
+  lobby.setStatus('连接中…', 'connecting');
 
-  // ---- 真实联机中继客户端（与 @tailuge/messaging 同协议） ----
-  var PUBLISH_URL = RELAY_HTTP + '/publish/table/' + encodeURIComponent(ROOM);
-  var SUBSCRIBE_URL = RELAY_WS + '/subscribe/table/' + encodeURIComponent(ROOM) + '?uid=' + encodeURIComponent(uid);
-
-  var seenIds = Object.create(null);   // 已加入玩家 userId
-  var seenMsgIds = Object.create(null); // 消息去重（按 meta.msgId）
-  var msgIdCount = 0;
-
-  function publish(msg) {
-    msg = Object.assign({ senderId: uid }, msg);
-    try {
-      fetch(PUBLISH_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(msg)
-      }).catch(function () {});
-    } catch (e) {}
-  }
-
-  function handle(m) {
-    if (!m || !m.type) return;
-    if (m.type === 'joined') {
-      var id = (m.data && m.data.id) || m.senderId;
-      if (id) {
-        seenIds[id] = 1;
-        if (!bothJoined && Object.keys(seenIds).length >= 2) {
-          bothJoined = true;
-          onBothJoined();
-        }
-      }
-    } else if (m.type === 'pool_wait') {
-      // 对手同步昵称
-      if (m.id && m.id !== uid) {
-        opponentName = m.name || opponentName;
-        fillOpponent(opponentName);
-      }
-    } else if (m.type === 'pool_leave') {
-      // 对手离开（在双方到齐前 / 对局外）
-      if (m.id && m.id !== uid) onOpponentLeft();
-    }
-  }
-
-  function onMessage(raw) {
-    var m;
-    try { m = JSON.parse(raw); } catch (e) { return; }
-    var mid = m && m.meta && m.meta.msgId;
-    if (mid) {
-      if (seenMsgIds[mid]) return;                 // 重连重放去重
-      if (msgIdCount < 8192) { seenMsgIds[mid] = 1; msgIdCount++; }
-    }
-    handle(m);
-  }
-
-  function connect() {
-    if (entered || !ROOM) return;
-    try { ws = new WebSocket(SUBSCRIBE_URL); }
-    catch (e) { scheduleReconnect(); return; }
-    ws.onopen = function () {
-      connOpen = true;
-      reconnectAttempts = 0;
-      if (!bothJoined) setStatus('已连接 · 等待对手', 'ok');
-      publish({ type: 'joined', data: { id: uid } });       // 宣告加入（与游戏 joinTable 同语义）
-      publish({ type: 'pool_wait', name: me, id: uid });     // 同步昵称
-    };
-    ws.onmessage = function (ev) { onMessage(ev.data); };
-    ws.onclose = function () {
-      connOpen = false;
-      if (entered) return;
-      scheduleReconnect();
-    };
-    ws.onerror = function () { try { ws.close(); } catch (e) {} };
-  }
-
-  function scheduleReconnect() {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    if (entered || !ROOM) return;
-    if (reconnectAttempts >= 8) { setStatus('连接已断开，请刷新页面重试', 'err'); return; }
-    reconnectAttempts++;
-    var delay = Math.min(30000, 1000 * Math.pow(2, reconnectAttempts - 1));
-    setStatus('连接中断，' + (delay / 1000) + ' 秒后重连…');
-    reconnectTimer = setTimeout(connect, delay);
-  }
-
-  function fillOpponent(name) {
-    if (entered) return;
-    oppSeat.querySelector('.seat-name').textContent = name || '玩家';
-    oppSeat.classList.remove('empty');
-    oppSeat.classList.add('ready');
-    setDot(oppSeat, '✓');
-  }
-
-  function onBothJoined() {
-    if (entered) return;
-    fillOpponent(opponentName || '玩家');
-    captionTitle.textContent = '房间已满 · 准备开始';
-    setStatus('双方就绪，即将进入游戏…', 'ok');
-    setHint('双人一桌 · 房主先手开球');
-    // 再同步一次昵称，确保双方都拿到对方名字
-    publish({ type: 'pool_wait', name: me, id: uid });
-    if (launchTimer) clearTimeout(launchTimer);
-    launchTimer = setTimeout(goGame, 1500);
-  }
-
-  function onOpponentLeft() {
-    if (entered) return;
-    if (launchTimer) { clearTimeout(launchTimer); launchTimer = null; }
-    bothJoined = false;
-    setStatus('对手已离开房间', 'err');
-    setHint('等待对手重新加入…');
-    oppSeat.classList.remove('ready');
-    oppSeat.classList.add('empty');
-    oppSeat.querySelector('.seat-name').textContent = (ROLE === 'host' ? '玩家 2' : '房主');
-    setDot(oppSeat, '');
-    captionTitle.textContent = '等待玩家加入';
-  }
-
-  function goGame() {
-    if (entered) return;
-    entered = true;
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    if (launchTimer) clearTimeout(launchTimer);
-    if (ws) { try { ws.close(); } catch (e) {} }
-    // 进入真实 3D 对局：复用游戏既有的联机参数（websocketserver / tableId / userId / userName / first）
-    location.href = 'index.html?websocketserver=' + RELAY_WS +
-      '&ruletype=eightball&tableId=' + encodeURIComponent(ROOM) +
+  function launchGame() {
+    if (launched) return;
+    launched = true;
+    if (online) online.close();
+    // 进入 3D 对局：Nchan 中继实际对局；tableId 加 pl- 前缀避免跟其它游戏 4 位码串房
+    var tableId = 'pl-' + ROOM;
+    location.href = 'index.html?websocketserver=' + encodeURIComponent(WS_RELAY) +
+      '&ruletype=eightball&tableId=' + encodeURIComponent(tableId) +
       '&userId=' + encodeURIComponent(uid) + '&userName=' + encodeURIComponent(me) +
       (ROLE === 'host' ? '&first=true' : '');
   }
 
-  // 离开房间：通知对手后返回模式选择
-  function leave() {
-    if (entered) return;
-    try { publish({ type: 'pool_leave', id: uid }); } catch (e) {}
-    if (ws) { try { ws.close(); } catch (e) {} }
-  }
-  document.getElementById('btnLeave').addEventListener('click', function () {
-    leave();
-    location.href = '../pool.html';
-  });
-  window.addEventListener('beforeunload', leave);
-
-  // 分享链接：好友以 guest 身份直接进入等待室
-  document.getElementById('btnShareLink').addEventListener('click', function () {
-    if (!ROOM) return;
-    var full = location.origin + location.pathname + '?room=' + encodeURIComponent(ROOM) + '&role=guest';
-    var done = function () { setStatus('已复制链接，发给好友即可', 'ok'); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(full).then(done, function () { fallbackCopy(full); done(); });
-    } else { fallbackCopy(full); done(); }
+  online.onStatus(function (phase, msg) {
+    if (phase === 'connected') {
+      lobby.setStatus('已连接，等待准备开始', 'ok');
+    } else if (phase === 'reconnecting') {
+      lobby.setStatus(msg || '连接中断，正在重连…');
+      window.Notify && window.Notify.show(msg || '连接中断，正在重连…', 'warn', { sticky: true });
+    } else if (phase === 'disconnected') {
+      lobby.setStatus(msg || '连接已断开，请返回重试', 'err');
+      window.Notify && window.Notify.show(msg || '连接已断开', 'error', { sticky: true });
+    }
   });
 
-  function fallbackCopy(text) {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); } catch (e) {}
-    document.body.removeChild(ta);
-  }
+  online.on('welcome', function () {
+    lobby.setStatus('已连接，等待准备开始', 'ok');
+  });
+  online.on('lobby', function (d) {
+    if (d.started) { launchGame(); return; }
+    lobby.render(d);
+  });
+  online.on('started', launchGame);
+  online.on('players', function () { /* lobby render 已覆盖状态更新 */ });
+  online.on('notify', function () {
+    window.Notify && window.Notify.show('🔔 房主提醒你准备', 'warn', { sticky: true });
+  });
+  online.on('dissolve', function () {
+    window.Notify && window.Notify.show('房间已解散，即将返回…', 'error', { sticky: true });
+    setTimeout(function () { location.href = '../pool.html'; }, 1500);
+  });
+  online.on('giveup', function () {
+    window.Notify && window.Notify.show('多次重连失败，返回大厅…', 'error', { sticky: true });
+    setTimeout(function () { location.href = '../pool.html'; }, 1500);
+  });
+  online.on('error', function (msg) {
+    if (msg) window.Notify && window.Notify.show(String(msg), 'error');
+  });
 
-  if (ROOM) connect();
+  online.connect(ROLE === 'host' ? 0 : 1).catch(function () {
+    window.Notify && window.Notify.show('连接失败，正在重连…', 'warn', { sticky: true });
+  });
 })();
 </script>
 </body>

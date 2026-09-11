@@ -15,10 +15,11 @@
     if (p.indexOf('/liar/') >= 0) return 'liar';
     if (p.indexOf('gomoku') >= 0) return 'gomoku';
     if (p.indexOf('go-') >= 0 || p.indexOf('/go.') >= 0 || p.indexOf('go.html') >= 0) return 'go';
-    if (p.indexOf('connect4') >= 0) return 'connect4';
-    if (p.indexOf('battleship') >= 0) return 'battleship';
-    if (p.indexOf('pool') >= 0) return 'pool';
-    return 'qr';   // 步步为营 play.html/online.html 兜底
+  if (p.indexOf('connect4') >= 0) return 'connect4';
+  if (p.indexOf('battleship') >= 0) return 'battleship';
+  if (p.indexOf('billiards3d') >= 0) return 'pool';
+  if (p.indexOf('pool') >= 0) return 'pool';
+  return 'qr';   // 步步为营 play.html/online.html 兜底
   }
   function svgPool() {
     return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
@@ -125,6 +126,7 @@
     this.started = false;
     this.onAddAI = opts.onAddAI || function () {};
     this.onRemoveAI = opts.onRemoveAI || function () {};
+    this.game = opts.game || detectGame();   // 显式指定游戏元信息（billiards3d 用 pool）
     this._aiFillActive = null; // 当前展开的空位/AI 槽位（避免重复弹出）
     var self = this;
     // 座位点击：空位 → 弹出「AI 补位」；自有的 AI 槽位 → 弹出「移除 AI」；点别处自动收起
@@ -174,7 +176,7 @@
   };
   GameLobby.prototype.showShareModal = function () {
     var self = this;
-    var meta = GAME_META[detectGame()] || GAME_META.qr;
+    var meta = GAME_META[this.game] || GAME_META.qr;
     var code = this.codeEl ? this.codeEl.textContent : '';
     var url = this.shareUrl();
 
