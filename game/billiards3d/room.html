@@ -218,7 +218,8 @@
 
   btnCopy.addEventListener('click', function () {
     if (!currentCode) return;
-    var full = location.origin + location.pathname.replace(/room\.html$/, '') + gameUrl(currentCode, false);
+    // 发给好友的是「等待室 guest 链接」，好友进入同一等待室，双方到齐后一起进游戏
+    var full = location.origin + location.pathname.replace(/room\.html$/, 'wait.html') + '?room=' + encodeURIComponent(currentCode) + '&role=guest';
     var done = function () { setStatus('已复制房间链接，发给好友即可', 'connected'); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(full).then(done, function () { fallbackCopy(full); done(); });
