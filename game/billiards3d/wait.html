@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <title>八球台球 · 房间等待</title>
   <meta name="description" content="八球台球 8-Ball Pool —— 联机房间等待室">
   <meta name="theme-color" content="#0a0e14">
@@ -99,7 +101,7 @@
 
   if (!ROOM || !/^\d{4,6}$/.test(ROOM)) {
     window.Notify && window.Notify.show('房间码无效，返回创建或加入', 'error', { sticky: true });
-    setTimeout(function () { location.href = 'room.html'; }, 1200);
+    setTimeout(function () { location.href = 'room.html?v=p1'; }, 1200);
     return;
   }
 
@@ -120,7 +122,7 @@
     },
     onLeave: function () {
       if (online) online.sendLeave();
-      location.href = '../pool.html';
+      location.href = '../pool.html?v=b10';
     }
   });
   lobby.show(ROOM);
@@ -132,10 +134,9 @@
     if (online) online.close();
     // 进入 3D 对局：Nchan 中继实际对局；tableId 加 pl- 前缀避免跟其它游戏 4 位码串房
     var tableId = 'pl-' + ROOM;
-    location.href = 'index.html?websocketserver=' + encodeURIComponent(WS_RELAY) +
+    location.href = 'index.html?v=p2&websocketserver=' + encodeURIComponent(WS_RELAY) +
       '&ruletype=eightball&tableId=' + encodeURIComponent(tableId) +
-      '&userId=' + encodeURIComponent(uid) + '&userName=' + encodeURIComponent(me) +
-      (ROLE === 'host' ? '&first=true' : '');
+      '&userId=' + encodeURIComponent(uid) + '&userName=' + encodeURIComponent(me);
   }
 
   online.onStatus(function (phase, msg) {
@@ -164,11 +165,11 @@
   });
   online.on('dissolve', function () {
     window.Notify && window.Notify.show('房间已解散，即将返回…', 'error', { sticky: true });
-    setTimeout(function () { location.href = '../pool.html'; }, 1500);
+    setTimeout(function () { location.href = '../pool.html?v=b10'; }, 1500);
   });
   online.on('giveup', function () {
     window.Notify && window.Notify.show('多次重连失败，返回大厅…', 'error', { sticky: true });
-    setTimeout(function () { location.href = '../pool.html'; }, 1500);
+    setTimeout(function () { location.href = '../pool.html?v=b10'; }, 1500);
   });
   online.on('error', function (msg) {
     if (msg) window.Notify && window.Notify.show(String(msg), 'error');

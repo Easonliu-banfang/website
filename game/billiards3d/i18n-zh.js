@@ -11,77 +11,14 @@
   window.__i18nZH = true;
 
   /* 映射表：优先按词条长度从长到短处理 */
+  /* 已在 index.js 源码层面直接替换了核心通知/状态文案（96 处字符串字面量），
+   * 此表仅保留 index.js 中未直接出现的 DOM 文本（如彩球名、按钮短词等），
+   * 作为 MutationObserver 兜底翻译。 */
   var MAP = [
-    // —— 对局结果 / 状态 ——
-    ['YOU WON', '你赢了'],
-    ['YOU LOST', '你输了'],
-    ['GAME OVER', '本局结束'],
-    ['Waiting for opponent to join', '等待对手加入…'],
-    ['Waiting for opponent', '等待对手…'],
-    ['Replay Complete', '回放完成'],
-    ['Bot mode activated', '机器人模式已开启'],
-    ['Concede Game', '认输'],
-    ['You conceded', '你认输了'],
-    ['Back to Arena', '返回竞技场'],
-    ['Back to Lobby', '返回大厅'],
-    // —— 规则判罚（台球术语，意译）——
-    ['Ball in hand', '自由球（手中球）'],
-    ['Cue ball potted', '白球落袋'],
-    ['White potted', '白球落袋'],
-    ['Black respotted', '黑八复位'],
-    ['No cushion after contact', '击球后未碰库'],
-    ['Wrong group hit first', '先击中了错误的一组球'],
-    ['Wrong ball hit first', '先击中了错误的球'],
-    ['Hit red instead of colour', '应先击打红球'],
-    ['Red potted instead of colour', '误将红球打进'],
-    ['No ball hit', '未击中任何球'],
-    ['No pot', '未进球'],
-    ['You first', '你先开球'],
-    // —— 操作 / 菜单 ——
-    ['Change camera angle', '切换视角'],
-    ['Hide Preview', '隐藏预览'],
-    ['Switch to emoji mode', '切换到表情模式'],
-    ['Switch to text mode', '切换到文字模式'],
-    ['Place Balls', '放置彩球'],
-    ['Place White', '放置白球'],
-    ['Place Red', '放置红球'],
-    ['Place Yellow', '放置黄球'],
-    ['Place Ball', '放置白球'],
-    ['Switch Ball', '切换球'],
-    ['Shot Analysis', '击球分析'],
-    ['Step left', '左移一步'],
-    ['Step right', '右移一步'],
-    ['Whole Game', '整局'],
-    // —— 彩球名 ——
+    // —— 彩球名（DOM 按钮文本，不在 index.js 字符串里）——
     ['Black', '黑球'], ['Blue', '蓝球'], ['Brown', '棕球'],
     ['Green', '绿球'], ['Pink', '粉球'], ['Yellow', '黄球'],
-    // —— 状态/提示 ——
-    ['Pending', '等待中'],
-    ['Unknown', '未知'],
-    ['System error', '系统错误'],
-    ['Network error or Load failed', '网络错误或加载失败'],
-    ['Request timed out', '请求超时'],
-    ['Could not shorten url', '无法生成分享链接'],
-    ['Error shortening url', '生成分享链接出错'],
-    ['Error submitting match result to', '战绩上报失败：'],
-    ['Retrying match result submission in', '稍后重试上报战绩'],
-    ['Publication error for table', '对局消息发布失败'],
-    ['Failed to encode replay data', '回放数据编码失败'],
-    ['Solution not found', '未找到解法'],
-    ['Analysing', '正在分析'],
-    ['Spectate', '观战'],
-    ['Opponent', '对手'],
-    ['Player', '玩家'],
-    ['Anon', '匿名'],
-    ['Send', '发送'],
-    ['Replay', '回放'],
-    ['Restore', '恢复'],
-    ['Retry', '重试'],
-    ['Preview', '预览'],
-    ['Respot', '复位'],
-    ['Score', '比分'],
-    ['Info', '信息'],
-    // —— 单短词（最后处理，长词已先行）——
+    // —— 短词兜底 ——
     ['CONCEDE', '认输'], ['ABORT', '终止'], ['BEGIN', '开始'],
     ['COMPLETE', '完成'], ['REJOIN', '重新加入'], ['RERACK', '重新摆球'],
     ['BREAK', '开球'], ['FOUL', '犯规'],
@@ -92,6 +29,13 @@
     ['Ball', '球'], ['Clear', '清除'], ['close', '关闭'], ['Close', '关闭'],
     ['hit', '击打'],
     ['Billiards', '台球'],
+    // —— 兜底：万一某些版本 index.js 未替换到 ——
+    ['Waiting for opponent to join', '等待对手加入…'],
+    ['Waiting for opponent', '等待对手…'],
+    ['YOU WON', '你赢了'], ['YOU LOST', '你输了'], ['GAME OVER', '本局结束'],
+    ['Concede Game', '认输'], ['Back to Arena', '返回竞技场'], ['Back to Lobby', '返回大厅'],
+    ['Replay Complete', '回放完成'], ['Bot mode activated', '机器人模式已开启'],
+    ['System error', '系统错误'],
   ];
 
   function tr(s) {
