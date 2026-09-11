@@ -107,6 +107,50 @@
 
   var seen = new WeakSet();
 
+  /* 本站域白名单：这些域算"自己人"，允许跳转 */
+  var OUR_HOSTS = null;
+  function ourHosts() {
+    if (OUR_HOSTS) return OUR_HOSTS;
+    OUR_HOSTS = { 'quoridor-mp.pages.dev': 1, 'easonliu-banfang.github.io': 1, 'billiards-network.onrender.com': 1 };
+    try { if (location && location.host) OUR_HOSTS[location.host] = 1; } catch (e) {}
+    return OUR_HOSTS;
+  }
+  function isExternalHref(href) {
+    if (!href || href.indexOf('http') !== 0) return false;
+    try {
+      var host = new URL(href, location.href).host;
+      return !!host && !ourHosts()[host];
+    } catch (e) { return false; }
+  }
+
+  /* —— 外链兜底：删除跳转到本站之外的外链按钮 / 拦截 window.open —— */
+  var OUR_HOSTS = { 'quoridor-mp.pages.dev': 1, 'easonliu-banfang.github.io': 1, 'billiards-network.onrender.com': 1 };
+  function isExternalUrl(u) {
+    try {
+      var h = new URL(u, globalThis.location ? globalThis.location.href : undefined).host;
+      if (!h) return false;
+      if (globalThis.location && h === globalThis.location.host) return false;
+      return !OUR_HOSTS[h];
+    } catch (e) { return false; }
+  }
+  function removeExternalAnchors(root) {
+    var as = root.querySelectorAll ? root.querySelectorAll('a[href]') : [];
+    for (var i = 0; i < as.length; i++) {
+      var a = as[i];
+      if (isExternalUrl(a.getAttribute('href'))) {
+        var p = a.parentNode;
+        if (p) p.removeChild(a);
+      }
+    }
+  }
+  try {
+    var _open = window.open;
+    window.open = function (u) {
+      if (typeof u === 'string' && isExternalUrl(u)) return null;
+      return _open.apply(window, arguments);
+    };
+  } catch (e) {}
+
   function translateNode(node) {
     if (node.nodeType === 3) { // 文本节点
       var v = node.nodeValue;
@@ -137,6 +181,7 @@
     }
     var els = root.querySelectorAll ? root.querySelectorAll('[title],[placeholder],[aria-label]') : [];
     for (var i = 0; i < els.length; i++) translateNode(els[i]);
+    removeExternalAnchors(root);   // 外链按钮兜底清除
   }
 
   function boot() {

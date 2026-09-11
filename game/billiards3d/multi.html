@@ -43,43 +43,43 @@
 </head>
 
   <body>
-    <h1>tailuge/billiards multiplayer test page</h1>
-    local assets (for dev)
+    <h1>多人联机测试页</h1>
+    本地资源（开发用）
     <br />
-    single player
+    单人
     <ul>
-      <li><a href="/">single player nineball</a></li>
+      <li><a href="/">单人九球</a></li>
       <li>
-        <a href="/?ruletype=threecushion">single player three cushion</a>
+        <a href="/?ruletype=threecushion">单人三库</a>
       </li>
       <li>
-        <a href="/?ruletype=snooker">single player snooker</a>
+        <a href="/?ruletype=snooker">单人斯诺克</a>
       </li>
       <li>
-        <a href="/?ruletype=eightball">single player eightball</a>
+        <a href="/?ruletype=eightball">单人八球</a>
       </li>
     </ul>
-    two player
+    双人
     <ul>
       <li>
         <a class="addwss" href="./2p.html?ruletype=nineball"
-          >two players nineball in single window</a
+          >单窗口双人九球</a
         >
-        for quick testing
+        （快速测试）
       </li>
       <li>
         <a class="addwss" href="./2p.html?ruletype=threecushion&raceTo=10"
-          >two players three cushion in single window</a
+          >单窗口双人三库</a
         >
       </li>
       <li>
         <a class="addwss" href="./2p.html?ruletype=snooker"
-          >two players snooker in single window</a
+          >单窗口双人斯诺克</a
         >
       </li>
       <li>
         <a class="addwss" href="./2p.html?ruletype=eightball"
-          >two players eightball in single window</a
+          >单窗口双人八球</a
         >
       </li>
     </ul>
@@ -90,7 +90,7 @@
     const nonlocal = urlParams.has("nonlocal")
     const wss =
       window.location.hostname !== "localhost" || nonlocal
-        ? "wss://quoridor-mp.pages.dev"
+        ? "wss://billiards-network.onrender.com"
         : "ws://localhost"
     const shotClock = urlParams.get("shotClock")
     const wssparam = `websocketserver=${wss}`
