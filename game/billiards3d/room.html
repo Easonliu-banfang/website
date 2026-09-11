@@ -37,15 +37,22 @@
         </button>
       </div>
 
-      <!-- 创建成功：显示房间码 -->
+      <!-- 创建中 -->
+      <div class="lc-loading" id="creatingView">
+        <span class="lc-spin"></span>
+        <span>正在创建房间…</span>
+      </div>
+
+      <!-- 创建成功：显示房间码，倒计时自动进入 -->
       <div id="roomView" hidden>
         <span class="cap">房间码</span>
         <div class="room-code-big" id="roomCode"></div>
-        <p class="room-tip">把房间码发给好友，好友「加入房间」输入后即可开局。<br>双人一桌，先创建者为先手（先开球）。</p>
+        <p class="room-tip">把房间码发给好友，好友「加入房间」输入后即可开局。<br>双人一桌，创建者为先手（先开球）。</p>
         <div class="btn-row enter-row">
           <button id="btnCopy" class="btn ghost" type="button">复制房间链接</button>
-          <button id="btnGoHost" class="btn on" type="button">进入游戏 →</button>
+          <button id="btnGoHost" class="btn on" type="button">立即进入游戏 →</button>
         </div>
+        <p class="room-tip" id="countdownTip">3 秒后自动进入游戏…</p>
         <button class="back-link" id="btnBackRoom" type="button">← 返回</button>
       </div>
 
@@ -72,16 +79,21 @@
 (function () {
   'use strict';
 
-  var RELAY = 'wss://quoridor-mp.pages.dev/api/nchan'; // 自有联机中继
+  var WORKER = 'https://quoridor-mp.pages.dev';                    // 自有 Worker（房间注册）
+  var RELAY = 'wss://quoridor-mp.pages.dev/api/nchan';             // 自有联机中继（对局数据）
+  var HTTP_TIMEOUT = 12000;
+  var AUTO_ENTER_SECONDS = 3;
 
   var status = document.getElementById('status');
   var menuRow = document.getElementById('menuRow');
   var btnCreate = document.getElementById('btnCreate');
   var btnJoin = document.getElementById('btnJoin');
+  var creatingView = document.getElementById('creatingView');
   var roomView = document.getElementById('roomView');
   var roomCodeEl = document.getElementById('roomCode');
   var btnCopy = document.getElementById('btnCopy');
   var btnGoHost = document.getElementById('btnGoHost');
+  var countdownTip = document.getElementById('countdownTip');
   var btnBackRoom = document.getElementById('btnBackRoom');
   var joinView = document.getElementById('joinView');
   var inputCode = document.getElementById('inputCode');
@@ -89,6 +101,7 @@
   var btnBackJoin = document.getElementById('btnBackJoin');
 
   var currentCode = null;
+  var countdownTimer = null;
 
   function setStatus(m, cls) {
     status.textContent = m;
@@ -96,57 +109,113 @@
   }
   function showMenu() {
     menuRow.hidden = false;
+    creatingView.classList.remove('show');
     roomView.hidden = true;
     joinView.hidden = true;
+  }
+  function clearCountdown() {
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  }
+
+  // 带超时的 JSON 请求（照步步为营 online.js 的错误处理）
+  function fetchJSON(url, opts) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      function finish(fn) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        fn();
+      }
+      var timer = setTimeout(function () {
+        finish(function () { reject(new Error('连接超时。国内网络可能无法直连联机服务，可换个网络或开启代理后再试')); });
+      }, HTTP_TIMEOUT);
+      fetch(url, opts).then(function (r) {
+        if (!r.ok) {
+          r.json().then(
+            function (d) { finish(function () { reject(new Error(d && d.error ? d.error : ('服务返回 ' + r.status))); }); },
+            function () { finish(function () { reject(new Error('服务返回 ' + r.status)); }); }
+          );
+          return;
+        }
+        r.json().then(
+          function (d) { finish(function () { resolve(d); }); },
+          function () { finish(function () { reject(new Error('返回内容不是 JSON')); }); }
+        );
+      }, function () {
+        finish(function () { reject(new Error('网络不可达。国内直连联机服务可能受限，可换个网络或开启代理后再试')); });
+      });
+    });
   }
 
   function getNick() {
     var auth = window.Auth && window.Auth.user;
     var n = null;
-    if (auth) {
-      n = (typeof auth === 'string') ? auth : (auth.username || auth.name || auth.userName || null);
-    }
+    if (auth) n = (typeof auth === 'string') ? auth : (auth.username || auth.name || auth.userName || null);
     if (!n) { try { n = localStorage.getItem('game_username'); } catch (e) {} }
-    if (!n) { n = '球友' + Math.floor(1000 + Math.random() * 9000); }
+    if (!n) n = '球友' + Math.floor(1000 + Math.random() * 9000);
     return n;
   }
   function getUid() {
     try {
       var u = localStorage.getItem('game_userid');
-      if (!u) {
-        u = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-        localStorage.setItem('game_userid', u);
-      }
+      if (!u) { u = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('game_userid', u); }
       return u;
     } catch (e) { return 'p' + Date.now().toString(36); }
   }
 
+  // 直接进入 3D 桌球对局（host 带 first=true 先手；guest 不带）
   function gameUrl(code, isHost) {
-    var name = encodeURIComponent(getNick());
-    var uid = encodeURIComponent(getUid());
     return 'index.html?websocketserver=' + RELAY +
-      '&userName=' + name + '&userId=' + uid +
+      '&userName=' + encodeURIComponent(getNick()) + '&userId=' + encodeURIComponent(getUid()) +
       '&ruletype=eightball&tableId=' + encodeURIComponent(code) +
       (isHost ? '&first=true' : '');
   }
 
-  function genCode() {
-    return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-  }
-
-  // ---- 创建 ----
+  // ---- 创建：服务端注册房间 → 显示码 → 倒计时自动进入 ----
   btnCreate.addEventListener('click', function () {
-    currentCode = genCode();
-    roomCodeEl.textContent = currentCode;
     menuRow.hidden = true;
-    joinView.hidden = true;
-    roomView.hidden = false;
-    setStatus('');
+    creatingView.classList.add('show');
+    roomView.hidden = true;
+    setStatus('正在创建房间…', 'connecting');
+    fetchJSON(WORKER + '/api/poolroom', { method: 'POST' })
+      .then(function (d) {
+        currentCode = d.code;
+        roomCodeEl.textContent = currentCode;
+        creatingView.classList.remove('show');
+        roomView.hidden = false;
+        setStatus('');
+        startCountdown();
+      })
+      .catch(function (e) {
+        creatingView.classList.remove('show');
+        showMenu();
+        setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected');
+      });
   });
-  btnGoHost.addEventListener('click', function () {
+
+  function startCountdown() {
+    clearCountdown();
+    var left = AUTO_ENTER_SECONDS;
+    countdownTip.textContent = left + ' 秒后自动进入游戏…';
+    countdownTimer = setInterval(function () {
+      left--;
+      if (left <= 0) {
+        clearCountdown();
+        goHost();
+        return;
+      }
+      countdownTip.textContent = left + ' 秒后自动进入游戏…';
+    }, 1000);
+  }
+  function goHost() {
     if (!currentCode) return;
+    clearCountdown();
     location.href = gameUrl(currentCode, true);
-  });
+  }
+  btnGoHost.addEventListener('click', goHost);
+  btnBackRoom.addEventListener('click', function () { clearCountdown(); showMenu(); });
+
   btnCopy.addEventListener('click', function () {
     if (!currentCode) return;
     var full = location.origin + location.pathname.replace(/room\.html$/, '') + gameUrl(currentCode, false);
@@ -155,11 +224,11 @@
       navigator.clipboard.writeText(full).then(done, function () { fallbackCopy(full); done(); });
     } else { fallbackCopy(full); done(); }
   });
-  btnBackRoom.addEventListener('click', showMenu);
 
-  // ---- 加入 ----
+  // ---- 加入：校验房间存在 → 占座 → 进入 ----
   btnJoin.addEventListener('click', function () {
     menuRow.hidden = true;
+    creatingView.classList.remove('show');
     roomView.hidden = true;
     joinView.hidden = false;
     inputCode.focus();
@@ -170,12 +239,22 @@
   function tryJoin() {
     var code = (inputCode.value || '').trim();
     if (!/^\d{6}$/.test(code)) { setStatus('请输入 6 位数字房间码', 'disconnected'); return; }
-    location.href = gameUrl(code, false);
+    setStatus('正在加入房间…', 'connecting');
+    fetchJSON(WORKER + '/api/poolroom/' + code)
+      .then(function (d) {
+        if (!d.exists) { setStatus('房间不存在，请确认房间码', 'disconnected'); return; }
+        if (d.full) { setStatus('房间已满', 'disconnected'); return; }
+        // 占座：第 3 人会被服务端拒绝
+        return fetchJSON(WORKER + '/api/poolroom/' + code, { method: 'POST' })
+          .then(function () { location.href = gameUrl(code, false); });
+      })
+      .catch(function (e) {
+        setStatus('加入失败：' + (e && e.message ? e.message : e), 'disconnected');
+      });
   }
   btnJoinGo.addEventListener('click', tryJoin);
   inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryJoin(); });
 
-  // 复制兜底
   function fallbackCopy(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
