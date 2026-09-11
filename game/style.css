@@ -1370,3 +1370,22 @@ body::before {
 @media (max-width: 780px) {
   .pool-frame { max-width: 100%; }
 }
+/* 桌球房间页：房间码大字 + 提示 */
+.room-code-big {
+  font-family: var(--mono);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-align: center;
+  color: var(--cyan);
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px dashed rgba(34, 211, 238, 0.35);
+  border-radius: 12px;
+  padding: 16px 12px;
+  margin: 14px 0 6px;
+  user-select: all;
+}
+.room-tip { font-size: 13px; color: var(--dim); line-height: 1.7; text-align: center; margin: 8px 0 4px; }
+@media (max-width: 520px) {
+  .room-code-big { font-size: 32px; letter-spacing: 5px; }
+}

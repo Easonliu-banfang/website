@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>八球台球 · 互联网对战</title>
+  <meta name="description" content="八球台球 8-Ball Pool —— 创建或加入联机房间">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="../style.css?v=b24">
+</head>
+<body>
+
+<header class="head">
+  <a href="../pool.html?v=b10" class="back">← 选择模式</a>
+  <h1>互联网对战</h1>
+</header>
+
+<section class="start">
+  <div class="start-inner">
+    <h2 class="start-title">创建或加入房间</h2>
+
+    <div class="online-panel">
+
+      <!-- 初始：创建 / 加入 双卡片 -->
+      <div class="lobby-choose" id="menuRow">
+        <button class="lc-card create" id="btnCreate" type="button">
+          <span class="lc-ico">🎮</span>
+          <span class="lc-name">创建房间</span>
+          <span class="lc-desc">新开一局，把 6 位房间码发给好友</span>
+          <span class="lc-go">立即创建 →</span>
+        </button>
+        <button class="lc-card join" id="btnJoin" type="button">
+          <span class="lc-ico">🔑</span>
+          <span class="lc-name">加入房间</span>
+          <span class="lc-desc">输入好友发来的 6 位房间码</span>
+          <span class="lc-go">前往加入 →</span>
+        </button>
+      </div>
+
+      <!-- 创建成功：显示房间码 -->
+      <div id="roomView" hidden>
+        <span class="cap">房间码</span>
+        <div class="room-code-big" id="roomCode"></div>
+        <p class="room-tip">把房间码发给好友，好友「加入房间」输入后即可开局。<br>双人一桌，先创建者为先手（先开球）。</p>
+        <div class="btn-row enter-row">
+          <button id="btnCopy" class="btn ghost" type="button">复制房间链接</button>
+          <button id="btnGoHost" class="btn on" type="button">进入游戏 →</button>
+        </div>
+        <button class="back-link" id="btnBackRoom" type="button">← 返回</button>
+      </div>
+
+      <!-- 加入：输入框 + 进入游戏 -->
+      <div id="joinView" hidden>
+        <span class="cap">输入 6 位房间码</span>
+        <div class="join-row">
+          <input id="inputCode" class="code-input" maxlength="6" placeholder="房间码" autocomplete="off" spellcheck="false" inputmode="numeric" />
+        </div>
+        <div class="btn-row enter-row">
+          <button id="btnJoinGo" class="btn on" type="button">进入游戏</button>
+        </div>
+        <button class="back-link" id="btnBackJoin" type="button">← 返回</button>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+</section>
+
+<script src="../device.js?v=d1"></script>
+<script src="../auth-check.js?v=a2"></script>
+<script>
+(function () {
+  'use strict';
+
+  var RELAY = 'wss://quoridor-mp.pages.dev/api/nchan'; // 自有联机中继
+
+  var status = document.getElementById('status');
+  var menuRow = document.getElementById('menuRow');
+  var btnCreate = document.getElementById('btnCreate');
+  var btnJoin = document.getElementById('btnJoin');
+  var roomView = document.getElementById('roomView');
+  var roomCodeEl = document.getElementById('roomCode');
+  var btnCopy = document.getElementById('btnCopy');
+  var btnGoHost = document.getElementById('btnGoHost');
+  var btnBackRoom = document.getElementById('btnBackRoom');
+  var joinView = document.getElementById('joinView');
+  var inputCode = document.getElementById('inputCode');
+  var btnJoinGo = document.getElementById('btnJoinGo');
+  var btnBackJoin = document.getElementById('btnBackJoin');
+
+  var currentCode = null;
+
+  function setStatus(m, cls) {
+    status.textContent = m;
+    status.className = 'status' + (cls ? ' status--' + cls : '');
+  }
+  function showMenu() {
+    menuRow.hidden = false;
+    roomView.hidden = true;
+    joinView.hidden = true;
+  }
+
+  function getNick() {
+    var auth = window.Auth && window.Auth.user;
+    var n = null;
+    if (auth) {
+      n = (typeof auth === 'string') ? auth : (auth.username || auth.name || auth.userName || null);
+    }
+    if (!n) { try { n = localStorage.getItem('game_username'); } catch (e) {} }
+    if (!n) { n = '球友' + Math.floor(1000 + Math.random() * 9000); }
+    return n;
+  }
+  function getUid() {
+    try {
+      var u = localStorage.getItem('game_userid');
+      if (!u) {
+        u = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem('game_userid', u);
+      }
+      return u;
+    } catch (e) { return 'p' + Date.now().toString(36); }
+  }
+
+  function gameUrl(code, isHost) {
+    var name = encodeURIComponent(getNick());
+    var uid = encodeURIComponent(getUid());
+    return 'index.html?websocketserver=' + RELAY +
+      '&userName=' + name + '&userId=' + uid +
+      '&ruletype=eightball&tableId=' + encodeURIComponent(code) +
+      (isHost ? '&first=true' : '');
+  }
+
+  function genCode() {
+    return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+  }
+
+  // ---- 创建 ----
+  btnCreate.addEventListener('click', function () {
+    currentCode = genCode();
+    roomCodeEl.textContent = currentCode;
+    menuRow.hidden = true;
+    joinView.hidden = true;
+    roomView.hidden = false;
+    setStatus('');
+  });
+  btnGoHost.addEventListener('click', function () {
+    if (!currentCode) return;
+    location.href = gameUrl(currentCode, true);
+  });
+  btnCopy.addEventListener('click', function () {
+    if (!currentCode) return;
+    var full = location.origin + location.pathname.replace(/room\.html$/, '') + gameUrl(currentCode, false);
+    var done = function () { setStatus('已复制房间链接，发给好友即可', 'connected'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(full).then(done, function () { fallbackCopy(full); done(); });
+    } else { fallbackCopy(full); done(); }
+  });
+  btnBackRoom.addEventListener('click', showMenu);
+
+  // ---- 加入 ----
+  btnJoin.addEventListener('click', function () {
+    menuRow.hidden = true;
+    roomView.hidden = true;
+    joinView.hidden = false;
+    inputCode.focus();
+    setStatus('输入朋友发来的 6 位房间码', 'connecting');
+  });
+  btnBackJoin.addEventListener('click', showMenu);
+
+  function tryJoin() {
+    var code = (inputCode.value || '').trim();
+    if (!/^\d{6}$/.test(code)) { setStatus('请输入 6 位数字房间码', 'disconnected'); return; }
+    location.href = gameUrl(code, false);
+  }
+  btnJoinGo.addEventListener('click', tryJoin);
+  inputCode.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryJoin(); });
+
+  // 复制兜底
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>
