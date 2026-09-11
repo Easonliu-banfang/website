@@ -20,7 +20,7 @@
       urlParams.get("websocketserver") ??
       (window.location.hostname === "localhost"
         ? "ws://localhost"
-        : "wss://quoridor-mp.pages.dev/api/nchan")
+        : "wss://quoridor-mp.pages.dev/api/pool-ws")
     const ruletype = urlParams.get("ruletype") ?? "nineball"
     const shotClock = urlParams.get("shotClock")
     const practice = urlParams.get("practice")

@@ -134,7 +134,7 @@
     if (online) online.close();
     // 进入 3D 对局：Nchan 中继实际对局；tableId 加 pl- 前缀避免跟其它游戏 4 位码串房
     var tableId = 'pl-' + ROOM;
-    location.href = 'index.html?v=p3&websocketserver=' + encodeURIComponent(WS_RELAY) +
+    location.href = 'index.html?v=p4&websocketserver=' + encodeURIComponent(WS_RELAY) +
       '&ruletype=eightball&tableId=' + encodeURIComponent(tableId) +
       '&userId=' + encodeURIComponent(uid) + '&userName=' + encodeURIComponent(me);
   }

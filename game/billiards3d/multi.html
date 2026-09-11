@@ -90,7 +90,7 @@
     const nonlocal = urlParams.has("nonlocal")
     const wss =
       window.location.hostname !== "localhost" || nonlocal
-        ? "wss://quoridor-mp.pages.dev/api/nchan"
+        ? "wss://quoridor-mp.pages.dev/api/pool-ws"
         : "ws://localhost"
     const shotClock = urlParams.get("shotClock")
     const wssparam = `websocketserver=${wss}`
