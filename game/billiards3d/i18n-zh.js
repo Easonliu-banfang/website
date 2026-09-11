@@ -111,7 +111,7 @@
   var OUR_HOSTS = null;
   function ourHosts() {
     if (OUR_HOSTS) return OUR_HOSTS;
-    OUR_HOSTS = { 'quoridor-mp.pages.dev': 1, 'easonliu-banfang.github.io': 1, 'billiards-network.onrender.com': 1 };
+    OUR_HOSTS = { 'quoridor-mp.pages.dev': 1, 'easonliu-banfang.github.io': 1, 'quoridor-mp.pages.dev': 1 };
     try { if (location && location.host) OUR_HOSTS[location.host] = 1; } catch (e) {}
     return OUR_HOSTS;
   }
@@ -124,7 +124,7 @@
   }
 
   /* —— 外链兜底：删除跳转到本站之外的外链按钮 / 拦截 window.open —— */
-  var OUR_HOSTS = { 'quoridor-mp.pages.dev': 1, 'easonliu-banfang.github.io': 1, 'billiards-network.onrender.com': 1 };
+  var OUR_HOSTS = { 'quoridor-mp.pages.dev': 1, 'easonliu-banfang.github.io': 1, 'quoridor-mp.pages.dev': 1 };
   function isExternalUrl(u) {
     try {
       var h = new URL(u, globalThis.location ? globalThis.location.href : undefined).host;
