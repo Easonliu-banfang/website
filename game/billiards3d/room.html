@@ -211,7 +211,7 @@
   function goHost() {
     if (!currentCode) return;
     clearCountdown();
-    location.href = gameUrl(currentCode, true);
+    location.href = 'wait.html?room=' + encodeURIComponent(currentCode) + '&role=host';
   }
   btnGoHost.addEventListener('click', goHost);
   btnBackRoom.addEventListener('click', function () { clearCountdown(); showMenu(); });
@@ -246,7 +246,7 @@
         if (d.full) { setStatus('房间已满', 'disconnected'); return; }
         // 占座：第 3 人会被服务端拒绝
         return fetchJSON(WORKER + '/api/poolroom/' + code, { method: 'POST' })
-          .then(function () { location.href = gameUrl(code, false); });
+          .then(function () { location.href = 'wait.html?room=' + encodeURIComponent(code) + '&role=guest'; });
       })
       .catch(function (e) {
         setStatus('加入失败：' + (e && e.message ? e.message : e), 'disconnected');

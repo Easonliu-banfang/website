@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>八球台球 · 房间等待</title>
+  <meta name="description" content="八球台球 8-Ball Pool —— 联机房间等待室">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="../style.css?v=b25">
+</head>
+<body>
+
+<div id="lobby" class="lobby">
+  <div class="room">
+    <!-- 左：游戏预览 + 房间码 -->
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- 球桌 -->
+          <rect x="34" y="22" width="172" height="124" rx="8" fill="#0f5132" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+          <rect x="46" y="34" width="148" height="100" rx="4" fill="#14663f" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+          <!-- 球袋 -->
+          <circle cx="46" cy="34" r="5" fill="#000" opacity="0.85"/>
+          <circle cx="120" cy="34" r="5" fill="#000" opacity="0.85"/>
+          <circle cx="194" cy="34" r="5" fill="#000" opacity="0.85"/>
+          <circle cx="46" cy="134" r="5" fill="#000" opacity="0.85"/>
+          <circle cx="120" cy="134" r="5" fill="#000" opacity="0.85"/>
+          <circle cx="194" cy="134" r="5" fill="#000" opacity="0.85"/>
+          <!-- 三角摆球 -->
+          <circle cx="152" cy="84" r="6" fill="#ffffff"/>
+          <circle cx="140" cy="76" r="6" fill="#e63946"/>
+          <circle cx="140" cy="92" r="6" fill="#2f6ff7"/>
+          <circle cx="128" cy="68" r="6" fill="#f4a261"/>
+          <circle cx="128" cy="84" r="6" fill="#000"/>
+          <circle cx="128" cy="100" r="6" fill="#7f5539"/>
+          <!-- 白球 -->
+          <circle cx="78" cy="84" r="6" fill="#f8f9fa" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>
+          <!-- 球杆 -->
+          <line x1="60" y1="110" x2="92" y2="92" stroke="#c8a45d" stroke-width="5" stroke-linecap="round"/>
+          <line x1="60" y1="110" x2="86" y2="95" stroke="#f4e2b8" stroke-width="2" stroke-linecap="round"/>
+        </svg></div>
+      <div class="room-name">八球台球</div>
+      <div class="room-code">房间 <b id="lobbyCode">------</b> <button id="btnShareLink" class="btn ghost btn-share" type="button"> 分享链接</button></div>
+    </div>
+    <!-- 右：席位 + 状态 -->
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title" id="captionTitle">等待玩家加入</span>
+        <span class="room-status" id="lobbyStatus">连接中…</span>
+      </div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1</span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat2"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+        <div class="seat-card disabled" id="seat3"><span class="seat-name">未开放</span><span class="seat-dot"></span></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../device.js?v=d1"></script>
+<script src="../auth-check.js?v=a2"></script>
+<script>
+(function () {
+  'use strict';
+
+  var WORKER = 'https://quoridor-mp.pages.dev';
+  var RELAY = 'wss://quoridor-mp.pages.dev/api/nchan';
+  var HTTP_TIMEOUT = 12000;
+  var POLL_MS = 2000;
+
+  var params = new URLSearchParams(location.search);
+  var ROOM = (params.get('room') || '').trim();
+  var ROLE = (params.get('role') || 'guest').trim();   // host | guest
+
+  var lobbyStatus = document.getElementById('lobbyStatus');
+  var lobbyHint = document.getElementById('lobbyHint');
+  var captionTitle = document.getElementById('captionTitle');
+  var seat0 = document.getElementById('seat0');
+  var seat1 = document.getElementById('seat1');
+
+  var pollTimer = null;
+  var entered = false;
+
+  function setStatus(m, cls) {
+    lobbyStatus.textContent = m;
+    lobbyStatus.className = 'room-status' + (cls ? ' status--' + cls : '');
+  }
+  function setHint(m) { lobbyHint.textContent = m || ''; }
+
+  function fetchJSON(url, opts) {
+    return new Promise(function (resolve, reject) {
+      var done = false;
+      function finish(fn) { if (done) return; done = true; clearTimeout(timer); fn(); }
+      var timer = setTimeout(function () {
+        finish(function () { reject(new Error('连接超时，请检查网络')); });
+      }, HTTP_TIMEOUT);
+      fetch(url, opts).then(function (r) {
+        if (!r.ok) { finish(function () { reject(new Error('服务返回 ' + r.status)); }); return; }
+        r.json().then(
+          function (d) { finish(function () { resolve(d); }); },
+          function () { finish(function () { reject(new Error('返回内容不是 JSON')); }); }
+        );
+      }, function () {
+        finish(function () { reject(new Error('网络不可达')); });
+      });
+    });
+  }
+
+  function getNick() {
+    var auth = window.Auth && window.Auth.user;
+    var n = null;
+    if (auth) n = (typeof auth === 'string') ? auth : (auth.username || auth.name || auth.userName || null);
+    if (!n) { try { n = localStorage.getItem('game_username'); } catch (e) {} }
+    if (!n) n = '球友' + Math.floor(1000 + Math.random() * 9000);
+    return n;
+  }
+  function getUid() {
+    try {
+      var u = localStorage.getItem('game_userid');
+      if (!u) { u = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('game_userid', u); }
+      return u;
+    } catch (e) { return 'p' + Date.now().toString(36); }
+  }
+
+  function gameUrl(isHost) {
+    return 'index.html?websocketserver=' + RELAY +
+      '&userName=' + encodeURIComponent(getNick()) + '&userId=' + encodeURIComponent(getUid()) +
+      '&ruletype=eightball&tableId=' + encodeURIComponent(ROOM) +
+      (isHost ? '&first=true' : '');
+  }
+
+  function goGame(isHost) {
+    if (entered) return;
+    entered = true;
+    if (pollTimer) clearInterval(pollTimer);
+    location.href = gameUrl(isHost);
+  }
+
+  // 房间码
+  document.getElementById('lobbyCode').textContent = ROOM || '------';
+
+  // 离开房间 → 回选择模式
+  document.getElementById('btnLeave').addEventListener('click', function () {
+    location.href = '../pool.html';
+  });
+
+  // 分享链接（好友用 guest 版 URL）
+  document.getElementById('btnShareLink').addEventListener('click', function () {
+    if (!ROOM) return;
+    var full = location.origin + location.pathname.replace(/wait\.html$/, 'index.html') +
+      '?websocketserver=' + RELAY +
+      '&userName=' + encodeURIComponent(getNick()) + '&userId=' + encodeURIComponent(getUid()) +
+      '&ruletype=eightball&tableId=' + encodeURIComponent(ROOM);
+    var done = function () { setStatus('已复制链接，发给好友即可', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(full).then(done, function () { fallbackCopy(full); done(); });
+    } else { fallbackCopy(full); done(); }
+  });
+
+  // ---- 席位 ----
+  var me = getNick();
+  if (ROLE === 'host') {
+    // 自己 = 玩家 1（先手）
+    seat0.querySelector('.seat-name').textContent = me;
+    seat0.classList.add('ready');
+    seat1.classList.add('empty');
+    startHostPoll();
+  } else {
+    // 自己 = 玩家 2
+    seat1.querySelector('.seat-name').textContent = me;
+    seat1.classList.add('ready');
+    seat0.querySelector('.seat-name').textContent = '房主';
+    seat0.classList.add('empty');
+    captionTitle.textContent = '已加入房间';
+    setStatus('对手等待中，即将进入游戏…', 'ok');
+    setHint('双人一桌 · 房主先手');
+    setTimeout(function () { goGame(false); }, 2500);
+  }
+
+  // host：轮询对手是否占座（full），齐了自动进入游戏
+  function startHostPoll() {
+    setStatus('等待玩家加入…');
+    setHint('把 6 位房间码发给好友，好友加入后自动开局');
+    pollTimer = setInterval(function () {
+      fetchJSON(WORKER + '/api/poolroom/' + ROOM)
+        .then(function (d) {
+          if (d && d.exists && d.full) {
+            if (pollTimer) clearInterval(pollTimer);
+            seat1.querySelector('.seat-name').textContent = '已加入';
+            seat1.classList.add('ready');
+            seat1.classList.remove('empty');
+            setStatus('对手已加入，即将进入游戏…', 'ok');
+            setTimeout(function () { goGame(true); }, 1800);
+          }
+        })
+        .catch(function (e) {
+          setStatus('检测连接异常，正在重试…');
+        });
+    }, POLL_MS);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+})();
+</script>
+</body>
+</html>
