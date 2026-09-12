@@ -46,9 +46,9 @@
     if (mode !== 'ffa' || !isHost || !d || d.started) return;   // 仅单人混战房主
     if (aiFilled >= 5) return;                                   // 防循环
     var players = d.players || [];
-    var human = 0, i;
-    for (i = 0; i < players.length; i++) if (players[i] && !(d.isAI && d.isAI[i])) human++;
-    if (human >= 3) return;                                      // 已满 3 真人
+    var total = 0, i;
+    for (i = 0; i < players.length; i++) if (players[i]) total++;   // 真人 + AI 已占位总数
+    if (total >= 3) return;                                      // 满 3 人（含 AI）即停
     for (i = 0; i < players.length; i++) {
       if (!players[i]) {
         aiFilled++;

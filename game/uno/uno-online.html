@@ -7,7 +7,7 @@
   <meta name="description" content="优诺UNO！—— 创建或加入联机房间">
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
-  <link rel="stylesheet" href="uno.css?v=u5">
+  <link rel="stylesheet" href="uno.css?v=u6">
 </head>
 <body>
 
@@ -120,7 +120,7 @@
     setStatus('申请房间码中…', 'connecting');
     o.createRoom(mode).then(function (code) {
       // 获取到房间码后直接进入房间（无需再点「进入游戏」）
-      location.href = 'uno-play.html?mode=online&v=u8&room=' + encodeURIComponent(code) + '&role=host&gm=' + encodeURIComponent(mode) + aiSuffix;
+      location.href = 'uno-play.html?mode=online&v=u9&room=' + encodeURIComponent(code) + '&role=host&gm=' + encodeURIComponent(mode) + aiSuffix;
     }).catch(function (e) {
       showMenu();
       if (!onServerFail(e)) setStatus('创建失败：' + (e && e.message ? e.message : e), 'disconnected');
@@ -138,7 +138,7 @@
     setStatus('加入房间中…', 'connecting');
     o.joinRoom(code).then(function () {
       // 加入方沿用共同房间模式（gm 兜底当前页模式）
-      location.href = 'uno-play.html?mode=online&v=u8&room=' + encodeURIComponent(code) + '&role=guest&gm=' + encodeURIComponent(mode) + aiSuffix;
+      location.href = 'uno-play.html?mode=online&v=u9&room=' + encodeURIComponent(code) + '&role=guest&gm=' + encodeURIComponent(mode) + aiSuffix;
     }).catch(function (e) {
       if (!onServerFail(e)) setStatus('加入失败：' + (e && e.message ? e.message : e), 'disconnected');
     });
