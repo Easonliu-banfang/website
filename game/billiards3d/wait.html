@@ -138,7 +138,7 @@
     //   → host 成先手开球方；guest 收 WatchEvent → handleWatch 成后手(WatchAim)。
     //   两边都不带或都带 first 会导致双方都进可开球状态 → 开球混乱。
     var tableId = 'pl-' + ROOM;
-    location.href = 'index.html?v=p8&websocketserver=' + encodeURIComponent(WS_RELAY) +
+    location.href = 'index.html?v=p9&websocketserver=' + encodeURIComponent(WS_RELAY) +
       '&ruletype=eightball&tableId=' + encodeURIComponent(tableId) +
       '&userId=' + encodeURIComponent(uid) + '&userName=' + encodeURIComponent(me) +
       (ROLE === 'host' ? '&first=true' : '');
