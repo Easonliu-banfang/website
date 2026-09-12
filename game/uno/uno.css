@@ -317,15 +317,11 @@
 }
 .uo-back {
   width: 42px; height: 59px; border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0 26%, transparent 27%),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.25) 0 6px, transparent 6px 12px),
-    linear-gradient(150deg, #ff5a5f 0%, #e1242a 55%, #b81218 100%);
-  border: 2px solid #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 10px; font-weight: 900;
-  color: #fff; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-  box-shadow: 0 3px 8px rgba(180, 20, 25, 0.3);
+  background-image: url('cards/back.png');   /* 真实 UNO 牌背素材（已去黑边） */
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 1.5px solid #fff;
+  box-shadow: 0 3px 8px rgba(60, 90, 140, 0.35);
 }
 
 /* 小屏 / 横屏手机适配 */
