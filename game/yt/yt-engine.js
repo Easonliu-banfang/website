@@ -15,7 +15,7 @@
 (function (global) {
   'use strict';
 
-  var LANES = 4;
+  var LANES = 5;             // 5 条赛道（规则允许 3-5 条；更多并行通道 → 突破更可能）
   var LEN = 100;             // 赛道长度（虚拟单位）
   var SPEED = 13;            // 羊前进速度（单位/秒）→ 约 7.7 秒走完全程
   var STEP_MS = 50;          // 模拟步长
