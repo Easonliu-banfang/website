@@ -339,6 +339,7 @@
 
   /* ---------- 状态接收 ---------- */
   function applyState(s) {
+    if (!s) return;   // 防御：空 state（服务端异常时不要炸掉渲染）
     var first = !state || !roomStarted;
     state = s;
     if (s.you != null) me = s.you;
@@ -382,12 +383,12 @@
       if (online) online._intentionalClose = true;
       if (lobby) lobby.hide();
       if (window.Notify) { window.Notify.clearAll(); window.Notify.show('房间已解散，即将返回大厅…', 'error', { sticky: true }); }
-      setTimeout(function () { location.href = 'gd-online.html?v=g4'; }, 1800);
+      setTimeout(function () { location.href = 'gd-online.html?v=g5'; }, 1800);
     });
     online.on('giveup', function () {
       if (window.Notify) { window.Notify.clearAll(); window.Notify.show('多次重连失败，返回…', 'warn', { sticky: true }); }
       if (online) online._intentionalClose = true;
-      setTimeout(function () { location.href = 'gd-online.html?v=g4'; }, 1500);
+      setTimeout(function () { location.href = 'gd-online.html?v=g5'; }, 1500);
     });
   }
 
