@@ -6,13 +6,12 @@
   <title>掼蛋 · 对局</title>
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
-  <link rel="stylesheet" href="gd.css?v=g2">
+  <link rel="stylesheet" href="gd.css?v=g3">
 </head>
 <body>
 
 <div id="notifyBar" class="notify-bar" hidden></div>
 
-<!-- 竖屏遮罩 -->
 <div id="landscapeOverlay" hidden>
   <div class="lo-inner">
     <div class="lo-phone">📱</div>
@@ -21,72 +20,57 @@
   </div>
 </div>
 
-<header class="head" id="topHeader">
-  <a href="gd.html?v=g2" class="back">← 选择模式</a>
-  <h1>掼蛋</h1>
-  <span id="roomCodeTag" class="mode-tag" hidden></span>
-</header>
-
-<div id="gameRoot" hidden>
-  <section class="gd-table">
-
-    <!-- 顶部信息条：级数 / 队伍 / 手数 -->
-    <div class="gd-info" id="gdInfo">
-      <span>第 <b id="handNo">1</b> 局</span>
-      <span class="lv">打 <b id="levelTag">2</b> 级</span>
-      <span class="tm a" id="teamA">我方 2 级</span>
-      <span class="tm b" id="teamB">对方 2 级</span>
+<!-- 对局：原作者经典牌桌布局 -->
+<div id="gameRoot" class="table-page" hidden>
+  <div class="hudbar" id="hudbar">
+    <div class="levels" id="hudLevels"></div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span style="color:#b9ac8f;font-size:13px" id="modeTagTxt"></span>
+      <button class="btn small quit-btn" id="btnQuit">退出</button>
     </div>
-
-    <!-- 中央牌桌 -->
-    <div class="gd-desk">
-      <div class="gd-center">
-        <div class="gd-turn" id="turnTip">等待开局…</div>
-        <div class="gd-lastcards" id="lastCards"></div>
-        <div class="gd-phase-tip" id="phaseTip"></div>
-      </div>
-    </div>
-
-    <!-- 四周玩家 -->
-    <div class="gd-player gd-p-top" id="playerTop"></div>
-    <div class="gd-player gd-p-left" id="playerLeft"></div>
-    <div class="gd-player gd-p-right" id="playerRight"></div>
-
-    <!-- 自己 -->
-    <div class="gd-me-zone">
-      <div class="gd-me-avatar">👤</div>
-      <div class="gd-me-name" id="meLabel">你</div>
-    </div>
-
-    <!-- 手牌 + 操作 -->
-    <div class="gd-hand-zone">
-      <div style="text-align:center;margin-bottom:4px">
-        <span class="gd-shape-tag" id="shapeTag"></span>
-      </div>
-      <div class="gd-hand" id="myHand"></div>
-      <div class="gd-actions">
-        <button class="gd-btn on" id="btnPlay" type="button" disabled>出牌</button>
-        <button class="gd-btn" id="btnPass" type="button" hidden>不出</button>
-        <button class="gd-btn warn" id="btnNext" type="button" hidden>下一局</button>
-      </div>
-    </div>
-
-  </section>
-</div>
-
-<!-- 贡/还贡弹窗 -->
-<div id="gdModal" class="gd-modal" hidden>
-  <div class="gd-modal-card">
-    <h3 id="modalTitle">进贡</h3>
-    <p id="modalDesc"></p>
-    <div class="gd-modal-cards" id="modalCards"></div>
+  </div>
+  <div class="table-board">
+    <div class="seat top" id="seatTop"></div>
+    <div class="seat left" id="seatLeft"></div>
+    <div class="seat right" id="seatRight"></div>
+    <div class="trick"><div class="trick-inner" id="trickInner"></div></div>
+  </div>
+  <div class="hand-area"><div class="hand" id="myHand"></div></div>
+  <div class="actionbar" style="position:relative" id="actionbar">
+    <div class="status" id="actStatus"></div>
+    <button class="btn small" id="btnSort" type="button">按大小</button>
+    <button class="btn" id="btnHint" type="button">提示</button>
+    <button class="btn" id="btnPass" type="button" hidden>不要</button>
+    <button class="btn primary" id="btnPlay" type="button">出牌</button>
+    <button class="btn primary" id="btnNext" type="button" hidden>下一局</button>
   </div>
 </div>
 
-<!-- 结果横幅 -->
-<div id="gdResult" class="gd-result" hidden></div>
+<!-- 牌型解释弹窗 -->
+<div id="gdInterp" class="overlay" hidden>
+  <div class="dialog">
+    <h3>选择牌型</h3>
+    <div class="hint">这组牌有多种解释，选一种打出</div>
+    <div class="interp-list" id="interpList"></div>
+  </div>
+</div>
 
-<!-- 等待室（统一 GameLobby） -->
+<!-- 贡/还贡弹窗 -->
+<div id="gdModal" class="overlay" hidden>
+  <div class="dialog">
+    <h3 id="modalTitle">进贡</h3>
+    <div class="hint" id="modalDesc"></div>
+    <div class="interp-list" id="modalCards" style="flex-direction:row;flex-wrap:wrap;justify-content:center"></div>
+  </div>
+</div>
+
+<!-- 结果弹窗 -->
+<div id="gdResult" class="overlay" hidden>
+  <div class="dialog" id="resultDialog"></div>
+</div>
+
+<div id="gdToast" class="toast" hidden></div>
+
 <div id="lobby" class="lobby" hidden>
   <div class="room">
     <div class="room-preview">
@@ -130,13 +114,13 @@
   </div>
 </div>
 
-<script src="gd-engine.js?v=g2"></script>
-<script src="gd-online.js?v=g2"></script>
+<script src="gd-engine.js?v=g3"></script>
+<script src="gd-online.js?v=g3"></script>
 <script src="../lobby.js?v=l13"></script>
 <script src="../notify.js?v=n3"></script>
-<script src="gd-ai.js?v=g2"></script>
+<script src="gd-ai.js?v=g3"></script>
 <script src="../bot.js?v=b3"></script>
-<script src="gd-app.js?v=g2"></script>
+<script src="gd-app.js?v=g3"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>
 </body>

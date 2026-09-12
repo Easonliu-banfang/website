@@ -20,201 +20,164 @@
   var SUIT_CH = ['♦', '♣', '♠', '♥'];
   var SHAPE_LABELS = { single: '单张', pair: '对子', trio: '三张', trioPlusPair: '三带二', trioRun: '三连对', steel: '钢板', straight: '顺子', flushStraight: '同花顺', bomb: '炸弹', jokerBomb: '天王炸' };
 
-  /* ---------- 卡牌渲染 ---------- */
-  function cardHtml(card, level, small, cls) {
-    var code = GD.codeOf(card), suit = GD.suitOf(card);
-    var isJk = GD.isJoker(card);
-    var label = isJk ? (code === 16 ? '大王' : '小王') : (RANK_LABEL[code] || String(code));
-    var sc = isJk ? 'jk' : ((suit === 1 || suit === 2) ? 'b' : 'r');
-    var extra = ' ' + (cls || '') + (small ? ' small' : '');
-    var lvTag = (code === level && !isJk) ? ' lv' : '';
-    var wildTag = GD.isWild(card, level) ? ' wild' : '';
-    var suitCh = isJk ? (code === 16 ? '★' : '☆') : SUIT_CH[suit];
-    return '<div class="gcard ' + sc + extra + lvTag + wildTag + '">' +
-      '<div class="cr">' + label + '</div><div class="cs">' + suitCh + '</div></div>';
+  /* ---------- 渲染（原作者 CardView/SeatPanel/TrickArea/HudBar 结构） ---------- */
+  var RANK_LABEL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+  var SUIT_CH = ['♦', '♣', '♠', '♥'];
+  var SHAPE_LABELS = { single: '单张', pair: '对子', trio: '三张', trioPlusPair: '三带二', trioRun: '三连对', steel: '钢板', straight: '顺子', flushStraight: '同花顺', bomb: '炸弹', jokerBomb: '天王炸' };
+  var PLACE_LABEL = ['头游', '二游', '三游', '末游'];
+  var sortMode = 'rank';
+
+  function codeLabel(code) {
+    if (code >= 15) return code === 16 ? '大王' : '小王';
+    return RANK_LABEL[code] || String(code);
   }
-  function seats() {
-    var spots = [];
-    for (var s = 0; s < 4; s++) if (s !== me) spots.push(s);
-    var posMap = ['top', 'left', 'right'];   // 下家(1)=右?：座位1在右、2在上（队友）、3在左
-    var pm = ['right', 'top', 'left'];
-    var out = [];
-    for (var i = 0; i < spots.length; i++) out.push({ seat: spots[i], pos: pm[i % 3] });
-    return out;
+  // 原作者 CardView：红=♦♥(0/3)，黑=♣♠(1/2)；王竖排文字；红桃级牌金边“配”
+  function cardHtml(card, level, small, selected, dim) {
+    var code = GD.codeOf(card), suit = GD.suitOf(card);
+    var jk = GD.isJoker(card);
+    var wild = GD.isWild(card, level);
+    var cls = ['card'];
+    if (small) cls.push('sm');
+    if (jk) { cls.push('joker'); cls.push(code === 16 ? 'big' : 'small'); }
+    else cls.push((suit === 0 || suit === 3) ? 'red-suit' : 'black-suit');
+    if (wild) cls.push('wild-card');
+    if (selected) cls.push('selected');
+    if (dim) cls.push('dim');
+    var inner = jk
+      ? '<div class="joker-text">' + (code === 16 ? '大王' : '小王') + '</div>'
+      : '<div class="rk">' + codeLabel(code) + '</div><div class="st">' + SUIT_CH[suit] + '</div><div class="big-suit">' + SUIT_CH[suit] + '</div>';
+    return '<div class="' + cls.join(' ') + '">' + inner + '</div>';
+  }
+  function cardsRow(cards, level, small) {
+    var sorted = GD.sortHand(cards, level), h = '';
+    for (var i = 0; i < sorted.length; i++) h += cardHtml(sorted[i], level, small);
+    return h;
   }
   function seatName(s) { return (names && names[s]) ? names[s] : ('玩家 ' + (s + 1)); }
-  function teamCls(s) { return (s % 2) === (me % 2) ? ' ta' : ' tb'; }
+  function seatPos(s) {
+    // 座位相对我：1=right(下家) 2=top(对家) 3=left(上家)
+    var d = (s - me + 4) % 4;
+    return d === 1 ? 'right' : d === 2 ? 'top' : 'left';
+  }
 
-  /* ---------- 渲染 ---------- */
-  function renderInfo() {
-    if (!state) return;
-    $('handNo').textContent = state.handNo || 1;
-    $('levelTag').textContent = state.level;
+  function renderHud() {
     var myTeam = me % 2;
-    $('teamA').textContent = (myTeam === 0 ? '我方 ' : '对方 ') + state.levels[0] + ' 级';
-    $('teamB').textContent = (myTeam === 0 ? '对方 ' : '我方 ') + state.levels[1] + ' 级';
+    $('hudLevels').innerHTML =
+      '<span class="level-chip ' + (myTeam === 0 ? 'team-blue' : 'team-red') + '">我方（我与对家）· 打 ' + codeLabel(state.levels[myTeam]) + '</span>' +
+      '<span class="level-chip ' + (myTeam === 0 ? 'team-red' : 'team-blue') + '">对方 · 打 ' + codeLabel(state.levels[1 - myTeam]) + '</span>' +
+      '<span class="level-chip">本局级牌：' + codeLabel(state.level) + '</span>' +
+      '<span class="level-chip">第 ' + (state.handNo || 1) + ' 局</span>';
+    $('modeTagTxt').textContent = (mode === 'ai') ? '单机模式' : '联机模式';
   }
 
-  function renderPlayers() {
-    var top = '', left = '', right = '';
-    seats().forEach(function (it) {
-      var s = it.seat;
-      var isTurn = state && state.turn === s && state.phase === 'playing';
-      var html = '<div class="gd-p-card' + (isTurn ? ' turn' : '') + '">' +
-        '<div class="gd-p-avatar">👤</div>' +
-        '<div class="gd-p-name' + teamCls(s) + '">' + seatName(s) + '</div>' +
-        '<span class="gd-p-cnt">' + ((state && state.counts[s]) || 0) + ' 张</span>' +
-        '<div class="gd-p-play" id="play' + s + '"></div>' +
-        '</div>';
-      if (it.pos === 'top') top = html; else if (it.pos === 'left') left = html; else right = html;
-    });
-    $('playerTop').innerHTML = top;
-    $('playerLeft').innerHTML = left;
-    $('playerRight').innerHTML = right;
-    $('meLabel').textContent = seatName(me);
+  function renderSeat(elId, s) {
+    var place = state.placements.indexOf(s);
+    var isTurn = state.phase === 'playing' && state.turn === s && place < 0;
+    var team = s % 2;
+    var count = (state.counts && state.counts[s]) || 0;
+    var html = '<span class="seat-dot ' + (team === 0 ? 'blue' : 'red') + '"></span>' +
+      '<div><div class="seat-name">' + seatName(s) + '</div>' +
+      '<div class="seat-count">' + (place >= 0 ? PLACE_LABEL[place] : ('剩 ' + count + ' 张')) + '</div></div>';
+    if (place < 0 && count > 0) {
+      html += '<div class="seat-cards">';
+      for (var i = 0; i < Math.min(count, 13); i++) html += '<span class="mini"></span>';
+      if (count > 13) html += '<span style="margin-left:4px;font-size:12px;color:#b9ac8f">…</span>';
+      html += '</div>';
+    }
+    var elx = $(elId);
+    elx.innerHTML = html;
+    elx.className = 'seat ' + (elId === 'seatTop' ? 'top' : elId === 'seatLeft' ? 'left' : 'right') + (isTurn ? ' turn' : '');
   }
 
-  function renderCenter() {
-    var tip = $('turnTip'), lastc = $('lastCards'), phase = $('phaseTip');
-    if (!state) return;
-    // 阶段提示
-    if (state.phase === 'tribute') {
-      tip.textContent = '进贡阶段';
-      phase.textContent = state.tribute && state.tribute.resisted ? '（抗贡成功，跳过进贡）' : '败方需进贡手中最大的牌（逢人配除外）';
-      lastc.innerHTML = '';
-      return;
-    }
-    if (state.phase === 'tributeReturn') {
-      tip.textContent = '还贡阶段';
-      phase.textContent = '收贡者需还一张 ≤10 的牌';
-      lastc.innerHTML = '';
-      return;
-    }
-    if (state.phase === 'handOver' || state.phase === 'matchOver') {
-      tip.textContent = state.phase === 'matchOver' ? '整场结束！' : '本局结束';
-      phase.textContent = '';
-      lastc.innerHTML = '';
-      return;
-    }
-    var isMine = state.turn === me;
-    tip.textContent = isMine ? '轮到你出牌' : ('轮到 ' + seatName(state.turn));
-    phase.textContent = '';
-    // 桌面：上一手牌（自己出的已在 trick 中，这里显示 last 的牌）
-    if (state.last) {
-      var h = '';
-      var who = seatName(state.last.seat);
-      h = '<div style="font-size:11px;color:rgba(255,255,255,.85);margin-bottom:4px">' + who + '</div>';
-      state.last.cards.forEach(function (c) {
-        h += cardHtml(c, state.level, true);
-      });
-      var sh = state.last.shape;
-      if (sh) h += '<div style="font-size:11px;color:#ffe9ad;margin-top:3px">' + (SHAPE_LABELS[sh.k] || sh.k) + '</div>';
-      lastc.innerHTML = h;
-    } else {
-      lastc.innerHTML = '<div style="color:rgba(255,255,255,.8);font-size:12px">新的一轮 · 由 ' + seatName(state.leader) + ' 首出</div>';
-    }
-  }
-
-  function renderTricks() {
-    // 各玩家最近出的跟牌显示在其席位旁
-    if (!state || !state.trick) return;
+  function renderSeats() {
     for (var s = 0; s < 4; s++) {
-      var elx = $('play' + s);
-      if (!elx) continue;
-      elx.innerHTML = '';
+      if (s === me) continue;
+      var pos = seatPos(s);
+      renderSeat('seat' + pos.charAt(0).toUpperCase() + pos.slice(1), s);
     }
-    state.trick.forEach(function (t) {
-      var elx = $('play' + t.seat);
-      if (!elx) return;
-      if (t.pass) { elx.innerHTML = '<span style="font-size:11px;color:#94a3b8">不出</span>'; return; }
-      var h = '';
-      t.cards.forEach(function (c) { h += cardHtml(c, state.level, true); });
-      elx.innerHTML = h;
-    });
   }
 
-  function myPlayable() {
-    if (!state || state.phase !== 'playing' || state.turn !== me) return { canPlay: false, canPass: false };
-    var canPass = !!state.last;
-    return { canPlay: true, canPass: canPass };
+  // 中央出牌区：每座位只显示最近一次动作
+  function renderTrick() {
+    var inner = $('trickInner');
+    if (!state || state.phase === 'tribute' || state.phase === 'tributeReturn') { inner.innerHTML = ''; return; }
+    var latest = {}, p;
+    if (state.trick) for (var i = 0; i < state.trick.length; i++) { p = state.trick[i]; latest[p.seat] = p; }
+    var keys = Object.keys(latest);
+    if (!keys.length) {
+      inner.innerHTML = (state.phase === 'playing' && state.last == null)
+        ? '<div style="place-self:center;color:#b9ac8f;font-size:14px">' + seatName(state.leader) + ' 出牌</div>'
+        : '';
+      return;
+    }
+    var html = '';
+    keys.forEach(function (k) {
+      p = latest[k];
+      var pos = seatPos(Number(k));
+      var body = p.pass
+        ? '<span class="pass-mark">不要</span>'
+        : '<div style="display:flex;flex-direction:column;align-items:center">' +
+          '<div style="display:flex;gap:3">' + cardsRow(p.cards, state.level, true) + '</div>' +
+          '<div class="shape-tag">' + (p.shape ? SHAPE_LABELS[p.shape.k] : '') + '</div></div>';
+      html += '<div class="trick-play ' + pos + '"><span class="who">' + seatName(Number(k)) + '</span>' + body + '</div>';
+    });
+    inner.innerHTML = html;
+  }
+
+  function sortedHandView() {
+    var hand = GD.sortHand(state.hand, state.level);
+    if (sortMode === 'count') {
+      var by = {};
+      hand.forEach(function (c) { var k = GD.codeOf(c); (by[k] = by[k] || []).push(c); });
+      var groups = Object.keys(by).map(Number).sort(function (a, b) {
+        var d = by[b].length - by[a].length;
+        if (d) return d;
+        return GD.orderKey(b, state.level) - GD.orderKey(a, state.level);
+      });
+      var out = [];
+      groups.forEach(function (k) { out = out.concat(by[k]); });
+      return out;
+    }
+    return hand;
   }
 
   function renderHand() {
     if (!state || !state.hand) { $('myHand').innerHTML = ''; return; }
-    var hand = GD.sortHand(state.hand, state.level);
+    var hand = sortedHandView();
+    var tight = hand.length > 17;
+    var hx = $('myHand');
+    hx.className = 'hand' + (tight ? ' tight' : '');
     var html = '';
     for (var i = 0; i < hand.length; i++) {
       var c = hand[i];
-      var sel = selected.indexOf(c) >= 0 ? ' sel' : '';
-      html += '<div class="gc-wrap' + sel + '" data-card="' + c + '">' + cardHtml(c, state.level, false) + '</div>';
+      html += '<div class="card-wrap" data-card="' + c + '">' + cardHtml(c, state.level, false, selected.indexOf(c) >= 0) + '</div>';
     }
-    $('myHand').innerHTML = html;
-    updateActions();
+    hx.innerHTML = html;
   }
 
-  function refreshShape() {
-    var tag = $('shapeTag');
-    if (selected.length === 0) { tag.className = 'gd-shape-tag'; tag.textContent = ''; return; }
-    var interps = GD.interpret(selected, state.level);
-    if (!interps.length) { tag.className = 'gd-shape-tag show'; tag.textContent = '不成牌型'; return; }
-    var sh = interps[0];
-    var beatsTxt = '';
-    if (state.last) {
-      beatsTxt = GD.beats(sh, state.last.shape) ? ' ✓ 压得过' : ' ✗ 压不过';
-    }
-    tag.className = 'gd-shape-tag show';
-    tag.textContent = (SHAPE_LABELS[sh.k] || sh.k) + beatsTxt;
+  function renderAction() {
+    var st = $('actStatus');
+    var myTurn = state && state.phase === 'playing' && state.turn === me;
+    if (!state) { st.textContent = ''; }
+    else if (state.phase === 'playing') st.textContent = myTurn ? (state.last ? '轮到你压牌' : '轮到你出牌') : '等待其他玩家…';
+    else if (state.phase === 'tribute') st.textContent = '进贡阶段';
+    else if (state.phase === 'tributeReturn') st.textContent = '还贡阶段';
+    else st.textContent = '';
+    $('btnPlay').disabled = !myTurn || selected.length === 0;
+    $('btnPass').hidden = !(state && state.last && myTurn);
+    $('btnHint').disabled = !myTurn;
+    $('btnNext').hidden = !(state && (state.phase === 'handOver' || state.phase === 'matchOver') && (isHost || mode === 'ai'));
   }
 
-  function updateActions() {
-    var pb = $('btnPlay'), pp = $('btnPass'), pn = $('btnNext');
-    if (!state) return;
-    if (state.phase === 'handOver' || state.phase === 'matchOver') {
-      pb.hidden = true; pp.hidden = true;
-      pn.hidden = !(isHost || mode === 'ai');
-      return;
-    }
-    pn.hidden = true;
-    if (state.phase !== 'playing' || state.turn !== me) { pb.disabled = true; pb.textContent = '等待中…'; pp.hidden = true; return; }
-    pb.disabled = selected.length === 0;
-    pb.textContent = '出牌';
-    pp.hidden = !(!!state.last);
-    // 无可压时可一键过
-    if (state.last && selected.length === 0) {
-      pp.classList.remove('on');
-    }
-  }
-
-  function showResult() {
-    var r = $('gdResult');
-    var res = state.lastResult;
-    if (!res) { r.hidden = true; return; }
-    var p0 = res.placements[0];
-    var myWin = (p0 % 2) === (me % 2);
-    var ups = res.levels[myWin ? (me % 2) : (1 - me % 2)];
-    var txt = myWin ? '🎉 我方获胜！' : '😔 对方获胜';
-    var sub = '排名：' + res.placements.map(function (s, i) { return (i + 1) + '. ' + seatName(s); }).join('　') +
-      '<br>升到 ' + ups + ' 级';
-    if (state.phase === 'matchOver') { txt = myWin ? '🏆 整场获胜！通关 A 级！' : '整场结束，对方率先通关 A 级'; }
-    r.innerHTML = '<div class="' + (myWin ? 'big' : '') + '">' + txt + '</div><div class="sub">' + sub + '</div>';
-    if ((isHost || mode === 'ai') && state.phase !== 'matchOver') {
-      var btn = document.createElement('button');
-      btn.className = 'gd-btn on';
-      btn.textContent = '下一局 →';
-      btn.addEventListener('click', function () { if (mode === 'ai') localNext(); else if (o) o._wsSend({ type: 'gd_deal' }); r.hidden = true; });
-      r.appendChild(btn);
-    }
-    r.hidden = false;
-  }
+  function refreshShape() { /* 牌型标签由出牌弹窗/结果承担，桌面实时提示可选 */ }
 
   function render() {
     if (!state) return;
-    $('gameRoot').hidden = false;
+    el.gameRoot.hidden = false;
     if (lobby) lobby.hide();
-    renderInfo(); renderPlayers(); renderCenter(); renderTricks(); renderHand();
-    selected = [];
-    refreshShape();
-    // 贡/还贡弹窗
+    renderHud(); renderSeats(); renderTrick(); renderHand(); renderAction();
+    if (state.phase === 'handOver' || state.phase === 'matchOver') showResult();
+    else $('gdResult').hidden = true;
     if (state.phase === 'tribute' && state.tributable && state.tributable.length) {
       openTributeModal('进贡', '交出手中最大的牌（逢人配除外）', state.tributable, 'gd_tribute');
     } else if (state.phase === 'tributeReturn' && state.returnable && state.returnable.length) {
@@ -222,8 +185,84 @@
     } else {
       $('gdModal').hidden = true;
     }
-    if (state.phase === 'handOver' || state.phase === 'matchOver') showResult();
-    else $('gdResult').hidden = true;
+  }
+
+  function toast(msg) {
+    var t = $('gdToast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { t.hidden = true; }, 1800);
+  }
+
+  function doPlay(cards, interpId) {
+    if (mode === 'ai') {
+      localApply({ type: 'gd_play', cards: cards, interpId: interpId }, me);
+      state = localView(); render(); localTick();
+    } else if (o) o._wsSend({ type: 'gd_play', cards: cards, interpId: interpId });
+    selected = [];
+  }
+
+  function onPlayClick() {
+    if (!selected.length) { toast('请先选牌'); return; }
+    var interps = GD.interpret(selected, state.level);
+    if (!interps.length) { toast('不是合法牌型'); return; }
+    if (state.last) {
+      var choices = [];
+      for (var i = 0; i < interps.length; i++) if (GD.beats(interps[i], state.last.shape)) choices.push(i);
+      if (!choices.length) { toast('压不过上家'); return; }
+      if (choices.length === 1) { doPlay(selected.slice(), choices[0]); return; }
+      showInterpDialog(selected.slice(), choices, interps);
+      return;
+    }
+    if (interps.length === 1) { doPlay(selected.slice(), 0); return; }
+    var all = [];
+    for (var j = 0; j < interps.length; j++) all.push(j);
+    showInterpDialog(selected.slice(), all, interps);
+  }
+
+  function showInterpDialog(cards, choiceIds, interps) {
+    var list = $('interpList');
+    list.innerHTML = '';
+    choiceIds.forEach(function (id) {
+      var sh = interps[id];
+      var item = document.createElement('div');
+      item.className = 'interp-item';
+      item.innerHTML = '<b style="color:#e8cd8b">' + (SHAPE_LABELS[sh.k] || sh.k) + '</b>' +
+        '<span style="color:#b9ac8f;font-size:13px">主 ' + codeLabel(sh.key === 13 ? state.level : (sh.key + 3)) + '</span>';
+      item.addEventListener('click', function () {
+        $('gdInterp').hidden = true;
+        doPlay(cards, id);
+      });
+      list.appendChild(item);
+    });
+    $('gdInterp').hidden = false;
+  }
+
+  function showResult() {
+    var r = $('gdResult'), dlg = $('resultDialog');
+    var res = state.lastResult;
+    if (!res) { r.hidden = true; return; }
+    var p0 = res.placements[0];
+    var myWin = (p0 % 2) === (me % 2);
+    var placeName = res.placements.map(function (s, i) {
+      return '<div class="result-seat' + (i === 0 ? ' first' : '') + '"><b style="color:#e8cd8b">' + PLACE_LABEL[i] + '</b><span>' + seatName(s) + '</span></div>';
+    }).join('');
+    var title = state.phase === 'matchOver'
+      ? (myWin ? '🏆 我方通关 A 级，整场获胜！' : '整场结束，对方率先通关 A 级')
+      : (myWin ? '🎉 我方获胜' : '对方获胜');
+    var up = res.levels[myWin ? (me % 2) : (1 - me % 2)];
+    dlg.innerHTML = '<h3>' + title + '</h3><div class="result-placements">' + placeName + '</div>' +
+      '<div class="hint">升到 ' + up + ' 级</div>' +
+      ((isHost || mode === 'ai') && state.phase !== 'matchOver' ? '<button class="btn primary" id="btnNext2">下一局</button>' : '<button class="btn" id="btnBack2">返回大厅</button>');
+    var b = $('btnNext2') || $('btnBack2');
+    b.addEventListener('click', function () {
+      r.hidden = true;
+      if ($('btnNext2') && mode === 'ai') localNext();
+      else if ($('btnNext2') && o) o._wsSend({ type: 'gd_deal' });
+      else location.href = 'gd.html';
+    });
+    r.hidden = false;
   }
 
   function openTributeModal(title, desc, cards, msgType) {
@@ -246,40 +285,23 @@
     $('gdModal').hidden = false;
   }
 
+  function flash(msg) { toast(msg); }
+
   /* ---------- 交互 ---------- */
   function bindUI() {
     $('myHand').addEventListener('click', function (e) {
-      var wrap = e.target.closest('.gc-wrap');
-      if (!wrap) return;
+      var cardEl = e.target.closest('.card');
+      if (!cardEl || !cardEl.parentElement || !cardEl.parentElement.getAttribute) return;
       if (!state || state.phase !== 'playing' || state.turn !== me) return;
-      var card = Number(wrap.getAttribute('data-card'));
+      var card = Number(cardEl.parentElement.getAttribute('data-card'));
+      if (isNaN(card)) return;
       var idx = selected.indexOf(card);
       if (idx >= 0) selected.splice(idx, 1);
       else selected.push(card);
-      wrap.classList.toggle('sel', idx < 0);
-      refreshShape();
-      updateActions();
+      cardEl.classList.toggle('selected', idx < 0);
+      $('btnPlay').disabled = selected.length === 0;
     });
-    $('btnPlay').addEventListener('click', function () {
-      if (!selected.length) return;
-      var interps = GD.interpret(selected, state.level);
-      if (!interps.length) { flash('选中的牌不成牌型'); return; }
-      // 默认选第一个（最强）解释；若压不过且有其他解释，选能压过的
-      var interpId = 0;
-      if (state.last) {
-        var found = -1;
-        for (var i = 0; i < interps.length; i++) {
-          if (GD.beats(interps[i], state.last.shape)) { found = i; break; }
-        }
-        if (found < 0) { flash('压不过上家的牌'); return; }
-        interpId = found;
-      }
-      if (mode === 'ai') {
-        localApply({ type: 'gd_play', cards: selected.slice(), interpId: interpId }, me);
-        state = localView(); render(); localTick();
-      } else if (o) o._wsSend({ type: 'gd_play', cards: selected.slice(), interpId: interpId });
-      selected = [];
-    });
+    $('btnPlay').addEventListener('click', onPlayClick);
     $('btnPass').addEventListener('click', function () {
       if (mode === 'ai') { localApply({ type: 'gd_pass' }, me); state = localView(); render(); localTick(); }
       else if (o) o._wsSend({ type: 'gd_pass' });
@@ -290,11 +312,29 @@
       else if (o) o._wsSend({ type: 'gd_deal' });
       $('gdResult').hidden = true;
     });
-  }
-
-  function flash(msg) {
-    var tip = $('phaseTip');
-    if (tip) { tip.textContent = msg; setTimeout(function () { renderCenter(); }, 1200); }
+    $('btnHint').addEventListener('click', function () {
+      if (!window.GdAI) return;
+      if (state.last) {
+        var beat = window.GdAI.findBeat(state.hand, state.level, state.last);
+        if (beat) { selected = beat.cards.slice(); renderHand(); $('btnPlay').disabled = false; return; }
+        toast('要不起');
+      } else {
+        var sorted = GD.sortHand(state.hand, state.level);
+        for (var i = sorted.length - 1; i >= 0; i--) {
+          if (GD.orderKey(GD.codeOf(sorted[i]), state.level) < 13) { selected = [sorted[i]]; renderHand(); $('btnPlay').disabled = false; return; }
+        }
+      }
+    });
+    $('btnSort').addEventListener('click', function () {
+      sortMode = (sortMode === 'rank') ? 'count' : 'rank';
+      $('btnSort').textContent = (sortMode === 'rank') ? '按大小' : '按张数';
+      renderHand();
+    });
+    $('btnQuit').addEventListener('click', function () {
+      if (!confirm('确定要退出当前游戏吗？')) return;
+      if (o) o.sendLeave();
+      location.href = 'gd.html';
+    });
   }
 
   /* ---------- 状态接收 ---------- */
@@ -342,12 +382,12 @@
       if (online) online._intentionalClose = true;
       if (lobby) lobby.hide();
       if (window.Notify) { window.Notify.clearAll(); window.Notify.show('房间已解散，即将返回大厅…', 'error', { sticky: true }); }
-      setTimeout(function () { location.href = 'gd-online.html?v=g2'; }, 1800);
+      setTimeout(function () { location.href = 'gd-online.html?v=g3'; }, 1800);
     });
     online.on('giveup', function () {
       if (window.Notify) { window.Notify.clearAll(); window.Notify.show('多次重连失败，返回…', 'warn', { sticky: true }); }
       if (online) online._intentionalClose = true;
-      setTimeout(function () { location.href = 'gd-online.html?v=g2'; }, 1500);
+      setTimeout(function () { location.href = 'gd-online.html?v=g3'; }, 1500);
     });
   }
 
