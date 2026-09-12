@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>3D 八球台球 · 免费在线对战</title>
+    <!-- Preconnect to Google Fonts to establish early TCP/TLS handshake -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Load Google Fonts stylesheet asynchronously and in parallel with local CSS -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Exo:wght@200&display=swap"
+    />
+    <link rel="icon" type="image/png" href="billiards3d/favicon.png" />
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta
+      name="description"
+      content="Play free online billiards with realistic physics - open source browser game"
+    />
+    <meta
+      name="keywords"
+      content="billiards, snooker, 9-ball, 8-ball, pool, carom, three-cushion, free, open source, driebanden, ビリヤード, 9ボール, 3クッション, 無料, 당구, 스누커, 3쿠션, Bida 3 băng, Biliar 3 bantalan, Üç bant"
+    />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="https://billiards.tailuge.workers.dev/" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=()" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+    <meta
+      property="og:title"
+      content="Billiards + Pool Free Physics Simulator"
+    />
+    <meta
+      property="og:description"
+      content="Play free online billiards with realistic physics - open source browser game"
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://tailuge.github.io/billiards/dist/"
+    />
+    <meta
+      property="og:image"
+      content="https://tailuge.github.io/billiards/dist/images/billiards.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:video" content="https://youtu.be/bAeiRQcQuyg" />
+    <meta property="og:video:type" content="text/html" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="ocs-site-verification"
+      content="7e2c8724a132bd19fa2cac60ae730ba5"
+    />
+    <meta
+      name="twitter:title"
+      content="Billiards Pool and Snooker Game - Free"
+    />
+    <meta
+      name="twitter:description"
+      content="Play pool online with accurate physics. Open source and browser-based."
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Break Builder - Billiards Pool Game",
+        "url": "https://tailuge.github.io/billiards/dist/",
+        "image": "https://tailuge.github.io/billiards/dist/images/billiards.png",
+        "description": "Open source pool and billiards simulation game with realistic physics",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Break Builder",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://tailuge.github.io/billiards/dist/favicon.png"
+          }
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "tailuge"
+        },
+        "subjectOf": {
+          "@type": "VideoObject",
+          "name": "Billiards Pool Game Gameplay",
+          "description": "Realistic physics simulation and gameplay of Break Builder pool game.",
+          "thumbnailUrl": "https://tailuge.github.io/billiards/dist/images/billiards.png",
+          "contentUrl": "https://youtu.be/bAeiRQcQuyg",
+          "embedUrl": "https://www.youtube.com/embed/bAeiRQcQuyg",
+          "uploadDate": "2026-04-30T00:00:00+00:00"
+        }
+      }
+    </script>
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/fonts.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/index.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/aiminputs.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/powerinput.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/notification.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/tray.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/chat.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/lobby.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/menu.css" />
+    <link rel="stylesheet" type="text/css" href="billiards3d/css/wood.css" />
+  </head>
+
+  <body>
+    <h1 hidden>3D 八球台球 · 免费在线对战</h1>
+    <main>
+      <div id="viewP1" class="view3d">
+        <div id="snookerScoreOverlay">
+          <div id="snookerScore" aria-live="polite">
+            <div id="breakScore" class="breakScore"></div>
+          </div>
+        </div>
+        <div id="notificationOverlay">
+          <div id="notification" aria-live="assertive" role="alert"></div>
+        </div>
+        <div id="helpOverlay" hidden>
+          <p class="seo-description">
+            逼真物理的免费在线台球：八球、九球、三库。开源免费、无需下载、浏览器即玩。
+          </p>
+          <p class="seo-description" lang="ko">
+            <a href="billiards3d/korean.html"
+              >사실적인 물리 시뮬레이션으로 무료 온라인 당구, 풀, 스누커를
+              브라우저에서 즐기세요.</a
+            >
+            8볼, 9볼, 3쿠션 캐롬 게임. 오픈 소스, 다운로드 불필요 — 바로
+            플레이하세요.
+          </p>
+          <p class="seo-description" lang="tr">
+            <a href="billiards3d/turkish.html"
+              >Gerçekçi fizik simülasyonu ile ücretsiz çevrimiçi bilardo, havuz
+              ve snooker oynayın.</a
+            >
+            8-top, 9-top ve üç bant karambol oyunları. Açık kaynak, indirme
+            gerekmez — hemen oynayın.
+          </p>
+
+          <iframe></iframe>
+          <div class="help-footer">
+            
+            <button id="helpClose">关闭</button>
+          </div>
+        </div>
+        <div id="botDebugOverlay">
+          <header>
+            <span id="botDebugToggle">🦞</span>
+            <div>
+              <button
+                id="botDebugClear"
+                type="button"
+                aria-label="Clear debug log"
+              >
+                Clear
+              </button>
+            </div>
+          </header>
+          <pre id="botDebugLog" aria-live="polite">
+          <!-- loading="lazy" avoids downloading this 143KB image on initial paint since botDebugOverlay starts hidden/closed -->
+          <img src="billiards3d/images/billiards.png" loading="lazy" alt="Billiards Pool Game Promo - Realistic Physics Simulation">
+          逼真物理的免费在线台球，开源免费，浏览器即玩。
+          
+        </pre>
+        </div>
+        <div class="chatarea">
+          <div id="chatoutput" class="chatoutput"></div>
+        </div>
+        <dialog id="inputTextDiv" contenteditable="false">
+          <div id="inputTextDivInner">
+            <input
+              id="inputText"
+              type="text"
+              placeholder="Enter text here..."
+              maxlength="64"
+              autofocus
+              autocomplete="off"
+              aria-label="Chat message input"
+            />
+            <div id="chatEmojiList" aria-label="Emoji messages"></div>
+            <button id="inputSend" aria-label="Send chat message">➤</button>
+            <button id="toggleChatMode" aria-label="Switch to emoji mode">
+              <span class="chat-text-mode-icon">👾</span>
+              <span class="chat-emoji-mode-icon">⌨️</span>
+            </button>
+            <button id="inputClose" aria-label="Close chat input">✖</button>
+          </div>
+        </dialog>
+      </div>
+      <div id="panel" class="panel wood-texture">
+        <div class="aimControlColumn">
+          <div class="aimingArea">
+            <button
+              class="hitButton timeout-btn"
+              id="cueHit"
+              type="button"
+              aria-label="Hit cue ball"
+            >
+              hit
+            </button>
+          </div>
+          <div id="tiltSliderContainer" class="tiltSliderContainer" hidden>
+            <angle-input id="cueTilt" aria-label="tilt angle"></angle-input>
+          </div>
+          <template id="angle-input-template">
+            <div class="area" id="area">
+              <div class="ball"></div>
+              <div class="rotator" id="rot">
+                <div class="stick">
+                  <div class="tip"></div>
+                  <div class="ferrule"></div>
+                  <div class="shaft"></div>
+                  <div class="butt"></div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div id="ballContainerWrapper" class="ballContainerWrapper">
+            <button id="openElevation" class="openElevation">+</button>
+            <div id="ballContainer" class="ballContainer">
+              <div id="objectBall" class="objectBall"></div>
+              <div id="cueBall" class="cueBall">
+                <div id="cueTip" class="cueTip"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="powerSliderContainer" class="powerSliderContainer">
+          <div class="power-track"></div>
+          <input
+            class="powerSlider"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.65"
+            id="cuePower"
+            aria-label="power slider"
+          />
+          <span id="powerPercent" class="powerPercent">65%</span>
+        </div>
+        <div class="outerMenu">
+          <details id="menuDropdown" class="menuDropdown">
+            <summary
+              class="menuButton half-height"
+              title="menu"
+              id="menu"
+              aria-label="Menu"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#000"
+                stroke-width="2"
+              >
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </summary>
+            <div id="menuItems" class="menuItems">
+              <button
+                class="menuButton half-height"
+                title="comment"
+                id="comment"
+                type="button"
+                aria-label="Comment"
+                hidden
+              >
+                🗨
+              </button>
+              <button
+                class="menuButton half-height"
+                title="diagram"
+                id="diagram"
+                type="button"
+                aria-label="Diagram"
+                hidden
+              >
+                📸
+              </button>
+              <button
+                class="menuButton half-height"
+                title="fullscreen"
+                id="fullscreen"
+                type="button"
+                aria-label="Fullscreen"
+              >
+                ⛶
+              </button>
+              <button
+                class="menuButton half-height"
+                title="fast forward"
+                id="ffwd"
+                type="button"
+                aria-label="Fast forward"
+                hidden
+              >
+                ⏩︎
+              </button>
+              <button
+                class="menuButton half-height"
+                title="share"
+                id="share"
+                type="button"
+                aria-label="Share replay link"
+                hidden
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="18" cy="5" r="3"></circle>
+                  <circle cx="6" cy="12" r="3"></circle>
+                  <circle cx="18" cy="19" r="3"></circle>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+              </button>
+              <button
+                class="menuButton half-height"
+                title="concede"
+                id="concede"
+                type="button"
+                aria-label="Concede"
+                hidden
+              >
+                🏳️
+              </button>
+              <button
+                class="menuButton half-height"
+                title="shot analysis"
+                id="analysis"
+                type="button"
+                aria-label="Shot analysis"
+                hidden
+              >
+                🔍
+              </button>
+              <button
+                class="menuButton half-height"
+                title="chromeless (L)"
+                id="chromeless"
+                type="button"
+                aria-label="Toggle chromeless mode"
+              >
+                👁︎
+              </button>
+              <button
+                class="menuButton half-height"
+                title="help"
+                id="help"
+                type="button"
+                aria-label="Help"
+              >
+                𝑖
+              </button>
+            </div>
+          </details>
+          <canvas
+            id="minimap"
+            width="252"
+            height="136"
+            aria-label="Table minimap"
+            hidden
+          ></canvas>
+          <button
+            class="menuButton aim"
+            title="view"
+            id="camera"
+            type="button"
+            aria-label="Toggle camera view"
+          >
+            🎥
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="ballTray"
+        class="tray-container"
+        aria-live="polite"
+        role="log"
+        hidden
+      >
+        <div class="nav-btn btn-left" id="trayLeft">❮</div>
+        <div class="ball-tray-list" id="ballTrayList"></div>
+        <div class="nav-btn btn-right" id="trayRight">❯</div>
+      </div>
+      <div id="trayTimer" class="tray-timer" hidden></div>
+      <div class="tray-score-container">
+        <div id="p1Score" class="p1Score"></div>
+        <div id="p2Score" class="p2Score"></div>
+      </div>
+      <div id="lobbyContainer">
+        <div class="challenge-row">
+          <span id="challengePill" class="challenge-pill" hidden>
+            <button
+              id="challengeAccept"
+              type="button"
+              aria-label="Accept challenge"
+            >
+              ✅
+            </button>
+            <button
+              id="challengeDecline"
+              type="button"
+              aria-label="Decline challenge"
+            >
+              ❌
+            </button>
+          </span>
+        </div>
+        <!-- lobbyOverlay（右上角大厅/匿名按钮）已删除：指向本站外的 lobby.html，
+             非自研页面；LobbyIndicator 找不到该元素会安全跳过初始化 -->
+      </div>
+    </main>
+    <script src="billiards3d/i18n-zh.js?v=p15" defer></script>
+<script defer src="billiards3d/three_core.js"></script>
+    <script defer src="billiards3d/three_module.js"></script>
+    <script defer src="billiards3d/three_examples.js"></script>
+    <script defer src="billiards3d/messaging.js"></script>
+    <script defer src="billiards3d/index.js?v=p15"></script>
+  </body>
+</html>
