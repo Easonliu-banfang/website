@@ -25,12 +25,12 @@
         <span class="mode-name">互联网对战</span>
         <span class="mode-desc">3D 八球 · 创建房间或输入房间码加入</span>
       </a>
-      <a class="mode-card" href="pool3d.html?v=p22&bot=台球AI" data-page-node-id="kiTo5JqGUS88lEPzZhHX9u2">
+      <a class="mode-card" href="pool3d.html?v=p23&bot=台球AI" data-page-node-id="kiTo5JqGUS88lEPzZhHX9u2">
         <span class="mode-ico">🤖</span>
         <span class="mode-name">和 AI 对战</span>
         <span class="mode-desc">3D 八球 · 对战台球AI</span>
       </a>
-      <a class="mode-card" href="pool3d.html?v=p22" data-page-node-id="EPK8KJG55CbogaRHGzZGwD">
+      <a class="mode-card" href="pool3d.html?v=p23" data-page-node-id="EPK8KJG55CbogaRHGzZGwD">
         <span class="mode-ico">👥</span>
         <span class="mode-name">面对面</span>
         <span class="mode-desc">3D 八球 · 同屏双人轮流（零网络，无需等待对手）</span>
@@ -38,12 +38,25 @@
     </div>
 
     <div class="btn-row enter-row" data-page-node-id="XblFnaJvrC0gGeMFDrtxYk">
-      <a class="btn ghost" href="pool-rules.html?v=p22">玩法规则 →</a>
+      <a class="btn ghost" href="pool-rules.html?v=p23">玩法规则 →</a>
     </div>
   </div>
 </section>
 
   <script src="device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
+<script>
+// AI/面对面入口动态带上登录名（墙上名字显示登录名而非匿名）
+(function () {
+  'use strict';
+  var n = window.Auth && window.Auth.user;
+  if (n) {
+    n = encodeURIComponent(String(n));
+    document.querySelectorAll('a.mode-card[href*="pool3d.html"]').forEach(function (a) {
+      a.href = a.href + (a.href.indexOf('?') >= 0 ? '&' : '?') + 'userName=' + n;
+    });
+  }
+})();
+</script>
 </body>
 </html>
