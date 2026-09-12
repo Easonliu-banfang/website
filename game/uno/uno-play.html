@@ -7,7 +7,7 @@
   <meta name="description" content="优诺UNO！（UNO 官方规则）—— 与你朋友实时对战">
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
-  <link rel="stylesheet" href="uno.css?v=u4">
+  <link rel="stylesheet" href="uno.css?v=u5">
 </head>
 <body class="uno-play-body">
 
@@ -24,53 +24,92 @@
 </div>
 
 <header class="head uno-head" id="topHeader">
-  <a href="uno.html?v=u5" class="back">← 选择模式</a>
+  <a href="uno.html?v=u6" class="back">← 选择模式</a>
   <h1>优诺UNO！</h1>
   <span id="roomCodeTag" class="mode-tag" hidden></span>
 </header>
 
 <div id="gameRoot" hidden>
 
-  <!-- 对局画面 -->
+  <!-- 围桌式对局画面 -->
   <section id="gameView" class="uno-table">
 
-    <!-- 顶部：对手区（1~3 人；2v2 时对手两人一队显示） -->
-    <div class="uo-opps" id="oppRow"></div>
+    <!-- ① 左上角计时区：卡通表盘 + 回合倒计时 -->
+    <div class="uo-timer">
+      <div class="uo-timer-icon">
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="21" fill="#151c26" stroke="#22d3ee" stroke-width="3"/>
+          <circle cx="24" cy="24" r="15" fill="none" stroke="rgba(34,211,238,.25)" stroke-width="1.5"/>
+          <path d="M24 24 L24 14 M24 24 L31 28" stroke="#e5f6ff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="24" cy="24" r="2.5" fill="#f5c542"/>
+        </svg>
+      </div>
+      <div class="uo-timer-time" id="turnTimer">03:00</div>
+    </div>
 
-    <!-- 中央区：顶牌 + 当前色 + 抽牌 -->
-    <div class="uo-mid">
-      <div class="uo-board">
-        <div class="uo-topcard" id="topCardSlot">
-          <img id="topCardImg" class="uc" alt="上一张">
-        </div>
-        <div class="uo-colorzone">
-          <span class="uo-colortag">当前颜色</span>
-          <span class="uo-color-dot" id="colorDot"></span>
-        </div>
-        <button class="uo-deck" id="btnDraw" type="button" title="摸一张牌">
+    <!-- ② 中央游戏桌（椭圆卡通桌，玩家围坐） -->
+    <div class="uo-table-disc">
+      <div class="uo-rail"></div>
+
+      <!-- A. 牌堆区域（中央左上偏中） -->
+      <div class="uo-deck-zone">
+        <button class="uo-deck uo-deck-disc" id="btnDraw" type="button" title="摸一张牌">
           <span class="uo-deck-inner" id="deckInner">摸牌</span>
+          <span class="uo-deck-glow"></span>
           <span class="uo-deck-sub">🃏 牌堆</span>
         </button>
       </div>
 
-      <!-- 效果横幅 / 提示 -->
+      <!-- C. 中央方向/回合提示环 -->
+      <div class="uo-dir-ring" id="dirRing">
+        <span class="uo-dir-arrow" id="dirArrow">➤</span>
+      </div>
+
+      <!-- B. 中央出牌区 -->
+      <div class="uo-centerspot">
+        <img id="topCardImg" class="uc uc-center" alt="当前牌">
+      </div>
+
+      <!-- 当前颜色 -->
+      <div class="uo-colorzone">
+        <span class="uo-colortag">当前颜色</span>
+        <span class="uo-color-dot" id="colorDot"></span>
+      </div>
+
+      <!-- 效果横幅 -->
       <div class="uo-banner" id="banner"></div>
     </div>
 
-    <!-- 底部：我自己（+ 2v2 队友） -->
-    <div class="uo-me">
-      <div class="uo-me-head">
-        <span class="uo-me-label" id="meLabel">你</span>
-        <button class="uo-uno-btn" id="btnUno" type="button" hidden>UNO!</button>
-        <button class="uo-pass-btn" id="btnPass" type="button" hidden>过</button>
-      </div>
+    <!-- ③ 四周玩家（上 / 左 / 右，围绕圆桌） -->
+    <div class="uo-player uo-p-top" id="playerTop"></div>
+    <div class="uo-player uo-p-left" id="playerLeft"></div>
+    <div class="uo-player uo-p-right" id="playerRight"></div>
+
+    <!-- ④ 自己（底部偏左，黄色发光框标记） -->
+    <div class="uo-me-zone">
+      <div class="uo-me-avatar" id="meAvatar">👤</div>
+      <div class="uo-me-name" id="meLabel">你</div>
+    </div>
+
+    <!-- ⑤ 左下快捷功能区 -->
+    <div class="uo-quickbar">
+      <button class="uq-btn" type="button" id="btnEmoji" title="快捷表情"><span class="uq-ico">😊</span><span class="uq-txt">表情</span></button>
+      <button class="uq-btn" type="button" id="btnChat" title="对话"><span class="uq-ico">💬</span><span class="uq-txt">对话</span></button>
+      <button class="uq-btn" type="button" id="btnVoice" title="语音控制"><span class="uq-ico">🎤</span><span class="uq-txt">语音</span></button>
+    </div>
+
+    <!-- ⑥ 自己手牌（底部中央，大尺寸重叠排列） -->
+    <div class="uo-hand-zone">
       <div class="uo-hand" id="myHand"></div>
-      <!-- 队友手牌（2v2，缩小只读） -->
       <div class="uo-mate" id="mateRow" hidden>
         <span class="uo-mate-label" id="mateLabel">队友</span>
         <div class="uo-hand uo-hand--mate" id="mateHand"></div>
       </div>
+      <button class="uo-pass-btn" id="btnPass" type="button" hidden>过</button>
     </div>
+
+    <!-- ⑦ 右下角 UNO 大按钮 -->
+    <button class="uo-uno-big" id="btnUno" type="button" hidden><span>UNO</span></button>
 
   </section>
 </div>
@@ -135,13 +174,13 @@
 <!-- 结果横幅 -->
 <div class="uo-result" id="resultBanner" hidden></div>
 
-<script src="uno-engine.js?v=u4"></script>
-<script src="uno-online.js?v=u5"></script>
+<script src="uno-engine.js?v=u5"></script>
+<script src="uno-online.js?v=u6"></script>
 <script src="../lobby.js?v=l13"></script>
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u1"></script>
 <script src="../bot.js?v=b1"></script>
-<script src="uno-app.js?v=u6"></script>
+<script src="uno-app.js?v=u7"></script>
   <script src="../device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>

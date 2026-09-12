@@ -21,6 +21,21 @@
   var mode = q.gm || 'ffa';
   var currentRoom = q.room || '';
 
+  /* ---------- 回合倒计时（本地模拟，回合切换重置） ---------- */
+  var TURN_SECONDS = 30;
+  var timerLeft = TURN_SECONDS;
+  var lastTurn = -1;
+  function renderTimer() {
+    if (!el.turnTimer) return;
+    var mm = String(Math.floor(Math.max(0, timerLeft) / 60)).padStart(2, '0');
+    var ss = String(Math.max(0, timerLeft) % 60).padStart(2, '0');
+    el.turnTimer.textContent = mm + ':' + ss;
+    el.turnTimer.classList.toggle('low', timerLeft <= 10);
+  }
+  function renderDir() {
+    if (el.dirArrow) el.dirArrow.classList.toggle('rev', !!(state && state.dir < 0));
+  }
+
   var el = {};
   function $(id) { return document.getElementById(id); }
 
@@ -76,42 +91,44 @@
   function teamOf(s) { return state && state.teams ? state.teams[s] : 0; }
   function teamOfMe() { return teamOf(me); }
 
-  /* ---------- 渲染：对手条 ---------- */
-  function opponentsList() {
-    var list = [];
-    var cap = state ? (state.capacity || 4) : 4;
-    for (var s = 0; s < cap; s++) {
-      if (s === me) continue;
-      if (state && state.mate != null && s === state.mate) continue;   // 队友放底部
-      list.push(s);
-    }
-    return list;
+  /* ---------- 渲染：四周玩家（上 / 左 / 右，围桌） ---------- */
+  function seatSpots() {
+    var cap = state ? (state.capacity || capacityOf()) : capacityOf();
+    var spots = [];
+    for (var s = 0; s < Math.min(cap, 4); s++) if (s !== me) spots.push(s);
+    var posMap = ['top', 'left', 'right'];
+    var out = [];
+    for (var i = 0; i < spots.length; i++) out.push({ seat: spots[i], pos: posMap[i % 3] });
+    return out;
   }
   function renderOpps() {
-    var opps = opponentsList();
-    var html = '';
-    for (var i = 0; i < opps.length; i++) {
-      var s = opps[i];
-      if (s >= 4) continue;
-      html += oppCard(s, mode === '2v2');
-    }
-    el.oppRow.innerHTML = html;
+    var top = '', left = '', right = '';
+    seatSpots().forEach(function (it) {
+      var card = oppCard(it.seat);
+      if (it.pos === 'top') top += card;
+      else if (it.pos === 'left') left += card;
+      else right += card;
+    });
+    el.playerTop.innerHTML = top;
+    el.playerLeft.innerHTML = left;
+    el.playerRight.innerHTML = right;
   }
-  function oppCard(s, isTeamMode) {
+  function oppCard(s) {
     var cnt = state ? state.counts[s] : 0;
     var isTurn = state && state.turn === s;
     var uno = state && state.uno && state.uno[s];
-    var teamTag = '';
-    if (isTeamMode && state && state.teams) {
-      var sameTeam = state.teams[s] === state.teams[me];
-      teamTag = '<span class="uo-opp-team ' + (sameTeam ? 'ta' : 'tb') + '">' + (sameTeam ? '我方' : '敌方') + '</span>';
-    }
-    return '<div class="uocard-opp' + (isTurn ? ' turn' : '') + '">' +
-      '<div class="uo-opp-top"><span class="uo-opp-name">玩家 ' + (s + 1) + '</span>' +
-      teamTag +
-      (uno ? '<span class="uo-opp-uno">UNO!</span>' : '') + '</div>' +
-      '<div class="uo-opp-body"><div class="uo-back">UNO</div><span class="uo-opp-cnt">' + cnt + '</span></div>' +
-      '<div class="uo-opp-foot">' + (isTurn ? '◆ 出牌中' : '待命中') + '</div>' +
+    var name = (names && names[s]) ? names[s] : ('玩家 ' + (s + 1));
+    var teamCls = '';
+    if (mode === '2v2' && state && state.teams) teamCls = state.teams[s] === state.teams[me] ? ' ta' : ' tb';
+    var backs = '';
+    var n = Math.min(cnt, 12);
+    for (var i = 0; i < n; i++) backs += '<div class="uo-back"></div>';
+    var cntBadge = cnt > 12 ? '<span class="uo-p-cnt">' + cnt + '</span>' : '';
+    return '<div class="uo-p-card' + (isTurn ? ' turn' : '') + '">' +
+      '<div class="uo-p-avatar">👤</div>' +
+      '<div class="uo-p-name' + teamCls + '">' + name + (uno ? '<span class="uo-p-uno">UNO!</span>' : '') + '</div>' +
+      (isTurn ? '<span class="uo-p-turn-tag">◆ 出牌中</span>' : '') +
+      '<div class="uo-p-hand">' + backs + cntBadge + '</div>' +
       '</div>';
   }
 
@@ -267,6 +284,11 @@
       if (o) o.sendSetColor(color);
       el.colorModal.hidden = true;
     });
+    // 左下快捷功能区（占位交互）
+    function quickMsg(ico, txt) { return function () { if (window.Notify) window.Notify.show(ico + ' ' + txt, 'info'); }; }
+    if (el.btnEmoji) el.btnEmoji.addEventListener('click', quickMsg('😊', '表情功能开发中'));
+    if (el.btnChat) el.btnChat.addEventListener('click', quickMsg('💬', '对话功能开发中'));
+    if (el.btnVoice) el.btnVoice.addEventListener('click', quickMsg('🎤', '语音功能开发中'));
   }
 
   function tryPlay(card) {
@@ -293,6 +315,9 @@
     state = s;
     if (s.you != null) me = s.you;
     roomStarted = true;
+    // 回合切换 → 重置本地倒计时
+    if (s.turn !== lastTurn) { lastTurn = s.turn; timerLeft = TURN_SECONDS; renderTimer(); }
+    renderDir();
     if (s.winner >= 0) showResult();
     else if (el.resultBanner) el.resultBanner.hidden = true;
     el.gameRoot.hidden = false;
@@ -363,14 +388,24 @@
 
   /* ---------- 启动 ---------- */
   function boot() {
-    ['landscapeOverlay', 'gameRoot', 'gameView', 'oppRow', 'topCardImg', 'colorDot', 'btnDraw', 'deckInner',
-     'banner', 'meLabel', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
+    ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
+     'topCardImg', 'colorDot', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
+     'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
+     'btnEmoji', 'btnChat', 'btnVoice',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
 
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 120); });
     bindUI();
+    // 回合倒计时每秒递减（本地模拟）
+    setInterval(function () {
+      if (!state || state.winner >= 0 || me < 0) return;
+      if (state.turn !== lastTurn) { lastTurn = state.turn; timerLeft = TURN_SECONDS; }
+      if (me !== state.turn) timerLeft = 0;               // 非自己回合不显示倒计时（placeholder 03:00/00:00）
+      else if (timerLeft > 0) { timerLeft--; }
+      renderTimer();
+    }, 1000);
 
     if (q.mode !== 'online' || !q.room) {
       // 非联机（本地/AI 暂未开放）→ 提示返回
