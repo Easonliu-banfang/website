@@ -171,7 +171,7 @@
     if (!state) return;
     if (state.phase === 'handOver' || state.phase === 'matchOver') {
       pb.hidden = true; pp.hidden = true;
-      pn.hidden = !isHost;
+      pn.hidden = !(isHost || mode === 'ai');
       return;
     }
     pn.hidden = true;
@@ -197,11 +197,11 @@
       '<br>升到 ' + ups + ' 级';
     if (state.phase === 'matchOver') { txt = myWin ? '🏆 整场获胜！通关 A 级！' : '整场结束，对方率先通关 A 级'; }
     r.innerHTML = '<div class="' + (myWin ? 'big' : '') + '">' + txt + '</div><div class="sub">' + sub + '</div>';
-    if (isHost && state.phase !== 'matchOver') {
+    if ((isHost || mode === 'ai') && state.phase !== 'matchOver') {
       var btn = document.createElement('button');
       btn.className = 'gd-btn on';
       btn.textContent = '下一局 →';
-      btn.addEventListener('click', function () { if (o) o._wsSend({ type: 'gd_deal' }); r.hidden = true; });
+      btn.addEventListener('click', function () { if (mode === 'ai') localNext(); else if (o) o._wsSend({ type: 'gd_deal' }); r.hidden = true; });
       r.appendChild(btn);
     }
     r.hidden = false;
@@ -237,7 +237,8 @@
       wrap.innerHTML = cardHtml(c, state.level, false);
       var cardEl = wrap.firstChild;
       cardEl.addEventListener('click', function () {
-        if (o) o._wsSend({ type: msgType, card: c });
+        if (mode === 'ai') { localApply({ type: msgType, card: c }, me); state = localView(); render(); localTick(); }
+        else if (o) o._wsSend({ type: msgType, card: c });
         $('gdModal').hidden = true;
       });
       box.appendChild(cardEl);
@@ -273,15 +274,20 @@
         if (found < 0) { flash('压不过上家的牌'); return; }
         interpId = found;
       }
-      if (o) o._wsSend({ type: 'gd_play', cards: selected.slice(), interpId: interpId });
+      if (mode === 'ai') {
+        localApply({ type: 'gd_play', cards: selected.slice(), interpId: interpId }, me);
+        state = localView(); render(); localTick();
+      } else if (o) o._wsSend({ type: 'gd_play', cards: selected.slice(), interpId: interpId });
       selected = [];
     });
     $('btnPass').addEventListener('click', function () {
-      if (o) o._wsSend({ type: 'gd_pass' });
+      if (mode === 'ai') { localApply({ type: 'gd_pass' }, me); state = localView(); render(); localTick(); }
+      else if (o) o._wsSend({ type: 'gd_pass' });
       selected = [];
     });
     $('btnNext').addEventListener('click', function () {
-      if (o) o._wsSend({ type: 'gd_deal' });
+      if (mode === 'ai') localNext();
+      else if (o) o._wsSend({ type: 'gd_deal' });
       $('gdResult').hidden = true;
     });
   }
@@ -364,6 +370,89 @@
     }
   }
 
+  /* ---------- 本地 AI 对局（无需开房，1 真人 + 3 电脑） ---------- */
+  var gdGame = null;       // 引擎全量状态 { phase, match, hand }
+  var localBusy = false;
+  function localView() {
+    var g = gdGame, h = g.hand;
+    var v = {
+      you: me, level: h.level, phase: g.phase,
+      levels: g.match.levels.slice(), handNo: g.match.handNo,
+      placements: h.placements.slice(),
+      counts: h.hands.map(function (x) { return x.length; }),
+      turn: (g.phase === 'playing') ? h.turn : GD.actorSeat(g),
+      last: h.last ? { seat: h.last.seat, cards: h.last.cards.slice(), shape: h.last.shape } : null,
+      trick: h.currentTrick.map(function (x) { return { seat: x.seat, cards: (x.cards || []).slice(), pass: !!x.pass, shape: x.shape || null }; }),
+      leader: h.leader,
+      matchWinner: (g.phase === 'matchOver') ? g.match.winner : null
+    };
+    v.hand = (h.hands[me] || []).slice();
+    if (h.tribute) {
+      v.tribute = {
+        kind: h.tribute.kind, resisted: !!h.tribute.resisted,
+        pairs: h.tribute.pairs.map(function (x) { return { from: x.from, to: x.to, done: x.card !== null, returned: x.returned !== null }; })
+      };
+    }
+    if (g.phase === 'tribute') v.tributable = GD.tributableCards(g, me);
+    if (g.phase === 'tributeReturn') v.returnable = GD.returnableCards(g, me);
+    if ((g.phase === 'handOver' || g.phase === 'matchOver') && g.match.prevPlacements) {
+      v.lastResult = { placements: g.match.prevPlacements.slice(), levels: g.match.levels.slice(), winner: g.match.winner };
+    }
+    return v;
+  }
+  function startLocal() {
+    mode = 'ai';
+    if (typeof GD === 'undefined' || !window.GdAI) {
+      if (window.Notify) window.Notify.show('引擎加载失败，请刷新重试', 'error', { sticky: true });
+      return;
+    }
+    var r = GD.beginHand(GD.createMatch(), Math.random);
+    gdGame = { phase: r.phase, match: r.match, hand: r.hand };
+    me = 0;
+    names = ['你', 'AI·2', 'AI·3', 'AI·4'];
+    roomStarted = true;
+    isHost = false;
+    el.gameRoot.hidden = false;
+    state = localView();
+    render();
+    localTick();
+  }
+  function localApply(act, seat) {
+    var r = null;
+    if (act.type === 'gd_play') r = GD.applyPlay(gdGame, seat, act.cards, act.interpId);
+    else if (act.type === 'gd_pass') r = GD.applyPass(gdGame, seat);
+    else if (act.type === 'gd_tribute') r = GD.applyTribute(gdGame, seat, act.card);
+    else if (act.type === 'gd_return') r = GD.applyReturn(gdGame, seat, act.card);
+    if (r && r.ok) gdGame = Object.assign(gdGame, r.state);
+    return r;
+  }
+  function localNext() {
+    if (!gdGame) return;
+    if (gdGame.phase === 'matchOver') gdGame = { phase: 'idle', match: GD.createMatch(), hand: null };
+    var r = GD.beginHand(gdGame.match, Math.random);
+    gdGame = { phase: r.phase, match: r.match, hand: r.hand };
+    state = localView();
+    render();
+    localTick();
+  }
+  function localTick() {
+    if (!gdGame) return;
+    if (gdGame.phase === 'handOver' || gdGame.phase === 'matchOver') { state = localView(); render(); return; }
+    var seat = GD.actorSeat(gdGame);
+    if (seat === me) { state = localView(); render(); return; }
+    if (localBusy) return;
+    localBusy = true;
+    setTimeout(function () {
+      localBusy = false;
+      if (!gdGame || gdGame.phase === 'handOver' || gdGame.phase === 'matchOver') return;
+      var s2 = GD.actorSeat(gdGame);
+      if (s2 === me) { state = localView(); render(); return; }
+      var act = window.GdAI.decide(state, s2, gdGame.hand.hands[s2]);
+      if (act) { localApply(act, s2); state = localView(); render(); }
+      localTick();
+    }, 700 + Math.random() * 900);
+  }
+
   function checkOrientation() {
     var landscape = window.innerWidth >= window.innerHeight;
     el.landscapeOverlay.hidden = landscape;
@@ -380,6 +469,7 @@
     window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 120); });
     bindUI();
 
+    if (q.mode === 'ai') { startLocal(); return; }
     if (q.mode !== 'online' || !q.room) {
       if (window.Notify) window.Notify.show('掼蛋目前仅支持联机对战（4 人）', 'error', { sticky: true });
       setTimeout(function () { location.href = 'gd.html'; }, 1800);

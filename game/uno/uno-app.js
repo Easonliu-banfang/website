@@ -314,12 +314,15 @@
     if (window.Notify) {
       window.Notify.show(winnerText(), state.winner === (mode === '2v2' ? teamOfMe() : me) ? 'win' : 'lose', { sticky: true });
     }
-    if (isHost) {
+    if (isHost || mode === 'ai') {
       setTimeout(function () {
         var again = document.createElement('button');
         again.className = 'btn on uo-again';
         again.textContent = '再来一局 →';
-        again.addEventListener('click', function () { if (o) o.sendReset(); });
+        again.addEventListener('click', function () {
+          if (mode === 'ai') startLocalAI();
+          else if (o) o.sendReset();
+        });
         r.appendChild(again);
       }, 800);
     }
@@ -411,7 +414,8 @@
     window.addEventListener('pointercancel', onHandUp);
     el.btnDraw.addEventListener('click', function () {
       if (!canDrawNow()) return;
-      if (o) o.sendDraw();
+      if (mode === 'ai') localStep(function (s) { Uno.draw(s, me); });
+      else if (o) o.sendDraw();
     });
     if (el.btnChallenge) el.btnChallenge.addEventListener('click', function () {
       if (!(state && state.challenge && state.nextDraw > 0 && me === state.turn)) return;
@@ -420,17 +424,20 @@
     });
     el.btnPass.addEventListener('click', function () {
       if (!passAllowed()) return;
-      if (o) o.sendPass();
+      if (mode === 'ai') localStep(function (s) { Uno.pass(s, me); });
+      else if (o) o.sendPass();
     });
     el.btnUno.addEventListener('click', function () {
-      if (o) o.sendCallUno();
+      if (mode === 'ai') { Uno.callUno(localState, me); renderMe(); }
+      else if (o) o.sendCallUno();
       el.btnUno.hidden = true;
     });
     el.colorModal.addEventListener('click', function (e) {
       var b = e.target.closest('.cp');
       if (!b) return;
       var color = b.getAttribute('data-c');
-      if (o) o.sendSetColor(color);
+      if (mode === 'ai') { Uno.setColor(localState, me, color); applyLocalView(); maybeLocalAI(); }
+      else if (o) o.sendSetColor(color);
       el.colorModal.hidden = true;
     });
     // 左下快捷功能区（占位交互）
@@ -456,9 +463,10 @@
     if (flyBusy) return;
     flyBusy = true;
     flyCard(wrap, card, function () {
-      if (o) o.sendPlay(card);
+      if (mode === 'ai') localPlay(card);
+      else if (o) o.sendPlay(card);
       // 出剩 1 张自动喊 UNO（4 秒宽容窗口内免罚）
-      if (hand.length === 2) setTimeout(function () { if (o) o.sendCallUno(); }, 120);
+      if (mode !== 'ai' && hand.length === 2) setTimeout(function () { if (o) o.sendCallUno(); }, 120);
       flyBusy = false;
     });
   }
@@ -467,6 +475,78 @@
     el.banner.textContent = msg;
     el.banner.className = 'uo-banner warn shake';
     setTimeout(function () { if (el.banner.className.indexOf('shake') >= 0) el.banner.className = 'uo-banner'; }, 900);
+  }
+
+  /* ---------- 本地 AI 对局（无需开房，1 真人 + 2 电脑） ---------- */
+  var localState = null;
+  var localAI_busy = false;
+  function toLocalView(s) {
+    return {
+      you: me, mode: 'ai', capacity: s.capacity, top: s.top, topColor: s.topColor,
+      turn: s.turn, dir: s.dir, nextDraw: s.nextDraw, awaitColor: s.awaitColor,
+      justDrew: s.justDrew, lastDrawn: s.lastDrawn, uno: s.uno, winner: s.winner,
+      hand: s.hands[me].slice(), counts: s.hands.map(function (h) { return h.length; }),
+      teams: s.teams, mate: null, mateHand: null, challenge: false
+    };
+  }
+  function startLocalAI() {
+    mode = 'ai';
+    if (typeof Uno === 'undefined' || !window.UnoAI) {
+      if (window.Notify) window.Notify.show('引擎加载失败，请刷新重试', 'error', { sticky: true });
+      return;
+    }
+    localState = Uno.createState('3');
+    Uno.deal(localState);
+    me = 0;
+    names = ['你', 'AI·2', 'AI·3'];
+    roomStarted = true;
+    isHost = false;
+    if (el.unoGameTitle) el.unoGameTitle.style.display = 'none';
+    el.gameRoot.hidden = false;
+    lastTurn = -1;
+    applyLocalView();
+    maybeLocalAI();
+  }
+  function applyLocalView() {
+    state = toLocalView(localState);
+    renderOpps(); renderBoard(); renderMe();
+    if (localState.winner >= 0) showResult();
+    else if (el.resultBanner) el.resultBanner.hidden = true;
+  }
+  function localStep(fn) {
+    fn(localState);
+    applyLocalView();
+    maybeLocalAI();
+  }
+  function maybeLocalAI() {
+    if (!localState || localState.winner >= 0) return;
+    if (localState.turn === me) return;
+    if (localAI_busy) return;
+    localAI_busy = true;
+    setTimeout(function () {
+      localAI_busy = false;
+      if (!localState || localState.winner >= 0) return;
+      if (localState.turn === me) return;
+      var s = localState.turn;
+      var hand = localState.hands[s];
+      var acts = window.UnoAI.choose(localState, s, hand);
+      if (!acts) return;
+      (Array.isArray(acts) ? acts : [acts]).forEach(function (a) {
+        if (a.type === 'play') Uno.play(localState, s, a.card);
+        else if (a.type === 'draw') Uno.draw(localState, s);
+        else if (a.type === 'pass') Uno.pass(localState, s);
+        else if (a.type === 'setColor') Uno.setColor(localState, s, a.color);
+        else if (a.type === 'callUno') Uno.callUno(localState, s);
+      });
+      applyLocalView();
+      maybeLocalAI();
+    }, 700 + Math.random() * 900);
+  }
+  function localPlay(card) {
+    Uno.play(localState, me, card);
+    if (localState.hands[me].length === 1) Uno.callUno(localState, me);
+    applyLocalView();
+    maybeLocalAI();
   }
 
   /* ---------- 状态接收 ---------- */
@@ -583,6 +663,7 @@
       }
     }, 1000);
 
+    if (q.mode === 'ai') { startLocalAI(); return; }
     if (q.mode !== 'online' || !q.room) {
       // 非联机（本地/AI 暂未开放）→ 提示返回
       if (window.Notify) window.Notify.show('优诺UNO！目前仅支持互联网对战（双人/三人/四人/2v2）', 'error', { sticky: true });
