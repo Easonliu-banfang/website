@@ -69,7 +69,7 @@
   function passAllowed() { return !!state && !state.awaitColor && me === state.turn && state.justDrew && state.nextDraw === 0 && state.winner < 0; }
   function capacityOf() {
     if (mode === '2v2') return 4;      // 组队：固定 4
-    if (mode === 'ffa') return 4;      // 单人混战：座位显示 4，≥2 人即可开局（灵活按实际人数）
+    if (mode === 'ffa') return 3;      // 单人混战：固定 3 人局
     var n = parseInt(mode, 10);
     return (n >= 2 && n <= 4) ? n : 2;
   }
@@ -397,7 +397,7 @@
       shareExtra: '&gm=' + encodeURIComponent(mode)
     });
     lobby.setCapacity(capacityOf());
-    if (mode === 'ffa') lobby.setMinToStart(2);   // 单人混战：至少 2 人即可开局
+    if (mode === 'ffa') lobby.setMinToStart(3);   // 单人混战：固定 3 人，满 3 开局
     if (mode === '2v2') lobby.setSeatTags(['下排', '下排', '上排', '上排']);   // 2v2 必须满 4
     lobby.show(currentRoom);
     lobby.setStatus('连接中…', 'connecting');
