@@ -190,8 +190,16 @@
   function renderBoard() {
     if (!state) return;
     if (state.top) {
-      el.topCardImg.src = cardImg(state.top);
+      var newSrc = cardImg(state.top);
+      var srcChanged = el.topCardImg.getAttribute('src') !== newSrc;
+      el.topCardImg.setAttribute('src', newSrc);
       el.topCardImg.style.display = '';
+      // 中央牌每次变化重新触发 pop 动画（img.src 变化不会自动重播 CSS 动画）
+      if (srcChanged) {
+        el.topCardImg.style.animation = 'none';
+        void el.topCardImg.offsetWidth;
+        el.topCardImg.style.animation = '';
+      }
     } else {
       el.topCardImg.style.display = 'none';
     }
@@ -348,33 +356,53 @@
     // 点击或拖出桌面 → 都算打出（带飞行动画）
     tryPlay(card, wrap, wasDrag);
   }
-  // 牌从手牌飞向中央出牌区
+  // 牌从手牌飞向中央出牌区（带防御：wrap 脱离 DOM / animate 异常时直接跳过动画）
   function flyCard(wrap, card, done) {
+    var safe = function () { if (done) { try { done(); } catch (e) {} } };
+    if (!wrap || !document.body.contains(wrap)) { safe(); return; }
+    flyFromRect(wrap.getBoundingClientRect(), card, safe);
+  }
+  // 通用：从任意矩形中心飞一张牌到中央出牌区（对手出牌动画也复用）
+  function flyFromRect(fromRect, card, done) {
     var target = el.topCardImg;
-    if (!target || !wrap) { if (done) done(); return; }
-    var from = wrap.getBoundingClientRect();
+    var safe = function () { if (done) { try { done(); } catch (e) {} } };
+    if (!target || !fromRect) { safe(); return; }
     var to = target.getBoundingClientRect();
-    var img = wrap.querySelector('img');
     var fly = document.createElement('img');
-    fly.src = img ? img.src : cardImg(card);
+    fly.src = cardImg(card);
     fly.className = 'uc';
-    fly.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;margin:0;';
-    fly.style.left = from.left + 'px';
-    fly.style.top = from.top + 'px';
-    fly.style.width = from.width + 'px';
+    fly.style.cssText = 'position:fixed;z-index:9998;pointer-events:none;margin:0;will-change:transform;';
+    fly.style.left = (fromRect.left + fromRect.width / 2 - 21) + 'px';
+    fly.style.top = (fromRect.top + fromRect.height / 2 - 29) + 'px';
+    fly.style.width = '42px';
     document.body.appendChild(fly);
-    var dx = to.left + to.width / 2 - (from.left + from.width / 2);
-    var dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    var sx = fromRect.left + fromRect.width / 2;
+    var sy = fromRect.top + fromRect.height / 2;
+    var dx = to.left + to.width / 2 - sx;
+    var dy = to.top + to.height / 2 - sy;
+    var finished = false;
+    var finish = function () { if (finished) return; finished = true; try { fly.remove(); } catch (e) {} safe(); };
     if (typeof fly.animate === 'function') {
-      fly.animate([
-        { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
-        { transform: 'translate(' + (dx * 0.55) + 'px,' + (dy - 70) + 'px) rotate(9deg) scale(1.05)', opacity: 1, offset: 0.6 },
-        { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(0deg) scale(0.45)', opacity: 0.85 }
-      ], { duration: 360, easing: 'cubic-bezier(0.35, 0.9, 0.4, 1)' }).onfinish = function () {
-        fly.remove();
-        if (done) done();
-      };
-    } else { fly.remove(); if (done) done(); }
+      try {
+        fly.animate([
+          { transform: 'translate(0,0) rotate(0) scale(0.8)', opacity: 0.9 },
+          { transform: 'translate(' + (dx * 0.5) + 'px,' + (dy - 60) + 'px) rotate(8deg) scale(1)', opacity: 1, offset: 0.55 },
+          { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(0deg) scale(0.5)', opacity: 0.9 }
+        ], { duration: 420, easing: 'cubic-bezier(0.35, 0.9, 0.4, 1)' }).onfinish = finish;
+        setTimeout(finish, 800);   // 兜底
+        return;
+      } catch (e) { /* 降级 */ }
+    }
+    fly.remove();
+    safe();
+  }
+  // 对手/AI 出牌动画：从出牌者方向飞一张牌到中央（增加整体动画感）
+  function oppFlyIn(slot) {
+    if (slot === me) return;
+    var holder = null;
+    seatSpots().forEach(function (it) { if (it.seat === slot) holder = el['player' + (it.pos.charAt(0).toUpperCase() + it.pos.slice(1))]; });
+    if (!holder || !holder.firstChild || !state || !state.top) return;
+    flyFromRect(holder.firstChild.getBoundingClientRect(), state.top, null);
   }
   function bindUI() {
     el.myHand.addEventListener('pointerdown', onHandDown);
@@ -443,11 +471,15 @@
 
   /* ---------- 状态接收 ---------- */
   function applyState(s) {
+    var prevTurn = state ? state.turn : -1;   // 上一局面的 turn ≈ 上一手出牌者
+    var topChanged = !state || state.top !== s.top;
     state = s;
     if (s.you != null) me = s.you;
     roomStarted = true;
     // 开局后隐藏顶部标题「优诺UNO！」（进游戏不再显示游戏名）
     if (el.unoGameTitle) el.unoGameTitle.style.display = 'none';
+    // 对手/AI 出牌：从出牌者方向飞一张牌到中央（自身出牌由 flyCard 处理，不重复播）
+    if (topChanged && s.top && prevTurn >= 0 && prevTurn !== me) oppFlyIn(prevTurn);
     // 回合切换 → 重置 10 秒出牌计时（仅自己回合倒计时）
     if (s.turn !== lastTurn) { lastTurn = s.turn; timerLeft = (me === s.turn) ? TURN_SECONDS : 0; renderTimer(); }
     renderDir();

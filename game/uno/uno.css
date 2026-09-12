@@ -96,6 +96,19 @@
 .uo-deck-disc.on { border-color: #ff9d00; color: #e08600; box-shadow: 0 0 24px rgba(255, 157, 0, 0.5); }
 .uo-deck-disc .uo-deck-inner { display: block; font-size: 18px; font-weight: 800; font-family: var(--mono); }
 .uo-deck-disc .uo-deck-sub { font-size: 11px; margin-top: 4px; display: block; color: #8295b4; }
+/* 牌堆：一叠真实牌背 */
+.uo-deck-stack { position: relative; display: block; height: 46px; margin-bottom: 6px; }
+.uo-deck-back {
+  position: absolute; left: 50%; top: 0;
+  width: 30px; height: 44px; margin-left: -15px;
+  border-radius: 5px; border: 1.5px solid #fff;
+  box-shadow: 0 3px 8px rgba(60, 90, 140, 0.3);
+  background-image: url('cards/back.png');
+  background-size: 100% 100%;
+}
+.uo-deck-back:nth-child(1) { transform: translate(-4px, 1px) rotate(-6deg); z-index: 1; }
+.uo-deck-back:nth-child(2) { transform: translate(0px, -3px) rotate(2deg); z-index: 2; }
+.uo-deck-back:nth-child(3) { transform: translate(4px, 2px) rotate(7deg); z-index: 3; }
 .uo-deck-glow {
   position: absolute; inset: -6px; border-radius: 18px;
   border: 2px solid transparent; pointer-events: none; transition: all 0.25s ease;
@@ -294,7 +307,8 @@
   display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 62%;
 }
 .uo-hand { display: flex; align-items: flex-end; justify-content: center; min-height: 88px; }
-.uo-hand .uc-wrap { margin-left: -22px; position: relative; transition: transform 0.16s ease; filter: drop-shadow(0 2px 3px rgba(60, 90, 140, 0.2)); }
+.uo-hand .uc-wrap { margin-left: -22px; position: relative; transition: transform 0.16s ease; filter: drop-shadow(0 2px 3px rgba(60, 90, 140, 0.2)); touch-action: none; cursor: grab; }
+.uo-hand .uc-wrap:active { cursor: grabbing; }
 .uo-hand .uc-wrap:first-child { margin-left: 0; }
 .uo-hand.act .uc-wrap.ok { cursor: pointer; transform: translateY(-14px); }  /* 可出牌常驻上浮 */
 .uo-hand.act .uc-wrap.ok:hover { transform: translateY(-22px) scale(1.06); z-index: 3; }
