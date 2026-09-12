@@ -29,24 +29,35 @@
   var ICON = (window.YTRender && YTRender.ICON) || ['', '🐑', '🐐', '🐏', '🐏'];
   function sheepHtml(lv, slot, idx) {
     var selCls = (selected && selected.slot === slot && selected.idx === idx) ? ' sel' : '';
-    return '<div class="yt-sheep lv' + lv + selCls + '" data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '">' +
-      '<span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></div>';
+    var cd = coolLeft(slot, lv);
+    var cdCls = cd > 0 ? ' cooling' : '';
+    var cdTag = cd > 0 ? '<span class="cd">' + cd.toFixed(1) + 's</span>' : '';
+    return '<div class="yt-sheep lv' + lv + selCls + cdCls + '" data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '">' +
+      '<span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span>' + cdTag + '</div>';
   }
   // 自动选中手牌第一只（最小的羊）→ 点赛道即可直接放，省一步
   function autoSelectFirst() {
-    if (selected) return;
-    if (mode === 'local') {
-      var h0 = (localState && localState.hands[0]) || [];
-      if (h0.length) {
-        var sorted0 = h0.slice().sort(function (a, b) { return a - b; });
-        selected = { slot: 0, lv: sorted0[0], idx: h0.indexOf(sorted0[0]) };
+    if (selected && coolLeft(selected.slot, selected.lv) <= 0) return;   // 已选且可用 → 保留
+    selected = null;
+    function pick(slot, list) {
+      if (!list || !list.length) return null;
+      // 优先未冷却的最小羊；全都冷却则选最小（会提示冷却）
+      var idxs = list.map(function (v, i) { return i; });
+      idxs.sort(function (a, b) { return list[a] - list[b]; });
+      for (var k = 0; k < idxs.length; k++) {
+        if (coolLeft(slot, list[idxs[k]]) <= 0) return { slot: slot, lv: list[idxs[k]], idx: idxs[k] };
       }
-    } else if (view && view.hand && view.hand.length) {
-      var sorted = view.hand.slice().sort(function (a, b) { return a - b; });
-      selected = { slot: me, lv: sorted[0], idx: 0 };
+      var f = idxs[0];
+      return { slot: slot, lv: list[f], idx: f };
     }
+    if (mode === 'local') selected = pick(0, handList(0));
+    else selected = pick(me, handList(me));
   }
 
+  function coolSig(v) {
+    if (!v || !v.cool) return '';
+    return v.cool[0].join(',') + '|' + v.cool[1].join(',');
+  }
   function renderHand() {
     var box = $('myHand');
     if (!view) { box.innerHTML = ''; return; }
@@ -67,23 +78,41 @@
     }
     box.innerHTML = html;
     renderLaneBtns();
+    renderCdBar();
   }
 
-  function laneReadyAt(lane, slot) {
+  // 该等级羊的冷却剩余（秒）；冷却按「羊（等级）」而非赛道
+  function coolLeft(slot, lv) {
     if (!view || !view.cool) return 0;
-    return (view.cool[slot] && view.cool[slot][lane]) || 0;
+    var at = (view.cool[slot] && view.cool[slot][lv]) || 0;
+    return Math.max(0, at - Date.now()) / 1000;
+  }
+  function handList(slot) {
+    if (mode === 'local') return (localState && localState.hands[slot]) || [];
+    return (slot === me && view && view.hand) ? view.hand : [];
+  }
+  // 冷却状态条：4 个等级各自是否冷却（按羊冷却，与赛道无关）
+  function renderCdBar() {
+    var box = $('cdBar');
+    if (!box || !view) return;
+    var slot = (mode === 'local') ? 0 : me;
+    var html = '';
+    for (var lv = 1; lv <= 4; lv++) {
+      var cd = coolLeft(slot, lv);
+      html += '<span class="cd-chip' + (cd > 0 ? ' on' : '') + '">' +
+        '<b>' + lv + '</b>力' + (cd > 0 ? '<i>' + cd.toFixed(1) + 's</i>' : '') + '</span>';
+    }
+    box.innerHTML = html;
   }
   function renderLaneBtns() {
     var box = $('laneBtns');
     if (!view) { box.innerHTML = ''; return; }
-    var slot = selected ? selected.slot : me;
-    var now = Date.now();
+    // 冷却按「羊」计：选中羊处于冷却时不能放（换一只未冷却的羊即可）
+    var cd = selected ? coolLeft(selected.slot, selected.lv) : 0;
     var html = '';
-    for (var i = 0; i < (view.lanes || 4); i++) {
-      var left = Math.max(0, laneReadyAt(i, slot) - now) / 1000;
-      var cls = left > 0 ? ' cool' : '';
-      html += '<button class="yt-lane-btn' + cls + '" data-lane="' + i + '"' + (left > 0 ? ' disabled' : '') + '>' +
-        '赛道 ' + (i + 1) + (left > 0 ? '<br>' + left.toFixed(1) + 's' : '') + '</button>';
+    for (var i = 0; i < (view.lanes || 5); i++) {
+      html += '<button class="yt-lane-btn" data-lane="' + i + '"' + (cd > 0 ? ' disabled' : '') + '>' +
+        '赛道 ' + (i + 1) + '</button>';
     }
     box.innerHTML = html;
   }
@@ -208,7 +237,7 @@
 
   /* ---------- 本地模式（面对面 / AI） ---------- */
   function startLocal() {
-    localState = YT.createState(4);
+    localState = YT.createState(YT.LANES);
     YT.start(localState, Date.now(), Math.random);
     me = 0;
     names = (mode === 'ai') ? ['你', 'AI 羊群'] : ['玩家 1', '玩家 2'];
@@ -287,14 +316,35 @@
 
   /* ---------- 启动 ---------- */
   function boot() {
-    ['gameRoot', 'ytCanvas', 'myHand', 'laneBtns', 'hpNumL', 'hpNumR', 'hpFillL', 'hpFillR',
+    ['gameRoot', 'ytCanvas', 'myHand', 'laneBtns', 'cdBar', 'hpNumL', 'hpNumR', 'hpFillL', 'hpFillR',
       'hpNameL', 'hpNameR', 'fieldTip', 'ytResult', 'resultTitle', 'resultDesc',
       'btnNew', 'btnAgain', 'btnLeave2', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
 
     mode = (q.mode === 'online') ? 'online' : (q.mode === 'local') ? 'local' : 'ai';
     round = new window.YTRender.Round($('ytCanvas'), { flip: false });
     window.addEventListener('resize', function () { round.resize(); });
-    round.start(function () { return view; });
+    // 每帧推进本地引擎（碰撞判定与画面同步；原来只在 AI 决策时推进会导致画面超前）
+    round.start(function () {
+      if (mode !== 'online' && localState) {
+        YT.simulate(localState, Date.now());
+        var nv = YT.viewFor(localState, (mode === 'local') ? 0 : me, Date.now());
+        if (mode === 'local') nv.handCount = [localState.hands[0].length, localState.hands[1].length];
+        var needDom = !view
+          || nv.hand.length !== view.hand.length
+          || nv.hp[0] !== view.hp[0] || nv.hp[1] !== view.hp[1]
+          || nv.winner !== view.winner;
+        var prevCool = coolSig(view), nextCool = coolSig(nv);
+        view = nv;
+        if (needDom) { autoSelectFirst(); renderAll(); }
+        else if (prevCool !== nextCool) { renderHand(); }
+      }
+      return view;
+    });
+    // 冷却倒计时刷新（每秒）
+    setInterval(function () {
+      if (mode === 'online' || !view) return;
+      if (coolSig(view)) { renderHand(); renderCdBar(); }
+    }, 1000);
     bindUI();
 
     if (mode === 'online') {

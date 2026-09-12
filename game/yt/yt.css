@@ -113,3 +113,25 @@
   .yt-panel { flex-direction: row; flex-wrap: wrap; }
   .yt-panel .yt-card { flex: 1 1 200px; }
 }
+
+/* 手牌冷却（按等级）：该等级的羊放过后进入冷却，显示剩余秒数并变灰 */
+.yt-sheep { position: relative; }
+.yt-sheep.cooling { filter: grayscale(0.85) brightness(0.72); cursor: not-allowed; }
+.yt-sheep.cooling:hover { transform: none; }
+.yt-sheep .cd {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-family: var(--mono); font-size: 13px; font-weight: 800; color: #ffd166;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+.yt-lane-btn:disabled { opacity: 0.35; }
+
+/* 冷却状态条：4 个等级（按羊冷却，与赛道无关） */
+.yt-cdbar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.cd-chip {
+  font-size: 11px; font-weight: 800; color: var(--dim);
+  border: 1px solid var(--card-edge); border-radius: 999px;
+  padding: 2px 10px; background: rgba(255, 255, 255, 0.04);
+}
+.cd-chip b { color: var(--text); font-family: var(--mono); }
+.cd-chip.on { color: #ffd166; border-color: rgba(255, 209, 102, 0.55); background: rgba(255, 209, 102, 0.08); }
+.cd-chip i { font-style: normal; margin-left: 4px; font-family: var(--mono); }

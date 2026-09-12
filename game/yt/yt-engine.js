@@ -4,7 +4,8 @@
  * 羊：4 档力气 1-4（小羊/中羊/大羊/巨羊）。
  *   · 同赛道两方羊相遇：力气大者留下，小者被顶掉；同级双双消失。
  *   · 羊推进到对方基地：对方扣血 = 羊的等级。
- * 冷却：放羊后该赛道冷却（等级越高冷却越久），冷却中不能在同赛道再放。
+ * 冷却：按「羊」冷却 —— 放出一只某等级的羊后，该等级进入冷却（与赛道无关），
+ *       冷却期间不能再放同等级的羊；等级越高冷却越久。
  * 手牌：开局 3 只，每 1.5 秒自动补 1 只（上限 6），等级按权重随机。
  *
  * 时间模型（无需定时器）：
@@ -39,7 +40,7 @@
       hp: [MAX_HP, MAX_HP],
       sheep: [],              // {id, slot, lane, lv, pos}
       hands: [[], []],
-      cool: [[0, 0, 0, 0], [0, 0, 0, 0]],   // 每条赛道可再次放羊的时刻（绝对时间）
+      cool: [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],   // 按等级的冷却：cool[slot][lv] = 可再放该等级羊的时刻
       nextDraw: [0, 0],
       simAt: 0,
       idSeq: 1,
@@ -155,13 +156,14 @@
     if (lane < 0 || lane >= state.lanes) return { ok: false, error: '赛道无效' };
     if (lv < 1 || lv > 4) return { ok: false, error: '羊等级无效' };
     simulate(state, now);
-    if (now < state.cool[slot][lane]) {
-      return { ok: false, error: '该赛道冷却中', coolLeft: Math.ceil((state.cool[slot][lane] - now) / 100) / 10 };
+    var readyAt = state.cool[slot][lv] || 0;
+    if (now < readyAt) {
+      return { ok: false, error: lv + ' 力羊冷却中', coolLeft: Math.ceil((readyAt - now) / 100) / 10 };
     }
     var idx = state.hands[slot].indexOf(lv);
     if (idx < 0) return { ok: false, error: '手里没有这只羊' };
     state.hands[slot].splice(idx, 1);
-    state.cool[slot][lane] = now + COOL_MS[lv];
+    state.cool[slot][lv] = now + COOL_MS[lv];     // 该等级羊进入冷却（与赛道无关）
     state.sheep.push({
       id: state.idSeq++,
       slot: slot, lane: lane, lv: lv,
@@ -183,7 +185,7 @@
       }),
       hand: sortHand(state.hands[slot] || []),
       handCount: [state.hands[0].length, state.hands[1].length],
-      cool: [state.cool[0].slice(), state.cool[1].slice()],
+      cool: [state.cool[0].slice(), state.cool[1].slice()],   // 按等级：cool[slot][lv]
       nextDraw: state.nextDraw.slice(),
       simAt: state.simAt,
       now: now,

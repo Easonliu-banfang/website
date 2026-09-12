@@ -7,14 +7,14 @@
   <meta name="description" content="顶哪个羊 —— 实时对撞，把对手血量打到 0">
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
-  <link rel="stylesheet" href="yt.css?v=y5">
+  <link rel="stylesheet" href="yt.css?v=y6">
 </head>
 <body class="yt-play-body">
 
 <div id="notifyBar" class="notify-bar" hidden></div>
 
 <header class="head" id="topHeader">
-  <a href="yt.html?v=y5" class="back">← 选择模式</a>
+  <a href="yt.html?v=y6" class="back">← 选择模式</a>
   <h1>顶哪个羊</h1>
   <span id="roomCodeTag" class="mode-tag" hidden></span>
 </header>
@@ -47,6 +47,7 @@
   <aside class="yt-panel">
     <div class="yt-card">
       <div class="yt-card-title">我方手牌 <span class="yt-sub" id="handSub">自动选中最小羊，点赛道直接放</span></div>
+      <div class="yt-cdbar" id="cdBar"></div>
       <div class="yt-hand" id="myHand"></div>
       <div class="yt-lane-btns" id="laneBtns"></div>
     </div>
@@ -56,7 +57,7 @@
         <li>🐑 羊分 4 档力气 <b>1-4</b>（小/中/大/巨）</li>
         <li>同赛道相撞：<b>力气大者留</b>，同级<b>双死</b></li>
         <li>羊到对方基地 → 对方扣血 <b>= 等级</b></li>
-        <li>放羊后该赛道<b>冷却</b> 5/8/11/15 秒（羊越大越久）</li>
+        <li>放羊后<b>该等级羊冷却</b> 5/8/11/15 秒（与赛道无关）</li>
         <li>每 1.5 秒自动补 1 只羊（上限 6）</li>
       </ul>
       <div class="btn-row">
@@ -79,7 +80,7 @@
     <p id="resultDesc"></p>
     <div class="btn-row">
       <button id="btnAgain" class="btn on" type="button">再来一局</button>
-      <a class="btn ghost" href="yt.html?v=y5">返回大厅</a>
+      <a class="btn ghost" href="yt.html?v=y6">返回大厅</a>
     </div>
   </div>
 </div>
@@ -123,14 +124,14 @@
   </div>
 </div>
 
-<script src="yt-engine.js?v=y5"></script>
-<script src="yt-online.js?v=y5"></script>
+<script src="yt-engine.js?v=y6"></script>
+<script src="yt-online.js?v=y6"></script>
 <script src="../lobby.js?v=l15"></script>
 <script src="../notify.js?v=n3"></script>
-<script src="yt-ai.js?v=y5"></script>
+<script src="yt-ai.js?v=y6"></script>
 <script src="../bot.js?v=b4"></script>
-<script src="yt-render.js?v=y5"></script>
-<script src="yt-app.js?v=y5"></script>
+<script src="yt-render.js?v=y6"></script>
+<script src="yt-app.js?v=y6"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>
 </body>

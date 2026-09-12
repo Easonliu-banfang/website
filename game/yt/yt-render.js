@@ -106,26 +106,6 @@
       ctx.fillText('赛道 ' + (i + 1), W / 2, yTop + 13);
     }
 
-    // ---- 冷却（我方投放端左侧灰条；对手冷却只在右侧淡化显示） ----
-    var now = Date.now();
-    for (var s = 0; s < 2; s++) {
-      for (var l = 0; l < laneCount; l++) {
-        var readyAt = (v.cool[s] && v.cool[s][l]) || 0;
-        if (readyAt > now) {
-          var left = (readyAt - now) / 1000;
-          var laneY = padY + l * laneH;
-          var barW = 34;
-          var x = (s === 0) ? padX : (W - padX - barW);
-          ctx.fillStyle = 'rgba(255,209,102,0.18)';
-          ctx.fillRect(x, laneY + 6, barW, laneH - 12);
-          ctx.fillStyle = '#ffd166';
-          ctx.font = '800 11px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(left.toFixed(1) + 's', x + barW / 2, laneY + laneH / 2 + 4);
-        }
-      }
-    }
-
     // ---- 羊 ----
     var self = this;
     (v.sheep || []).forEach(function (sh) {
