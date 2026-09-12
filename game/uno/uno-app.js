@@ -39,6 +39,25 @@
   var el = {};
   function $(id) { return document.getElementById(id); }
 
+  /* ---------- 人机模式：房主自动补 AI 到 3 人 ---------- */
+  var aiFilled = 0;
+  function autoFillAI(d) {
+    if (q.ai !== '1') return;                                    // 仅人机模式
+    if (mode !== 'ffa' || !isHost || !d || d.started) return;   // 仅单人混战房主
+    if (aiFilled >= 5) return;                                   // 防循环
+    var players = d.players || [];
+    var human = 0, i;
+    for (i = 0; i < players.length; i++) if (players[i] && !(d.isAI && d.isAI[i])) human++;
+    if (human >= 3) return;                                      // 已满 3 真人
+    for (i = 0; i < players.length; i++) {
+      if (!players[i]) {
+        aiFilled++;
+        if (o) { if (o._wsSend) o._wsSend({ type: 'add_ai', slot: i }); else o.send({ type: 'add_ai', slot: i }); }
+        return;
+      }
+    }
+  }
+
   /* ---------- 卡牌素材映射：引擎 id → 文件名 ---------- */
   function cardImg(id) {
     if (id === 'w') return 'cards/WC.png';
@@ -84,7 +103,7 @@
   function passAllowed() { return !!state && !state.awaitColor && me === state.turn && state.justDrew && state.nextDraw === 0 && state.winner < 0; }
   function capacityOf() {
     if (mode === '2v2') return 4;      // 组队：固定 4
-    if (mode === 'ffa') return 3;      // 单人混战：固定 3 人局
+    if (mode === 'ffa') return 4;      // 单人混战：可坐 4 人，≥3 人即开局（3/4 人局）
     var n = parseInt(mode, 10);
     return (n >= 2 && n <= 4) ? n : 2;
   }
@@ -358,6 +377,7 @@
           }
           lobby.show(currentRoom);
           lobby.render(d);
+          autoFillAI(d);   // 人机模式：房主自动补 AI 到 3 人
         }
       }
     });
@@ -415,6 +435,7 @@
     }
 
     currentRoom = q.room;
+    isHost = q.role === 'host';   // 修复：此前 isHost 从未赋值（再来一局按钮失效）
     if (el.roomCodeTag) { el.roomCodeTag.textContent = '房间 ' + currentRoom; el.roomCodeTag.hidden = false; }
 
     o = new window.UnoOnline();
@@ -432,7 +453,7 @@
       shareExtra: '&gm=' + encodeURIComponent(mode)
     });
     lobby.setCapacity(capacityOf());
-    if (mode === 'ffa') lobby.setMinToStart(3);   // 单人混战：固定 3 人，满 3 开局
+    if (mode === 'ffa') lobby.setMinToStart(3);   // 单人混战：满 3 人开局（3/4 人局）
     if (mode === '2v2') lobby.setSeatTags(['下排', '下排', '上排', '上排']);   // 2v2 必须满 4
     lobby.show(currentRoom);
     lobby.setStatus('连接中…', 'connecting');
