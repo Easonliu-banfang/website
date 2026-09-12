@@ -136,6 +136,24 @@
       }
       return null;
     },
+    // 顶哪个羊（state.ai[slot] = 该 AI 手牌；实时对撞，放羊决策）
+    yt: function (state, ctx) {
+      if (!W.YtAI) return null;
+      if (state.winner != null && state.winner >= 0) return null;
+      for (var s = 0; s < 2; s++) {
+        if (!ctx.controls[s]) continue;
+        var hand = (state.ai && state.ai[s]) ? state.ai[s] : null;
+        if (!hand || !hand.length) continue;
+        var fake = {
+          winner: state.winner, started: true, lanes: state.lanes || 4,
+          hands: [null, null], sheep: state.sheep || [], cool: state.cool || [[0,0,0,0],[0,0,0,0]],
+        };
+        fake.hands[s] = hand;
+        var act = W.YtAI.decide(fake, s, Date.now());
+        if (act) return { type: 'yt_deploy', lane: act.lane, lv: act.lv, as: s };
+      }
+      return null;
+    },
     // 骗子酒馆（state.ai[slot] = 该 AI 手牌；state.current = 当前玩家 id 字符串）
     liar: function (state, ctx) {
       if (state.phase !== 'playing') return null;

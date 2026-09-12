@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>顶哪个羊 · 对局</title>
+  <meta name="description" content="顶哪个羊 —— 实时对撞，把对手血量打到 0">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="../style.css?v=b24">
+  <link rel="stylesheet" href="yt.css?v=y2">
+</head>
+<body class="yt-play-body">
+
+<div id="notifyBar" class="notify-bar" hidden></div>
+
+<header class="head" id="topHeader">
+  <a href="yt.html?v=y2" class="back">← 选择模式</a>
+  <h1>顶哪个羊</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden></span>
+</header>
+
+<div class="yt-layout" id="gameRoot" hidden>
+
+  <!-- 左：赛道场地 -->
+  <div class="yt-board-col">
+    <div class="yt-board-box">
+      <div class="yt-hpbar">
+        <div class="yt-hp-side me">
+          <span class="yt-hp-name" id="hpNameL">我方</span>
+          <div class="yt-hp-track"><div class="yt-hp-fill me" id="hpFillL"></div></div>
+          <span class="yt-hp-num" id="hpNumL">100</span>
+        </div>
+        <div class="yt-hp-side foe">
+          <span class="yt-hp-num" id="hpNumR">100</span>
+          <div class="yt-hp-track"><div class="yt-hp-fill foe" id="hpFillR"></div></div>
+          <span class="yt-hp-name" id="hpNameR">对手</span>
+        </div>
+      </div>
+      <div class="yt-field-frame">
+        <canvas id="ytCanvas"></canvas>
+      </div>
+      <div class="yt-tip" id="fieldTip">点选手中的羊，再点赛道放出 →</div>
+    </div>
+  </div>
+
+  <!-- 右：手牌与操作 -->
+  <aside class="yt-panel">
+    <div class="yt-card">
+      <div class="yt-card-title">我方手牌 <span class="yt-sub" id="handSub">点羊选中，再点赛道投放</span></div>
+      <div class="yt-hand" id="myHand"></div>
+      <div class="yt-lane-btns" id="laneBtns"></div>
+    </div>
+    <div class="yt-card yt-help">
+      <div class="yt-card-title">规则速记</div>
+      <ul class="yt-rules-mini">
+        <li>🐑 羊分 4 档力气 <b>1-4</b>（小/中/大/巨）</li>
+        <li>同赛道相撞：<b>力气大者留</b>，同级<b>双死</b></li>
+        <li>羊到对方基地 → 对方扣血 <b>= 等级</b></li>
+        <li>放羊后该赛道<b>冷却</b>（羊越大越久）</li>
+        <li>每 1.5 秒自动补 1 只羊（上限 6）</li>
+      </ul>
+      <div class="btn-row">
+        <button id="btnUndoHint" class="btn ghost" type="button" hidden></button>
+      </div>
+    </div>
+    <div class="yt-card">
+      <div class="btn-row">
+        <button id="btnNew" class="btn ghost" type="button">重开</button>
+        <button id="btnLeave2" class="btn ghost" type="button">离开</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- 结果弹层 -->
+<div id="ytResult" class="yt-result" hidden>
+  <div class="yt-result-card">
+    <h2 id="resultTitle">对局结束</h2>
+    <p id="resultDesc"></p>
+    <div class="btn-row">
+      <button id="btnAgain" class="btn on" type="button">再来一局</button>
+      <a class="btn ghost" href="yt.html?v=y2">返回大厅</a>
+    </div>
+  </div>
+</div>
+
+<!-- 等待室（统一 GameLobby） -->
+<div id="lobby" class="lobby" hidden>
+  <div class="room">
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="24" y="58" width="192" height="12" rx="6" fill="rgba(255,255,255,0.16)"/>
+        <rect x="24" y="82" width="192" height="12" rx="6" fill="rgba(255,255,255,0.16)"/>
+        <rect x="24" y="106" width="192" height="12" rx="6" fill="rgba(255,255,255,0.16)"/>
+        <text x="46" y="70" font-size="18">🐑</text>
+        <text x="176" y="94" font-size="18">🐏</text>
+        <text x="86" y="118" font-size="18">🐑</text>
+      </svg></div>
+      <div class="room-name">顶哪个羊</div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b> <button id="btnShareLink" class="btn ghost btn-share" type="button"> 分享链接</button></div>
+    </div>
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title">等待对手加入</span>
+        <span class="room-caption-sub" id="lobbyStatus">连接中…</span>
+      </div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1（左）</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2（右）</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat2" hidden></div>
+        <div class="seat-card" id="seat3" hidden></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="yt-engine.js?v=y2"></script>
+<script src="yt-online.js?v=y2"></script>
+<script src="../lobby.js?v=l15"></script>
+<script src="../notify.js?v=n3"></script>
+<script src="yt-ai.js?v=y2"></script>
+<script src="../bot.js?v=b4"></script>
+<script src="yt-render.js?v=y2"></script>
+<script src="yt-app.js?v=y2"></script>
+  <script src="../device.js?v=d1"></script>
+<script src="../auth-check.js?v=a2"></script>
+</body>
+</html>

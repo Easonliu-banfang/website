@@ -9,6 +9,7 @@
     uno:  { name: '优诺UNO！', icon: svgUno() },
     pool: { name: '八球台球', icon: svgPool() },
     gd:   { name: '掼蛋', icon: svgGd() },
+    yt:   { name: '顶哪个羊', icon: svgYt() },
   };
   function detectGame() {
     var p = window.location.pathname;
@@ -19,6 +20,7 @@
   if (p.indexOf('connect4') >= 0) return 'connect4';
   if (p.indexOf('battleship') >= 0) return 'battleship';
   if (p.indexOf('/gd/') >= 0) return 'gd';
+  if (p.indexOf('/yt/') >= 0) return 'yt';
   if (p.indexOf('billiards3d') >= 0) return 'pool';
   if (p.indexOf('pool') >= 0) return 'pool';
   return 'qr';   // 步步为营 play.html/online.html 兜底
@@ -33,6 +35,17 @@
       '<text x="69" y="50" font-size="18" font-weight="700" fill="#b8352f" text-anchor="middle" font-family="Georgia,serif" transform="rotate(10 69 43)">&#9829;</text>' +
       '<circle cx="49" cy="72" r="13" fill="#c9a45c"/>' +
       '<text x="49" y="78" font-size="15" font-weight="800" fill="#241a08" text-anchor="middle" font-family="Georgia,serif">&#29579;</text>' +
+      '</svg>';
+  }
+  function svgYt() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="8" y="26" width="80" height="16" rx="8" fill="rgba(255,255,255,0.14)"/>' +
+      '<rect x="8" y="54" width="80" height="16" rx="8" fill="rgba(255,255,255,0.14)"/>' +
+      '<circle cx="30" cy="34" r="14" fill="#f4f7fc" stroke="#22c55e" stroke-width="3"/>' +
+      '<text x="30" y="39" font-size="14" text-anchor="middle">🐑</text>' +
+      '<circle cx="64" cy="62" r="14" fill="#fff3cf" stroke="#e5484d" stroke-width="3"/>' +
+      '<text x="64" y="67" font-size="14" text-anchor="middle">🐏</text>' +
+      '<text x="48" y="18" font-size="13" font-weight="700" fill="#ffd166" text-anchor="middle" font-family="monospace">VS</text>' +
       '</svg>';
   }
   function svgPool() {
