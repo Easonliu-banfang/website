@@ -21,16 +21,39 @@
   var mode = q.gm || 'ffa';
   var currentRoom = q.room || '';
 
-  /* ---------- 回合倒计时（本地模拟，回合切换重置） ---------- */
-  var TURN_SECONDS = 30;
+  /* ---------- 回合倒计时（10 秒时限） + 整局 4 分钟 ---------- */
+  var TURN_SECONDS = 10;               // 每位玩家出牌时限
+  var GAME_SECONDS = 240;              // 每局总时长 4 分钟
   var timerLeft = TURN_SECONDS;
   var lastTurn = -1;
+  var gameSeconds = GAME_SECONDS;
+  var gameOverNotified = false;
   function renderTimer() {
     if (!el.turnTimer) return;
     var mm = String(Math.floor(Math.max(0, timerLeft) / 60)).padStart(2, '0');
     var ss = String(Math.max(0, timerLeft) % 60).padStart(2, '0');
     el.turnTimer.textContent = mm + ':' + ss;
-    el.turnTimer.classList.toggle('low', timerLeft <= 10);
+    el.turnTimer.classList.toggle('low', timerLeft <= 3);
+  }
+  function renderGameClock() {
+    if (el.gameTimer) el.gameTimer.textContent = String(Math.floor(Math.max(0, gameSeconds) / 60)).padStart(2, '0') + ':' + String(Math.max(0, gameSeconds) % 60).padStart(2, '0');
+  }
+  // 出牌超 10 秒 → 复用 AI 决策自动出招（出牌/摸牌/过/选色）
+  function autoPlayOnTimeout() {
+    if (!state || me !== state.turn || state.winner >= 0) return;
+    if (!window.UnoAI) return;
+    var acts;
+    try { acts = window.UnoAI.choose(state, me, state.hand || []); } catch (e) { return; }
+    if (!acts) return;
+    var arr = Array.isArray(acts) ? acts : [acts];
+    for (var i = 0; i < arr.length; i++) {
+      var a = arr[i];
+      if (a.type === 'play' && o && o.sendPlay) o.sendPlay(a.card);
+      else if (a.type === 'draw' && o && o.sendDraw) o.sendDraw();
+      else if (a.type === 'pass' && o && o.sendPass) o.sendPass();
+      else if (a.type === 'setColor' && o && o.sendSetColor) o.sendSetColor(a.color);
+    }
+    if (window.Notify) window.Notify.show('⏱ 出牌超时，已自动出牌', 'warn');
   }
   function renderDir() {
     if (el.dirArrow) el.dirArrow.classList.toggle('rev', !!(state && state.dir < 0));
@@ -334,8 +357,8 @@
     state = s;
     if (s.you != null) me = s.you;
     roomStarted = true;
-    // 回合切换 → 重置本地倒计时
-    if (s.turn !== lastTurn) { lastTurn = s.turn; timerLeft = TURN_SECONDS; renderTimer(); }
+    // 回合切换 → 重置 10 秒出牌计时（仅自己回合倒计时）
+    if (s.turn !== lastTurn) { lastTurn = s.turn; timerLeft = (me === s.turn) ? TURN_SECONDS : 0; renderTimer(); }
     renderDir();
     if (s.winner >= 0) showResult();
     else if (el.resultBanner) el.resultBanner.hidden = true;
@@ -411,20 +434,30 @@
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
      'topCardImg', 'colorDot', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
      'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
-     'btnEmoji', 'btnChat', 'btnVoice',
+     'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
+    renderGameClock();
 
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
     window.addEventListener('orientationchange', function () { setTimeout(checkOrientation, 120); });
     bindUI();
-    // 回合倒计时每秒递减（本地模拟）
+    // 回合倒计时每秒递减 + 整局时钟
     setInterval(function () {
       if (!state || state.winner >= 0 || me < 0) return;
-      if (state.turn !== lastTurn) { lastTurn = state.turn; timerLeft = TURN_SECONDS; }
-      if (me !== state.turn) timerLeft = 0;               // 非自己回合不显示倒计时（placeholder 03:00/00:00）
-      else if (timerLeft > 0) { timerLeft--; }
-      renderTimer();
+      if (me === state.turn && timerLeft > 0) {
+        timerLeft--;
+        if (timerLeft <= 0) autoPlayOnTimeout();   // 10 秒时限到 → 自动出招
+        renderTimer();
+      }
+      if (gameSeconds > 0) {
+        gameSeconds--;
+        renderGameClock();
+        if (gameSeconds <= 0 && !gameOverNotified) {
+          gameOverNotified = true;
+          if (window.Notify) window.Notify.show('⏱ 整局时间到，按手牌最少者结算…', 'warn');
+        }
+      }
     }, 1000);
 
     if (q.mode !== 'online' || !q.room) {

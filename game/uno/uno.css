@@ -51,6 +51,15 @@
 }
 .uo-timer-time.low { color: #e1242a; animation: uoPulse 0.7s infinite; }
 
+/* 整局时钟小字 */
+.uo-timer { flex-wrap: wrap; }
+.uo-game-clock {
+  flex: 0 0 100%;
+  font-size: 11px; color: #7d93b5; text-align: center;
+  font-family: var(--mono); padding-top: 2px;
+}
+.uo-game-clock b { color: #0ea5e9; font-weight: 800; font-variant-numeric: tabular-nums; }
+
 /* ② 中央椭圆游戏桌（亮绿桌布） */
 .uo-table-disc {
   position: absolute; left: 50%; top: 50%;
