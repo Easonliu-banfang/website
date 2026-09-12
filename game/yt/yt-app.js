@@ -27,9 +27,9 @@
 
   /* ---------- 手牌渲染 ---------- */
   var ICON = (window.YTRender && YTRender.ICON) || ['', '🐑', '🐐', '🐏', '🐏'];
-  function sheepHtml(lv, slot) {
-    var selCls = (selected && selected.slot === slot && selected.lv === lv) ? ' sel' : '';
-    return '<div class="yt-sheep lv' + lv + selCls + '" data-lv="' + lv + '" data-slot="' + slot + '">' +
+  function sheepHtml(lv, slot, idx) {
+    var selCls = (selected && selected.slot === slot && selected.idx === idx) ? ' sel' : '';
+    return '<div class="yt-sheep lv' + lv + selCls + '" data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '">' +
       '<span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></div>';
   }
   function renderHand() {
@@ -40,14 +40,14 @@
     if (isLocalDual) {
       html += '<div class="yt-hand-group" style="width:100%">' +
         '<div class="yt-sub" style="margin:2px 0 4px">左方（玩家 1）手牌</div>' +
-        '<div class="yt-hand" data-slot="0">' + ((localState.hands[0] || []).map(function (lv) { return sheepHtml(lv, 0); }).join('') || '<span class="yt-hand-empty">暂无羊，等待补充…</span>') + '</div>' +
+        '<div class="yt-hand" data-slot="0">' + ((localState.hands[0] || []).map(function (lv, i) { return sheepHtml(lv, 0, i); }).join('') || '<span class="yt-hand-empty">暂无羊，等待补充…</span>') + '</div>' +
         '<div class="yt-sub" style="margin:8px 0 4px">右方（玩家 2）手牌</div>' +
-        '<div class="yt-hand" data-slot="1">' + ((localState.hands[1] || []).map(function (lv) { return sheepHtml(lv, 1); }).join('') || '<span class="yt-hand-empty">暂无羊，等待补充…</span>') + '</div>' +
+        '<div class="yt-hand" data-slot="1">' + ((localState.hands[1] || []).map(function (lv, i) { return sheepHtml(lv, 1, i); }).join('') || '<span class="yt-hand-empty">暂无羊，等待补充…</span>') + '</div>' +
         '</div>';
     } else {
       var hand = (view.hand || []).slice().sort(function (a, b) { return a - b; });
       html = hand.length
-        ? hand.map(function (lv) { return sheepHtml(lv, me); }).join('')
+        ? hand.map(function (lv, i) { return sheepHtml(lv, me, i); }).join('')
         : '<span class="yt-hand-empty">暂无羊，等待补充…</span>';
     }
     box.innerHTML = html;
@@ -113,9 +113,9 @@
   }
 
   /* ---------- 交互：选羊 + 投放 ---------- */
-  function selectSheep(slot, lv) {
-    if (selected && selected.slot === slot && selected.lv === lv) selected = null;
-    else selected = { slot: slot, lv: lv };
+  function selectSheep(slot, lv, idx) {
+    if (selected && selected.slot === slot && selected.idx === idx) selected = null;
+    else selected = { slot: slot, lv: lv, idx: idx };
     renderHand();
     if (selected) tip('已选中 ' + lv + ' 力羊 —— 点击赛道放出');
     else tip('点选手中的羊，再点赛道放出 →');
@@ -154,8 +154,10 @@
     $('myHand').addEventListener('click', function (e) {
       var s = e.target.closest('.yt-sheep');
       if (!s) return;
-      if (mode === 'local') selectSheep(Number(s.getAttribute('data-slot')), Number(s.getAttribute('data-lv')));
-      else selectSheep(me, Number(s.getAttribute('data-lv')));
+      var lv = Number(s.getAttribute('data-lv'));
+      var idx = Number(s.getAttribute('data-idx'));
+      if (mode === 'local') selectSheep(Number(s.getAttribute('data-slot')), lv, idx);
+      else selectSheep(me, lv, idx);
     });
     $('laneBtns').addEventListener('click', function (e) {
       var b = e.target.closest('.yt-lane-btn');

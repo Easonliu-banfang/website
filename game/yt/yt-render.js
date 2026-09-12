@@ -48,6 +48,9 @@
   }
 
   Round.prototype.draw = function () {
+    // 每帧检测容器尺寸变化（元素从 hidden 变为可见、窗口缩放等）
+    var rr = this.canvas.getBoundingClientRect();
+    if (rr.width > 0 && (Math.abs(rr.width - this.w) > 2 || Math.abs(rr.height - this.h) > 2)) this.resize();
     var ctx = this.ctx, v = this.view, W = this.w, H = this.h;
     ctx.clearRect(0, 0, W, H);
     if (!v) return;
