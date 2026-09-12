@@ -1,0 +1,173 @@
+/* ============ 掼蛋（Guandan） ============ */
+/* 亮色桌游风：绿呢牌桌 + 白色扑克牌 */
+
+.gd-modes { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.gd-hint { margin-top: 18px; font-size: 13px; color: #64748b; }
+.gd-hint b { color: #0ea5e9; font-weight: 600; }
+
+.gd-body, .gd-play-body {
+  min-height: 100dvh;
+  background: linear-gradient(160deg, #e8f4ff 0%, #f6f9ff 40%, #f2fbf4 100%);
+}
+.gd-head h1 { color: #0f2440; }
+
+/* ---------- 对局页布局（围桌：自己底部 / 对家上 / 左右对手） ---------- */
+.gd-table { position: absolute; inset: 0; overflow: hidden; }
+.gd-table[hidden] { display: none; }
+.gd-root { position: absolute; inset: 0; }
+
+/* 顶部信息条 */
+.gd-info {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  z-index: 30; display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.92); border: 2px solid #d8e4f8;
+  border-radius: 16px; padding: 6px 16px;
+  box-shadow: 0 8px 24px rgba(31,68,130,.14);
+  font-size: 13px; color: #24405f; font-weight: 700; white-space: nowrap;
+}
+.gd-info .lv { color: #e07c00; }
+.gd-info .tm { border-radius: 999px; padding: 1px 10px; font-size: 12px; }
+.gd-info .tm.a { background: #e3f9ea; color: #15934e; }
+.gd-info .tm.b { background: #e3f0ff; color: #1666d6; }
+
+/* 中央牌桌 */
+.gd-desk {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  width: min(70vw, 820px); height: min(44vh, 400px);
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.18) 0%, transparent 60%),
+    linear-gradient(160deg, #43cf7a 0%, #2cb464 50%, #1f9e55 100%);
+  border: 12px solid #e9a23b; border-radius: 50% / 46%;
+  box-shadow: inset 0 0 60px rgba(5,60,25,.5), 0 0 0 4px rgba(255,255,255,.5), 0 24px 60px rgba(20,80,40,.35);
+  z-index: 5;
+}
+/* 桌面中央：当前牌 + 轮到谁 */
+.gd-center {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 8; text-align: center; max-width: 84%;
+}
+.gd-turn { font-size: 13px; color: #fff; font-weight: 800; text-shadow: 0 2px 4px rgba(0,60,20,.5); margin-bottom: 8px; }
+.gd-lastcards { min-height: 76px; display: flex; justify-content: center; align-items: center; }
+.gd-phase-tip { margin-top: 6px; font-size: 12px; color: rgba(255,255,255,.9); font-weight: 700; }
+
+/* ---------- 扑克牌 ---------- */
+.gcard {
+  position: relative; display: inline-block;
+  width: 46px; height: 64px; border-radius: 6px;
+  background: #fff; border: 1.5px solid #c9d6ec;
+  box-shadow: 0 3px 8px rgba(60,90,140,.25);
+  font-family: var(--mono); text-align: center;
+  vertical-align: bottom; flex: 0 0 auto;
+  user-select: none;
+}
+.gcard .cr { font-size: 15px; font-weight: 800; line-height: 1.15; padding-top: 3px; }
+.gcard .cs { font-size: 13px; line-height: 1; }
+.gcard.r { color: #d92b2b; }
+.gcard.b { color: #1f4fd8; }
+.gcard.jk { background: linear-gradient(150deg, #2b3a55, #101b30); color: #ffd166; }
+.gcard.jk .cr { font-size: 12px; padding-top: 8px; }
+.gcard.jk .cs { font-size: 18px; }
+.gcard.lv::after {
+  content: '级'; position: absolute; right: 2px; top: 2px;
+  font-size: 8px; background: #ff9d00; color: #fff;
+  border-radius: 999px; padding: 0 4px; font-weight: 800;
+}
+.gcard.wild::after {
+  content: '配'; position: absolute; right: 2px; top: 2px;
+  font-size: 8px; background: #e5484d; color: #fff;
+  border-radius: 999px; padding: 0 4px; font-weight: 800;
+}
+.gcard.small { width: 34px; height: 48px; }
+.gcard.small .cr { font-size: 11px; }
+.gcard.small .cs { font-size: 10px; }
+
+/* ---------- 玩家席位 ---------- */
+.gd-player { position: absolute; z-index: 12; }
+.gd-p-card {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.95); border: 2px solid #e2ebfb;
+  border-radius: 16px; padding: 8px 10px;
+  box-shadow: 0 10px 26px rgba(31,68,130,.16); transition: all .2s;
+}
+.gd-p-card.turn { border-color: #0ea5e9; box-shadow: 0 0 20px rgba(14,165,233,.45); transform: scale(1.04); }
+.gd-p-avatar {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: linear-gradient(135deg, #7cc4ff, #b28aff);
+  border: 3px solid #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 25px; box-shadow: 0 4px 12px rgba(80,120,200,.35);
+}
+.gd-p-name { font-size: 12px; color: #24405f; font-weight: 700; background: #eef4ff; border-radius: 999px; padding: 2px 12px; max-width: 118px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-p-name.ta { background: #e3f9ea; color: #15934e; }
+.gd-p-name.tb { background: #e3f0ff; color: #1666d6; }
+.gd-p-cnt { font-size: 12px; color: #0ea5e9; font-family: var(--mono); font-weight: 800; }
+.gd-p-top { left: 50%; top: 10px; transform: translateX(-50%); }
+.gd-p-left { left: 14px; top: 40%; transform: translateY(-50%); }
+.gd-p-right { right: 14px; top: 40%; transform: translateY(-50%); }
+/* 对手已出牌（跟牌显示在其席位旁） */
+.gd-p-play { margin-top: 4px; min-height: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 190px; }
+
+/* 自己（底部偏左，金色框） */
+.gd-me-zone { position: absolute; left: 20%; bottom: 132px; transform: translateX(-50%); z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.gd-me-avatar {
+  width: 58px; height: 58px; border-radius: 18px;
+  background: linear-gradient(135deg, #ffd75e, #ffb020); border: 4px solid #fff;
+  box-shadow: 0 0 22px rgba(255,176,32,.55), 0 8px 20px rgba(200,130,0,.3);
+  display: flex; align-items: center; justify-content: center; font-size: 30px;
+}
+.gd-me-name { font-size: 12px; color: #8a5b00; font-weight: 800; background: #fff6dd; border: 2px solid #ffd166; border-radius: 999px; padding: 2px 12px; }
+
+/* ---------- 自己手牌（27 张重叠） ---------- */
+.gd-hand-zone { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 20; max-width: 72%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gd-hand { display: flex; justify-content: center; align-items: flex-end; min-height: 84px; padding: 0 4px; }
+.gd-hand .gc-wrap { margin-left: -26px; position: relative; transition: transform .15s ease, box-shadow .15s; cursor: pointer; touch-action: manipulation; }
+.gd-hand .gc-wrap:first-child { margin-left: 0; }
+.gd-hand .gc-wrap.sel { transform: translateY(-20px); z-index: 2; }
+.gd-hand .gc-wrap.sel .gcard { border-color: #0ea5e9; box-shadow: 0 0 14px rgba(14,165,233,.7); }
+.gd-hand .gc-wrap.dim .gcard { filter: brightness(.72) grayscale(.2); }
+.gd-hand .gc-wrap.hintup { transform: translateY(-10px); }
+.gd-hand.trib .gc-wrap { cursor: pointer; }
+
+/* 操作按钮 */
+.gd-actions { display: flex; gap: 10px; justify-content: center; }
+.gd-btn {
+  border: 2px solid #d4e0f5; color: #5a708f; background: #fff;
+  border-radius: 999px; padding: 6px 24px; font-size: 14px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(31,68,130,.15); transition: all .15s;
+}
+.gd-btn:hover { transform: translateY(-1px); }
+.gd-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.gd-btn.on { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+.gd-btn.warn { background: #fff; border-color: #ff9d00; color: #e07c00; }
+.gd-shape-tag { font-size: 12px; color: #0f2440; background: #ffe9ad; border: 2px solid #ffd166; border-radius: 999px; padding: 2px 14px; font-weight: 800; display: none; }
+.gd-shape-tag.show { display: inline-block; }
+
+/* ---------- 贡/还贡弹窗 ---------- */
+.gd-modal { position: fixed; inset: 0; z-index: 200; background: rgba(15,25,40,.55); display: flex; align-items: center; justify-content: center; }
+.gd-modal[hidden] { display: none; }
+.gd-modal-card { background: #fff; border: 2px solid #e2ebfb; border-radius: 20px; padding: 24px 28px; text-align: center; max-width: 86vw; box-shadow: 0 24px 70px rgba(31,68,130,.35); }
+.gd-modal-card h3 { font-family: var(--mono); color: #0f2440; margin-bottom: 6px; }
+.gd-modal-card p { font-size: 13px; color: #64748b; margin-bottom: 14px; }
+.gd-modal-cards { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; max-height: 40vh; overflow: auto; }
+.gd-modal-cards .gcard { cursor: pointer; }
+.gd-modal-cards .gcard:hover { border-color: #0ea5e9; box-shadow: 0 0 12px rgba(14,165,233,.6); }
+
+/* ---------- 结果横幅 ---------- */
+.gd-result {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 210; background: rgba(255,255,255,.97); border: 2px solid #e2ebfb;
+  border-radius: 22px; padding: 26px 40px; font-size: 21px; font-weight: 800; text-align: center; color: #0f2440;
+  box-shadow: 0 24px 70px rgba(31,68,130,.3); display: flex; flex-direction: column; gap: 12px; align-items: center;
+}
+.gd-result .sub { font-size: 14px; color: #64748b; font-weight: 600; }
+.gd-result.big { color: #16a34a; border-color: rgba(34,197,94,.6); }
+
+/* 小屏适配 */
+@media (max-width: 760px) {
+  .gcard { width: 38px; height: 54px; }
+  .gcard .cr { font-size: 12px; }
+  .gd-hand .gc-wrap { margin-left: -30px; }
+  .gd-desk { width: min(92vw, 640px); height: min(40vh, 320px); border-width: 8px; }
+  .gd-me-zone { bottom: 112px; }
+  .gd-p-play { max-width: 130px; }
+  .gd-info { font-size: 11px; padding: 4px 10px; }
+}

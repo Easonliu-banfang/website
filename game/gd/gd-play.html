@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>掼蛋 · 对局</title>
+  <meta name="theme-color" content="#f5f7fb">
+  <link rel="stylesheet" href="../style.css?v=b24">
+  <link rel="stylesheet" href="gd.css?v=g1">
+</head>
+<body class="gd-play-body">
+
+<div id="notifyBar" class="notify-bar" hidden></div>
+
+<!-- 竖屏遮罩 -->
+<div id="landscapeOverlay" hidden>
+  <div class="lo-inner">
+    <div class="lo-phone">📱</div>
+    <h2>请横屏游玩</h2>
+    <p>旋转你的手机到横向</p>
+  </div>
+</div>
+
+<header class="head gd-head" id="topHeader">
+  <a href="gd.html?v=g2" class="back">← 选择模式</a>
+  <h1>掼蛋</h1>
+  <span id="roomCodeTag" class="mode-tag" hidden></span>
+</header>
+
+<div id="gameRoot" hidden>
+  <section class="gd-table">
+
+    <!-- 顶部信息条：级数 / 队伍 / 手数 -->
+    <div class="gd-info" id="gdInfo">
+      <span>第 <b id="handNo">1</b> 局</span>
+      <span class="lv">打 <b id="levelTag">2</b> 级</span>
+      <span class="tm a" id="teamA">我方 2 级</span>
+      <span class="tm b" id="teamB">对方 2 级</span>
+    </div>
+
+    <!-- 中央牌桌 -->
+    <div class="gd-desk">
+      <div class="gd-center">
+        <div class="gd-turn" id="turnTip">等待开局…</div>
+        <div class="gd-lastcards" id="lastCards"></div>
+        <div class="gd-phase-tip" id="phaseTip"></div>
+      </div>
+    </div>
+
+    <!-- 四周玩家 -->
+    <div class="gd-player gd-p-top" id="playerTop"></div>
+    <div class="gd-player gd-p-left" id="playerLeft"></div>
+    <div class="gd-player gd-p-right" id="playerRight"></div>
+
+    <!-- 自己 -->
+    <div class="gd-me-zone">
+      <div class="gd-me-avatar">👤</div>
+      <div class="gd-me-name" id="meLabel">你</div>
+    </div>
+
+    <!-- 手牌 + 操作 -->
+    <div class="gd-hand-zone">
+      <div style="text-align:center;margin-bottom:4px">
+        <span class="gd-shape-tag" id="shapeTag"></span>
+      </div>
+      <div class="gd-hand" id="myHand"></div>
+      <div class="gd-actions">
+        <button class="gd-btn on" id="btnPlay" type="button" disabled>出牌</button>
+        <button class="gd-btn" id="btnPass" type="button" hidden>不出</button>
+        <button class="gd-btn warn" id="btnNext" type="button" hidden>下一局</button>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<!-- 贡/还贡弹窗 -->
+<div id="gdModal" class="gd-modal" hidden>
+  <div class="gd-modal-card">
+    <h3 id="modalTitle">进贡</h3>
+    <p id="modalDesc"></p>
+    <div class="gd-modal-cards" id="modalCards"></div>
+  </div>
+</div>
+
+<!-- 结果横幅 -->
+<div id="gdResult" class="gd-result" hidden></div>
+
+<!-- 等待室（统一 GameLobby） -->
+<div id="lobby" class="lobby" hidden>
+  <div class="room">
+    <div class="room-preview">
+      <div class="room-art"><svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g stroke="rgba(255,255,255,0.10)" stroke-width="1">
+          <line x1="70" y1="30" x2="70" y2="84"/><line x1="70" y1="30" x2="170" y2="30"/><line x1="170" y1="30" x2="170" y2="84"/><line x1="70" y1="84" x2="170" y2="84"/>
+        </g>
+        <rect x="86" y="46" width="34" height="50" rx="8" fill="#e5484d"/>
+        <text x="103" y="80" text-anchor="middle" font-size="24" font-weight="700" fill="#fff">♠</text>
+        <rect x="126" y="46" width="34" height="50" rx="8" fill="#3e8ef7"/>
+        <text x="143" y="80" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">♥</text>
+        <rect x="126" y="104" width="34" height="50" rx="8" fill="#2ebd59" transform="rotate(-8 143 129)"/>
+        <text x="143" y="138" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">♦</text>
+        <rect x="86" y="104" width="34" height="50" rx="8" fill="#f5c542"/>
+        <text x="103" y="138" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">♣</text>
+      </svg></div>
+      <div class="room-name">掼蛋</div>
+      <div class="room-code">房间 <b id="lobbyCode">----</b> <button id="btnShareLink" class="btn ghost btn-share" type="button"> 分享链接</button></div>
+    </div>
+    <div class="room-main">
+      <div class="room-caption">
+        <span class="room-caption-title">等待玩家加入</span>
+        <span class="room-caption-sub" id="lobbyStatus">连接中…</span>
+      </div>
+      <div class="room-seats">
+        <div class="seat-card" id="seat0"><span class="seat-name">玩家 1（下）</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat1"><span class="seat-name">玩家 2（右）</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat2"><span class="seat-name">玩家 3（上·队友）</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+        <div class="seat-card" id="seat3"><span class="seat-name">玩家 4（左）</span><span class="seat-tag"></span><span class="seat-dot"></span></div>
+      </div>
+      <div class="room-foot">
+        <div class="room-hint" id="lobbyHint"></div>
+        <div class="room-btns">
+          <button id="btnNotify" class="btn ghost" hidden>🔔 提醒准备</button>
+          <button id="btnStart" class="btn on" disabled hidden>开始游戏</button>
+          <button id="btnReady" class="btn on" hidden>准备</button>
+          <button id="btnLeave" class="btn ghost">离开房间</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="gd-engine.js?v=g1"></script>
+<script src="gd-online.js?v=g1"></script>
+<script src="../lobby.js?v=l13"></script>
+<script src="../notify.js?v=n3"></script>
+<script src="gd-ai.js?v=g1"></script>
+<script src="../bot.js?v=b3"></script>
+<script src="gd-app.js?v=g1"></script>
+  <script src="../device.js?v=d1"></script>
+<script src="../auth-check.js?v=a2"></script>
+</body>
+</html>

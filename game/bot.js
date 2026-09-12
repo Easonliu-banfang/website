@@ -118,6 +118,24 @@
       }
       return null;
     },
+    // 掼蛋（state.ai[slot] = 该 AI 手牌；state.turn = 当前槽位；贡/还贡用视图字段）
+    gd: function (state, ctx) {
+      if (!W.GdAI) return null;
+      if (state.winner != null && state.winner >= 0) return null;
+      if (state.phase === 'tribute' || state.phase === 'tributeReturn') {
+        for (var st = 0; st < 4; st++) {
+          if (ctx.controls[st] && state.turn === st) return W.GdAI.decide(state, st, state.hand || []);
+        }
+        return null;
+      }
+      for (var s = 0; s < 4; s++) {
+        if (!ctx.controls[s]) continue;
+        if (state.turn !== s) continue;
+        var hand = (state.ai && state.ai[s]) ? state.ai[s] : null;
+        return W.GdAI.decide(state, s, hand);
+      }
+      return null;
+    },
     // 骗子酒馆（state.ai[slot] = 该 AI 手牌；state.current = 当前玩家 id 字符串）
     liar: function (state, ctx) {
       if (state.phase !== 'playing') return null;
