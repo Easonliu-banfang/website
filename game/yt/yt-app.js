@@ -32,6 +32,21 @@
     return '<div class="yt-sheep lv' + lv + selCls + '" data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '">' +
       '<span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></div>';
   }
+  // 自动选中手牌第一只（最小的羊）→ 点赛道即可直接放，省一步
+  function autoSelectFirst() {
+    if (selected) return;
+    if (mode === 'local') {
+      var h0 = (localState && localState.hands[0]) || [];
+      if (h0.length) {
+        var sorted0 = h0.slice().sort(function (a, b) { return a - b; });
+        selected = { slot: 0, lv: sorted0[0], idx: h0.indexOf(sorted0[0]) };
+      }
+    } else if (view && view.hand && view.hand.length) {
+      var sorted = view.hand.slice().sort(function (a, b) { return a - b; });
+      selected = { slot: me, lv: sorted[0], idx: 0 };
+    }
+  }
+
   function renderHand() {
     var box = $('myHand');
     if (!view) { box.innerHTML = ''; return; }
@@ -117,7 +132,7 @@
     if (selected && selected.slot === slot && selected.idx === idx) selected = null;
     else selected = { slot: slot, lv: lv, idx: idx };
     renderHand();
-    if (selected) tip('已选中 ' + lv + ' 力羊 —— 点击赛道放出');
+    if (selected) tip('已选中 ' + selected.lv + ' 力羊 —— 点击赛道放出（换羊请点其他羊）');
     else tip('点选手中的羊，再点赛道放出 →');
   }
 
@@ -147,6 +162,7 @@
     YT.simulate(localState, Date.now());
     view = YT.viewFor(localState, (mode === 'local') ? 0 : me, Date.now());
     if (mode === 'local') view.handCount = [localState.hands[0].length, localState.hands[1].length];
+    autoSelectFirst();
     renderAll();
   }
 
@@ -252,6 +268,7 @@
       view = s;
       if (s.you != null) me = s.you;
       if (s.handCount) view.handCount = s.handCount;
+      autoSelectFirst();
       renderAll();
     });
     online.on('error', function (m) { if (m) tip(m, true); });

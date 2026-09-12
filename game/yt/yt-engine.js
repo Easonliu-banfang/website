@@ -23,7 +23,7 @@
   var HAND_MAX = 6;
   var HAND_START = 3;
   var DRAW_INTERVAL = 1500;  // 每 1.5 秒补一只
-  var COOL_MS = [0, 1500, 2500, 3500, 4500];   // 冷却（按等级）：小羊 1.5s → 巨羊 4.5s
+  var COOL_MS = [0, 5000, 8000, 11000, 15000];   // 冷却（按等级）：小羊 5s → 巨羊 15s（长冷却，强调策略取舍）
   var WEIGHT = [0, 0.40, 0.30, 0.20, 0.10];    // 等级出现权重：1..4
 
   function pickLevel(rng) {
@@ -92,10 +92,11 @@
         }
       }
 
-      // 2) 前进 + 到达判定
+      // 2) 前进 + 到达判定（记录 prev 供碰撞穿越检测）
       var alive = [];
       for (var i = 0; i < state.sheep.length; i++) {
         var sh = state.sheep[i];
+        sh.prev = sh.pos;
         sh.pos += SPEED * dt;
         if (sh.pos >= LEN) {
           var foe = 1 - sh.slot;
@@ -113,7 +114,9 @@
       state.sheep = alive;
       if (state.winner >= 0) break;
 
-      // 3) 同赛道异方相撞（每赛道按 pos 升序，两两相邻判定一次）
+      // 3) 同赛道异方相撞（相遇条件：双方进度之和达到赛道长度，即位置重合/交叉）
+      //    slot0 羊位置 = pos（左→右），slot1 羊位置 = LEN - pos（右→左）
+      //    两羊相遇 ⇔ pos0 + pos1 >= LEN；穿越 ⇔ 上一帧和 < LEN 且本帧 >= LEN
       var byLane = {};
       for (var j = 0; j < state.sheep.length; j++) {
         var sj = state.sheep[j];
@@ -121,16 +124,20 @@
       }
       var dead = {};
       Object.keys(byLane).forEach(function (lane) {
-        var arr = byLane[lane].slice().sort(function (a, b) { return a.pos - b.pos; });
-        for (var k = 0; k + 1 < arr.length; k++) {
-          var a = arr[k], b = arr[k + 1];
-          if (a.slot === b.slot) continue;          // 同方不判定
-          if (a.pos >= b.pos) {                     // 交叉 → 相撞
+        var arr = byLane[lane];
+        var left = arr.filter(function (x) { return x.slot === 0; });
+        var right = arr.filter(function (x) { return x.slot === 1; });
+        left.forEach(function (a) {
+          right.forEach(function (b) {
+            if (dead[a.id] || dead[b.id]) return;
+            var before = (a.prev !== undefined ? a.prev : a.pos) + (b.prev !== undefined ? b.prev : b.pos);
+            var now = a.pos + b.pos;
+            if (!(before < LEN && now >= LEN)) return;      // 非本步穿越
             if (a.lv > b.lv) { dead[b.id] = true; events.push({ t: 'clash', lane: Number(lane), win: a.id, lose: b.id }); }
             else if (b.lv > a.lv) { dead[a.id] = true; events.push({ t: 'clash', lane: Number(lane), win: b.id, lose: a.id }); }
             else { dead[a.id] = true; dead[b.id] = true; events.push({ t: 'clash', lane: Number(lane), both: true }); }
-          }
-        }
+          });
+        });
       });
       if (Object.keys(dead).length) {
         state.sheep = state.sheep.filter(function (sh) { return !dead[sh.id]; });
