@@ -7,7 +7,7 @@
   <meta name="description" content="优诺UNO！（UNO 官方规则）—— 与你朋友实时对战">
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
-  <link rel="stylesheet" href="uno.css?v=u8">
+  <link rel="stylesheet" href="uno.css?v=u9">
 </head>
 <body class="uno-play-body">
 
@@ -61,10 +61,14 @@
         </button>
       </div>
 
-      <!-- C. 中央方向/回合提示环 -->
-      <div class="uo-dir-ring" id="dirRing">
+      <!-- C. 中央方向/回合提示环（轨道自转；箭头独立不随轨道转） -->
+      <div class="uo-dir-wrap">
+        <div class="uo-dir-ring"></div>
         <span class="uo-dir-arrow" id="dirArrow">➤</span>
       </div>
+
+      <!-- A2. 质疑 +4 按钮（被加人回合出现） -->
+      <button class="uo-challenge-btn" id="btnChallenge" type="button" hidden>🤔 质疑 +4</button>
 
       <!-- B. 中央出牌区 -->
       <div class="uo-centerspot">
@@ -176,12 +180,12 @@
 <div class="uo-result" id="resultBanner" hidden></div>
 
 <script src="uno-engine.js?v=u5"></script>
-<script src="uno-online.js?v=u6"></script>
+<script src="uno-online.js?v=u7"></script>
 <script src="../lobby.js?v=l13"></script>
 <script src="../notify.js?v=n3"></script>
-<script src="uno-ai.js?v=u2"></script>
+<script src="uno-ai.js?v=u3"></script>
 <script src="../bot.js?v=b1"></script>
-<script src="uno-app.js?v=u11"></script>
+<script src="uno-app.js?v=u12"></script>
   <script src="../device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>

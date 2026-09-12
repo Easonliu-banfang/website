@@ -152,6 +152,7 @@
   Online.prototype.sendDraw = function () { this.send({ type: 'draw' }); };
   Online.prototype.sendSetColor = function (color) { this.send({ type: 'setColor', color: color }); };
   Online.prototype.sendCallUno = function () { this.send({ type: 'callUno' }); };
+  Online.prototype.sendChallenge = function () { this.send({ type: 'challengeW4' }); };
   Online.prototype.sendPass = function () { this.send({ type: 'pass' }); };
   Online.prototype.sendReset = function () { this.send({ type: 'reset', player: this.player }); };
 

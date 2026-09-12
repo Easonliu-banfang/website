@@ -44,8 +44,17 @@
     if (state.turn !== s) return null;
     // 刚出万能牌 → 选色（回合不推进，等出牌者选）
     if (state.awaitColor) return { type: 'setColor', color: bestColor(hand), as: s };
-    // 被 +2/+4 压住 → 必须先摸
-    if (state.nextDraw > 0) return { type: 'draw', as: s };
+    // 被 +2/+4 罚时：优先用 +2 / 万色+4 叠加甩给下家，无牌才接受惩罚
+    if (state.nextDraw > 0) {
+      var stackSet = hand.filter(function (c) { var k = kindOf(c); return k === 'w4' || (k === 'd' && isPlayable(state, c)); });
+      if (stackSet.length) {
+        var sc = pickCard(stackSet);
+        var sActs = [{ type: 'play', card: sc, as: s }];
+        if (hand.length - 1 === 1) sActs.push({ type: 'callUno', as: s });
+        return sActs;
+      }
+      return { type: 'draw', as: s };
+    }
     var playable = hand.filter(function (c) { return isPlayable(state, c); });
     // 官方规则：主动摸牌后只能出刚摸的那张（或过），不能再出原有牌
     if (state.justDrew && state.lastDrawn) playable = playable.filter(function (c) { return c === state.lastDrawn; });

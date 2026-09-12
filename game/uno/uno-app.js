@@ -109,9 +109,19 @@
     return !hand.some(function (x) { var k = kindOf(x); return k !== 'w' && x.charAt(0) === color; });
   }
   function playableCards() {
-    if (!state || state.awaitColor || state.nextDraw > 0 || me !== state.turn || state.winner >= 0) return [];
+    if (!state || state.awaitColor || me !== state.turn || state.winner >= 0) return [];
     var out = [];
     var h = state.hand || [];
+    // 被 +2/+4 罚时：只能出 +2 / 万色+4 叠加
+    if (state.nextDraw > 0) {
+      for (var m = 0; m < h.length; m++) {
+        var mc = h[m];
+        var mk = kindOf(mc);
+        if (mk === 'd' && kindOk(mc, state.top, state.topColor)) out.push(mc);
+        else if (mk === 'w4') out.push(mc);
+      }
+      return out;
+    }
     for (var i = 0; i < h.length; i++) {
       var c = h[i];
       // 官方规则：主动摸牌后只能出刚摸的那张（或过），不能再出原有牌
@@ -199,7 +209,13 @@
     var myDraw = canDrawNow();
     el.btnDraw.disabled = !myDraw;
     el.btnDraw.classList.toggle('on', myDraw);
-    el.deckInner.textContent = (state.nextDraw > 0 ? '摸 ' + state.nextDraw : '摸牌');
+    el.deckInner.textContent = (state.nextDraw > 0 ? '摸 ' + state.nextDraw + ' 张' : '摸牌');
+    // 质疑 +4：被加人轮到且未操作时显示
+    var canChallenge = !!(state.challenge && state.nextDraw > 0 && me === state.turn);
+    if (el.btnChallenge) {
+      el.btnChallenge.hidden = !canChallenge;
+      el.btnDraw.classList.toggle('with-challenge', canChallenge);
+    }
     el.btnPass.hidden = !passAllowed();
   }
   function colorCss(c) { return { r: '#e5484d', b: '#3e8ef7', g: '#2ebd59', y: '#f5c542' }[c] || '#888'; }
@@ -312,6 +328,11 @@
     el.btnDraw.addEventListener('click', function () {
       if (!canDrawNow()) return;
       if (o) o.sendDraw();
+    });
+    if (el.btnChallenge) el.btnChallenge.addEventListener('click', function () {
+      if (!(state && state.challenge && state.nextDraw > 0 && me === state.turn)) return;
+      if (o && o.sendChallenge) o.sendChallenge();
+      el.btnChallenge.hidden = true;
     });
     el.btnPass.addEventListener('click', function () {
       if (!passAllowed()) return;
@@ -438,7 +459,7 @@
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
      'topCardImg', 'colorDot', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
      'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
-     'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle',
+     'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle', 'btnChallenge',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
     renderGameClock();
 

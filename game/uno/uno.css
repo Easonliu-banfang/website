@@ -103,24 +103,49 @@
 .uo-deck-disc.on .uo-deck-glow { border-color: rgba(255, 157, 0, 0.6); animation: uoGlow 1s infinite; }
 @keyframes uoGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0.45); } 50% { box-shadow: 0 0 24px 8px rgba(255, 157, 0, 0.28); } }
 
-/* C. 中央方向/回合提示环（彩色流光） */
-.uo-dir-ring {
+/* C. 中央方向/回合提示环（彩色流光轨道；箭头独立不随轨道自转） */
+.uo-dir-wrap {
   position: absolute; left: 50%; top: 43%;
   transform: translate(-50%, -50%);
-  width: 240px; height: 240px; border-radius: 50%;
+  width: 240px; height: 240px; z-index: 3; pointer-events: none;
+}
+.uo-dir-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
   border: 3px dashed rgba(255, 255, 255, 0.55);
-  pointer-events: none; z-index: 3;
-  animation: uoSpin 18s linear infinite;
   box-shadow: 0 0 22px rgba(255, 255, 255, 0.25);
+  animation: uoSpin 18s linear infinite;
 }
 .uo-dir-arrow {
-  position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
-  font-size: 28px; color: #fff;
-  text-shadow: 0 2px 6px rgba(20, 80, 40, 0.4);
+  position: absolute;
+  top: -8px; left: 50%;
+  margin-left: -14px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: #fff;
+  text-shadow: 0 2px 6px rgba(20, 80, 40, 0.5);
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
   transition: transform 0.4s ease;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+  will-change: transform;
 }
-.uo-dir-arrow.rev { transform: translateX(-50%) rotate(180deg); }
+.uo-dir-arrow.rev { transform: rotate(180deg); }
+
+/* A2. 质疑 +4 按钮 */
+.uo-challenge-btn {
+  position: absolute; left: 50%; top: 12%;
+  transform: translateX(-50%);
+  z-index: 9;
+  border: 2px solid #ff9d00; color: #b3541e;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 999px; padding: 7px 18px;
+  font-size: 13px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 8px 20px rgba(200, 120, 0, 0.3);
+  animation: uoPulse 1s infinite;
+  transition: transform 0.15s ease;
+}
+.uo-challenge-btn:hover { transform: translateX(-50%) scale(1.08); }
+.uo-challenge-btn:active { transform: translateX(-50%) scale(0.94); }
+@keyframes uoPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
 /* B. 中央出牌区：卡牌弹出动画 */
 .uo-centerspot {
