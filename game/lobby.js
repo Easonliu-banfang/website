@@ -8,6 +8,7 @@
     liar: { name: '骗子酒馆', icon: svgLiar() },
     uno:  { name: '优诺UNO！', icon: svgUno() },
     pool: { name: '八球台球', icon: svgPool() },
+    gd:   { name: '掼蛋', icon: svgGd() },
   };
   function detectGame() {
     var p = window.location.pathname;
@@ -17,9 +18,22 @@
     if (p.indexOf('go-') >= 0 || p.indexOf('/go.') >= 0 || p.indexOf('go.html') >= 0) return 'go';
   if (p.indexOf('connect4') >= 0) return 'connect4';
   if (p.indexOf('battleship') >= 0) return 'battleship';
+  if (p.indexOf('/gd/') >= 0) return 'gd';
   if (p.indexOf('billiards3d') >= 0) return 'pool';
   if (p.indexOf('pool') >= 0) return 'pool';
   return 'qr';   // 步步为营 play.html/online.html 兜底
+  }
+  function svgGd() {
+    return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="14" y="22" width="26" height="38" rx="5" fill="#fdfcf7" stroke="#b5ac93" transform="rotate(-10 27 41)"/>' +
+      '<text x="27" y="48" font-size="20" font-weight="700" fill="#b8352f" text-anchor="middle" font-family="Georgia,serif" transform="rotate(-10 27 41)">A</text>' +
+      '<rect x="36" y="18" width="26" height="38" rx="5" fill="#fdfcf7" stroke="#b5ac93"/>' +
+      '<text x="49" y="44" font-size="20" font-weight="700" fill="#232a36" text-anchor="middle" font-family="Georgia,serif">K</text>' +
+      '<rect x="56" y="24" width="26" height="38" rx="5" fill="#fdfcf7" stroke="#b5ac93" transform="rotate(10 69 43)"/>' +
+      '<text x="69" y="50" font-size="18" font-weight="700" fill="#b8352f" text-anchor="middle" font-family="Georgia,serif" transform="rotate(10 69 43)">&#9829;</text>' +
+      '<circle cx="49" cy="72" r="13" fill="#c9a45c"/>' +
+      '<text x="49" y="78" font-size="15" font-weight="800" fill="#241a08" text-anchor="middle" font-family="Georgia,serif">&#29579;</text>' +
+      '</svg>';
   }
   function svgPool() {
     return '<svg viewBox="0 0 96 96" width="96" height="96" xmlns="http://www.w3.org/2000/svg">' +

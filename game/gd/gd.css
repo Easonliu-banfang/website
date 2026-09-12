@@ -533,3 +533,18 @@ button {
   font-weight: 700;
   border-color: #e8cd8b;
 }
+
+/* ============ 本站页面适配层（原版 CSS 之外） ============ */
+html, body { height: 100%; margin: 0; }
+/* 原版 .table-page 依赖 #root 全高；本站无 #root → 用 fixed 占满视口 */
+.table-page { position: fixed; inset: 0; height: auto; z-index: 5; }
+.table-page[hidden] { display: none; }
+#landscapeOverlay { position: fixed; inset: 0; z-index: 999; background: radial-gradient(120% 90% at 50% 20%, #1a5c3a 0%, #0c2f1d 78%, #071f13 100%); display: flex; align-items: center; justify-content: center; text-align: center; color: #f2e8d5; }
+#landscapeOverlay[hidden] { display: none; }
+.lo-phone { font-size: 52px; margin-bottom: 14px; transform: rotate(90deg); }
+.lo-inner h2 { font-family: Georgia, serif; color: #e8cd8b; letter-spacing: 3px; margin-bottom: 8px; }
+.lo-inner p { color: #b9ac8f; }
+.toast[hidden] { display: none; }
+.hand-area { max-width: 100vw; }
+.dialog .btn { margin-top: 4px; }
+#modalCards .card { cursor: pointer; }

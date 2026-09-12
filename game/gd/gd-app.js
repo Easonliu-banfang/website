@@ -382,12 +382,12 @@
       if (online) online._intentionalClose = true;
       if (lobby) lobby.hide();
       if (window.Notify) { window.Notify.clearAll(); window.Notify.show('房间已解散，即将返回大厅…', 'error', { sticky: true }); }
-      setTimeout(function () { location.href = 'gd-online.html?v=g3'; }, 1800);
+      setTimeout(function () { location.href = 'gd-online.html?v=g4'; }, 1800);
     });
     online.on('giveup', function () {
       if (window.Notify) { window.Notify.clearAll(); window.Notify.show('多次重连失败，返回…', 'warn', { sticky: true }); }
       if (online) online._intentionalClose = true;
-      setTimeout(function () { location.href = 'gd-online.html?v=g3'; }, 1500);
+      setTimeout(function () { location.href = 'gd-online.html?v=g4'; }, 1500);
     });
   }
 
