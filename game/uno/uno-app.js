@@ -126,7 +126,7 @@
       var c = h[i];
       // 官方规则：主动摸牌后只能出刚摸的那张（或过），不能再出原有牌
       if (state.justDrew && c !== state.lastDrawn) continue;
-      if (kindOk(c, state.top, state.topColor) && w4RuleOk(c, h, state.topColor)) out.push(c);
+      if (kindOk(c, state.top, state.topColor)) out.push(c);   // w4 随时可出（kindOk 恒 true）
     }
     return out;
   }
@@ -318,13 +318,69 @@
   }
 
   /* ---------- 交互 ---------- */
+  var flyBusy = false;   // 出牌动画进行中（防连点）
+  var drag = null;       // 拖拽状态 {wrap,card,x,y,moved}
+  function onHandDown(e) {
+    var wrap = e.target.closest('.uc-wrap');
+    if (!wrap) return;
+    if (!el.myHand.classList.contains('act')) return;
+    var card = wrap.getAttribute('data-card');
+    if (!card) return;
+    drag = { wrap: wrap, card: card, x: e.clientX, y: e.clientY, moved: false };
+    wrap.classList.add('dragging');
+    e.preventDefault();
+  }
+  function onHandMove(e) {
+    if (!drag) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true;
+    if (drag.moved) drag.wrap.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(7deg)';
+  }
+  function onHandUp(e) {
+    if (!drag) return;
+    var wrap = drag.wrap, card = drag.card;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    var wasDrag = drag.moved && dist > 55;
+    drag = null;
+    wrap.classList.remove('dragging');
+    wrap.style.transform = '';
+    // 点击或拖出桌面 → 都算打出（带飞行动画）
+    tryPlay(card, wrap, wasDrag);
+  }
+  // 牌从手牌飞向中央出牌区
+  function flyCard(wrap, card, done) {
+    var target = el.topCardImg;
+    if (!target || !wrap) { if (done) done(); return; }
+    var from = wrap.getBoundingClientRect();
+    var to = target.getBoundingClientRect();
+    var img = wrap.querySelector('img');
+    var fly = document.createElement('img');
+    fly.src = img ? img.src : cardImg(card);
+    fly.className = 'uc';
+    fly.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;margin:0;';
+    fly.style.left = from.left + 'px';
+    fly.style.top = from.top + 'px';
+    fly.style.width = from.width + 'px';
+    document.body.appendChild(fly);
+    var dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    var dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    if (typeof fly.animate === 'function') {
+      fly.animate([
+        { transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 },
+        { transform: 'translate(' + (dx * 0.55) + 'px,' + (dy - 70) + 'px) rotate(9deg) scale(1.05)', opacity: 1, offset: 0.6 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(0deg) scale(0.45)', opacity: 0.85 }
+      ], { duration: 360, easing: 'cubic-bezier(0.35, 0.9, 0.4, 1)' }).onfinish = function () {
+        fly.remove();
+        if (done) done();
+      };
+    } else { fly.remove(); if (done) done(); }
+  }
   function bindUI() {
-    el.myHand.addEventListener('click', function (e) {
-      var wrap = e.target.closest('.uc-wrap');
-      if (!wrap) return;
-      var card = wrap.getAttribute('data-card');
-      tryPlay(card);
-    });
+    el.myHand.addEventListener('pointerdown', onHandDown);
+    window.addEventListener('pointermove', onHandMove);
+    window.addEventListener('pointerup', onHandUp);
+    window.addEventListener('pointercancel', onHandUp);
     el.btnDraw.addEventListener('click', function () {
       if (!canDrawNow()) return;
       if (o) o.sendDraw();
@@ -356,17 +412,27 @@
     if (el.btnVoice) el.btnVoice.addEventListener('click', quickMsg('🎤', '语音功能开发中'));
   }
 
-  function tryPlay(card) {
+  function tryPlay(card, wrap, dragged) {
     if (!state || me !== state.turn || state.winner >= 0) return;
-    if (state.awaitColor || state.nextDraw > 0) return;
+    if (state.awaitColor) return;
     var hand = state.hand || [];
     if (hand.indexOf(card) < 0) return;
     var k = kindOf(card);
-    if (!kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
-    if (k === 'w4' && !w4RuleOk(card, hand, state.topColor)) { flash('有可出的同色牌时不能出 万色+4'); return; }
-    if (o) o.sendPlay(card);
-    // 出剩 1 张自动喊 UNO（4 秒宽容窗口内免罚）
-    if (hand.length === 2) setTimeout(function () { if (o) o.sendCallUno(); }, 120);
+    if (state.nextDraw > 0) {
+      // 叠加：只允许出 +2（需可打）或 万色+4
+      if (k !== 'd' && k !== 'w4') return;
+      if (k === 'd' && !kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
+    } else {
+      if (!kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
+    }
+    if (flyBusy) return;
+    flyBusy = true;
+    flyCard(wrap, card, function () {
+      if (o) o.sendPlay(card);
+      // 出剩 1 张自动喊 UNO（4 秒宽容窗口内免罚）
+      if (hand.length === 2) setTimeout(function () { if (o) o.sendCallUno(); }, 120);
+      flyBusy = false;
+    });
   }
 
   function flash(msg) {
@@ -498,7 +564,8 @@
 
     o = new window.UnoOnline();
     o.code = currentRoom;
-    if (window.BotDriver) BotDriver.attach(o, { game: 'uno' });
+    // AI 思考延迟：0.7~1.6 秒随机（更像真人出牌节奏）
+    if (window.BotDriver) BotDriver.attach(o, { game: 'uno', delay: function () { return 700 + Math.random() * 900; } });
 
     // 统一等待室（与四款游戏同构）
     lobby = new window.GameLobby({

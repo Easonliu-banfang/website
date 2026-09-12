@@ -143,6 +143,8 @@
     var controls = null;
     var sender = sendOf(online);
     var delay = (opts.delay != null) ? opts.delay : 350;
+    // delay 支持数字或函数（如 AI 随机思考时长）
+    function delayMs() { return (typeof delay === 'function') ? delay() : delay; }
 
     function onLobby(d) { if (d && d.controls) controls = d.controls; }
     function onState(v) {
@@ -156,7 +158,7 @@
       if (!action) return;
       var acts = Array.isArray(action) ? action : [action];
       acts.forEach(function (a) {
-        if (delay > 0) setTimeout(function () { sender(a); }, delay);
+        if (delayMs() > 0) setTimeout(function () { sender(a); }, delayMs());
         else sender(a);
       });
     }

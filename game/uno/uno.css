@@ -293,12 +293,13 @@
   transform: translateX(-50%); z-index: 15;
   display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 62%;
 }
-.uo-hand { display: flex; align-items: flex-end; justify-content: center; min-height: 74px; }
+.uo-hand { display: flex; align-items: flex-end; justify-content: center; min-height: 88px; }
 .uo-hand .uc-wrap { margin-left: -22px; position: relative; transition: transform 0.16s ease; filter: drop-shadow(0 2px 3px rgba(60, 90, 140, 0.2)); }
 .uo-hand .uc-wrap:first-child { margin-left: 0; }
-.uo-hand.act .uc-wrap.ok { cursor: pointer; }
-.uo-hand.act .uc-wrap.ok:hover { transform: translateY(-16px) scale(1.08); z-index: 2; }
+.uo-hand.act .uc-wrap.ok { cursor: pointer; transform: translateY(-14px); }  /* 可出牌常驻上浮 */
+.uo-hand.act .uc-wrap.ok:hover { transform: translateY(-22px) scale(1.06); z-index: 3; }
 .uo-hand.act .uc-wrap.ok:hover .uc-hand { animation: uoCardGlow 0.8s infinite alternate; }
+.uo-hand.act .uc-wrap.ok.dragging { transform: translateY(-22px) scale(1.08) rotate(5deg); z-index: 5; }
 @keyframes uoCardGlow { from { filter: drop-shadow(0 0 4px rgba(14, 165, 233, 0.5)); } to { filter: drop-shadow(0 0 14px rgba(14, 165, 233, 0.95)); } }
 .uc-hand { width: 58px; transition: transform 0.16s ease, filter 0.16s ease; }
 .uc-hand.no { filter: brightness(0.72) saturate(0.7) grayscale(0.25); }
