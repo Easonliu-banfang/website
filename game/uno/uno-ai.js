@@ -47,6 +47,8 @@
     // 被 +2/+4 压住 → 必须先摸
     if (state.nextDraw > 0) return { type: 'draw', as: s };
     var playable = hand.filter(function (c) { return isPlayable(state, c); });
+    // 官方规则：主动摸牌后只能出刚摸的那张（或过），不能再出原有牌
+    if (state.justDrew && state.lastDrawn) playable = playable.filter(function (c) { return c === state.lastDrawn; });
     if (playable.length) {
       var card = pickCard(playable);
       var acts = [{ type: 'play', card: card, as: s }];

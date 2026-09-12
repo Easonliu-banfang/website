@@ -114,6 +114,8 @@
     var h = state.hand || [];
     for (var i = 0; i < h.length; i++) {
       var c = h[i];
+      // 官方规则：主动摸牌后只能出刚摸的那张（或过），不能再出原有牌
+      if (state.justDrew && c !== state.lastDrawn) continue;
       if (kindOk(c, state.top, state.topColor) && w4RuleOk(c, h, state.topColor)) out.push(c);
     }
     return out;
@@ -357,6 +359,8 @@
     state = s;
     if (s.you != null) me = s.you;
     roomStarted = true;
+    // 开局后隐藏顶部标题「优诺UNO！」（进游戏不再显示游戏名）
+    if (el.unoGameTitle) el.unoGameTitle.style.display = 'none';
     // 回合切换 → 重置 10 秒出牌计时（仅自己回合倒计时）
     if (s.turn !== lastTurn) { lastTurn = s.turn; timerLeft = (me === s.turn) ? TURN_SECONDS : 0; renderTimer(); }
     renderDir();
@@ -434,7 +438,7 @@
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
      'topCardImg', 'colorDot', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
      'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
-     'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer',
+     'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
     renderGameClock();
 
