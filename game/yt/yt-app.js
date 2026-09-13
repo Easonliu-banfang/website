@@ -27,7 +27,7 @@
 
   /* ---------- 手牌渲染 ---------- */
   var ICON = (window.YTRender && YTRender.ICON) || ['', '🐑', '🐐', '🐏', '🐏'];
-  var LV_NAME = (window.YTRender && YTRender.LV_NAME) || ['', '小羊', '中羊', '大羊', '巨羊'];
+  var LV_NAME = (window.YTRender && YTRender.LV_NAME) || ['', '10KG', '30KG', '60KG', '80KG'];
   var COOL_TOTAL = [0, 5000, 8000, 11000, 15000];       // CD 总时长（与引擎一致）
   function sheepHtml(lv, slot, idx) {
     var selCls = (selected && selected.slot === slot && selected.idx === idx) ? ' active' : '';
@@ -41,13 +41,13 @@
     var inline = '--cdp:' + pct + '%;' + (selCls ? 'order:-1;' : '');
     return '<button class="yt-sheep seg lv' + lv + selCls + cdCls + '" type="button"' +
       ' data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '" style="' + inline + '">' +
-      '<span class="seg-inner"><span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></span>' +
+      '<span class="seg-inner"><span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + (window.YT.KG ? window.YT.KG[lv] : lv) + 'KG</span></span>' +
       cdTag + '</button>';
   }
   // 空槽：该等级手中没有羊（展示回环底座，不可点）
   function sheepEmptyHtml(lv) {
     return '<button class="yt-sheep seg empty" type="button" disabled style="--cdp:0%">' +
-      '<span class="seg-inner"><span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></span></button>';
+      '<span class="seg-inner"><span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + (window.YT.KG ? window.YT.KG[lv] : lv) + 'KG</span></span></button>';
   }
   // 自动选中手牌第一只（最小的羊）→ 点赛道即可直接放，省一步
   function autoSelectFirst() {
@@ -190,7 +190,7 @@
     if (selected && selected.slot === slot && selected.idx === idx) selected = null;
     else selected = { slot: slot, lv: lv, idx: idx };
     renderHand();
-    if (selected) tip('已选中 ' + selected.lv + ' 力羊 —— 点击赛道放出（换羊请点其他羊）');
+    if (selected) tip('已选中 ' + (window.YT.KG ? window.YT.KG[selected.lv] : selected.lv) + 'KG 羊 —— 点击赛道放出（换羊请点其他羊）');
     else tip('点选手中的羊，再点赛道放出 →');
   }
 
@@ -212,7 +212,7 @@
   function localDeploy(slot, lv, lane) {
     var r = YT.deploy(localState, slot, lv, lane, Date.now());
     if (!r.ok) tip(r.error, true);
-    else tip('已放出 ' + lv + ' 力羊 → 赛道 ' + (lane + 1));
+    else tip('已放出 ' + (window.YT.KG ? window.YT.KG[lv] : lv) + 'KG 羊 → 赛道 ' + (lane + 1));
     refreshLocal();
   }
 

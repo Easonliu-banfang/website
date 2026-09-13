@@ -1,15 +1,16 @@
 /* 顶哪个羊（羊顶羊）规则引擎 —— 纯逻辑，Worker（服务端权威）与前端（插值渲染/AI）共用
  *
  * 场地：5 条横向赛道，左（slot 0）右（slot 1）各占一侧，各 100 点血量。
- * 羊：4 档力气 1-4（小羊/中羊/大羊/巨羊）。
- *   · 同赛道两方羊相遇：不直接抵消——大力者推着小力者走（推挤）。
- *     推挤速度 ∝ 力量差：中羊(2) 推小羊(1) 慢速推挤；三只大羊(9) 推小羊(1) 快速推进。
- *   · 双方力量相同：僵持顶住，谁都推不动谁（不消失）。
+ * 羊：4 档重量 10/30/60/80 KG（内部用 lv 1-4 表示档位；小/中/大/巨）。
+ *   · 同赛道两方羊相遇：不直接抵消——重量大的推着小的走（推挤）。
+ *     推挤速度 ∝ 重量差：中羊(30) 推小羊(10) 慢速推挤；三只大羊(180) 推小羊(10) 快速推进。
+ *   · 双方重量相同：僵持顶住，谁都推不动谁（不消失）。
  *   · 弱方被一路推回自家基地 → 消失（被顶回老家，不扣血）；强方继续推进得分。
- *   · 羊推进到对方基地：对方扣血 = 羊的等级。
- * 冷却：按「羊」冷却 —— 放出一只某等级的羊后，该等级进入冷却（与赛道无关），
- *       冷却期间不能再放同等级的羊；等级越高冷却越久。
- * 手牌：开局 3 只，每 1.5 秒自动补 1 只（上限 6），等级按权重随机。
+ *   · 羊推进到对方基地：对方扣血按原版规则 —— 越轻的羊偷家伤害越大：
+ *     10KG 小羊扣 12、30KG 扣 8、60KG 扣 4、80KG 巨羊只扣 2。
+ * 冷却：按「羊」冷却 —— 放出一只某档的羊后，该档进入冷却（与赛道无关），
+ *       冷却期间不能再放同档的羊；档位越高冷却越久。
+ * 手牌：开局 3 只，每 1.5 秒自动补 1 只（上限 6），档位按权重随机。
  *
  * 时间模型（无需定时器）：
  *   state.simAt = 已模拟到的时刻；pos 由「出生时间 + 速度」推导。
@@ -30,8 +31,10 @@
   var HAND_MAX = 6;
   var HAND_START = 3;
   var DRAW_INTERVAL = 1500;  // 每 1.5 秒补一只
-  var COOL_MS = [0, 5000, 8000, 11000, 15000];   // 冷却（按等级）：小羊 5s → 巨羊 15s（长冷却，强调策略取舍）
-  var WEIGHT = [0, 0.40, 0.30, 0.20, 0.10];    // 等级出现权重：1..4
+  var COOL_MS = [0, 5000, 8000, 11000, 15000];   // 冷却（按档位）：小羊 5s → 巨羊 15s（长冷却，强调策略取舍）
+  var WEIGHT = [0, 0.40, 0.30, 0.20, 0.10];    // 档位出现权重：1..4（10/30/60/80KG）
+  var KG = [0, 10, 30, 60, 80];                 // 档位 → 重量（KG）
+  var DMG = [0, 12, 8, 4, 2];                   // 到达对方基地扣血（原版规则：越轻扣越多）
 
   function pickLevel(rng) {
     var r = rng();
@@ -179,7 +182,7 @@
         var sh2 = state.sheep[i2];
         if (sh2.pos >= LEN) {
           var foe = 1 - sh2.slot;
-          state.hp[foe] -= sh2.lv;
+          state.hp[foe] -= DMG[sh2.lv];
           events.push({ t: 'goal', slot: sh2.slot, lv: sh2.lv, lane: sh2.lane, hp: state.hp[foe] });
           if (state.hp[foe] <= 0) {
             state.hp[foe] = Math.max(0, state.hp[foe]);
@@ -244,7 +247,7 @@
       lanes: state.lanes,
       hp: state.hp.slice(),
       sheep: state.sheep.map(function (sh) {
-        return { id: sh.id, slot: sh.slot, lane: sh.lane, lv: sh.lv, pos: Math.round(sh.pos * 10) / 10, spd: Math.round(sh.spd * 10) / 10 };
+        return { id: sh.id, slot: sh.slot, lane: sh.lane, lv: sh.lv, kg: KG[sh.lv] || 0, pos: Math.round(sh.pos * 10) / 10, spd: Math.round(sh.spd * 10) / 10 };
       }),
       hand: sortHand(state.hands[slot] || []),
       handCount: [state.hands[0].length, state.hands[1].length],
@@ -262,6 +265,7 @@
 
   global.YT = {
     LANES: LANES, LEN: LEN, SPEED: SPEED, BORN_POS: BORN_POS, RETURN_POS: RETURN_POS,
+    KG: KG, DMG: DMG,
     MAX_HP: MAX_HP, HAND_MAX: HAND_MAX, DRAW_INTERVAL: DRAW_INTERVAL,
     createState: createState, start: start, simulate: simulate, deploy: deploy, viewFor: viewFor,
     pickLevel: pickLevel, coolMs: coolMs, sortHand: sortHand,

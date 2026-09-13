@@ -1,10 +1,10 @@
 /* 顶哪个羊 AI（供 BotDriver 代打 / 本地 AI 模式）
- * 冷却按「羊（等级）」计：放出一只某等级羊后该等级进入冷却，期间不能再放同等级。
- * 策略：① 对手羊逼近我方基地 → 用能满足的最小等级拦截
- *      ② 空赛道（无我方羊）→ 用可用最小等级铺位
- *      ③ 对手无防守的赛道 → 放可用最大等级突破
- *      ④ 对手同赛道更强 → 补更强等级加码
- *      ⑤ 兜底：随机赛道放最小可用等级
+ * 冷却按「羊（档位）」计：放出一只某档位羊后该档位进入冷却，期间不能再放同档位。
+ * 策略：① 对手羊逼近我方基地 → 用能满足的最小档位拦截
+ *      ② 空赛道（无我方羊）→ 用可用最小档位铺位
+ *      ③ 对手无防守的赛道 → 放可用最大档位突破
+ *      ④ 对手同赛道更强 → 补更强档位加码
+ *      ⑤ 兜底：随机赛道放最小可用档位
  */
 (function (global) {
   'use strict';
@@ -13,7 +13,7 @@
   function readyAt(state, slot, lv) {
     return (state.cool && state.cool[slot] && state.cool[slot][lv]) || 0;
   }
-  // 可用等级（手里有 + 未冷却）
+  // 可用档位（手里有 + 未冷却）
   function availLevels(state, slot, now) {
     var hand = (state.hands && state.hands[slot]) || [];
     var out = [];
@@ -67,7 +67,7 @@
       return { lane: urgent.length ? urgent[0] : empty[0], lv: minAv };
     }
 
-    // ③ 突破：对手无防守的赛道 → 最大可用等级
+    // ③ 突破：对手无防守的赛道 → 最大可用档位
     var breach = allLanes.filter(function (l) { return foeBest(state, slot, l).lv === 0; });
     if (breach.length) return { lane: breach[0], lv: maxAv };
 

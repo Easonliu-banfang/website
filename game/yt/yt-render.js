@@ -5,7 +5,7 @@
   'use strict';
 
   var ICON = ['', '🐑', '🐐', '🐏', '🐏'];
-  var LV_NAME = ['', '小羊', '中羊', '大羊', '巨羊'];
+  var LV_NAME = ['', '10KG', '30KG', '60KG', '80KG'];   // 重量制（原版规则）
   var LV_COLOR = ['', '#6fdc8e', '#6db5ff', '#f0b429', '#ff8a5c'];
 
   function Round(canvas, opts) {
@@ -151,8 +151,8 @@
       ctx.arc(x + r - 3, y - r + 3, 9, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = LV_COLOR[sh.lv] || '#fff';
-      ctx.font = '800 11px monospace';
-      ctx.fillText(String(sh.lv), x + r - 3, y - r + 4);
+      ctx.font = '800 10px monospace';
+      ctx.fillText(sh.kg ? (sh.kg + 'kg') : String(sh.lv), x + r - 3, y - r + 4);
       ctx.textBaseline = 'alphabetic';
     });
 
