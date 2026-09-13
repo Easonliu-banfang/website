@@ -32,6 +32,16 @@
       overflow-x: hidden;
     }
 
+    /* ---- 粒子星云背景层 ---- */
+    #nkStars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    .nk-hero, .nk-scene, .nk-cta { position: relative; z-index: 1; }
+
     /* ---- 顶部导航 ---- */
     .nk-nav {
       position: fixed;
@@ -120,8 +130,22 @@
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      animation: nkFadeUp 1s ease 0.35s forwards;
-      opacity: 0;
+      /* 入场渐显由 .nk-letter 逐字动画接管（见 JS） */
+    }
+    /* Hero 标题渐变流光扫过 */
+    .nk-title-wrap { position: relative; display: inline-block; }
+    .nk-title-wrap::after {
+      content: "";
+      position: absolute;
+      top: 0; left: -60%;
+      width: 50%; height: 100%;
+      background: linear-gradient(105deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: skewX(-18deg);
+      animation: nkSheen 3.8s ease-in-out infinite;
+    }
+    @keyframes nkSheen {
+      0% { left: -60%; }
+      55%, 100% { left: 130%; }
     }
     .nk-hero .sub {
       font-family: var(--nk-mono);
@@ -221,6 +245,11 @@
       opacity: 0;
     }
     .nk-viz { opacity: 0; transform: translateY(40px) scale(0.95); }
+    /* 场景内容 3D 视差层：滚入时轻微抬头，滚过时放平 */
+    .nk-scene > * {
+      transform-style: preserve-3d;
+      will-change: transform, opacity;
+    }
 
     .nk-scene-1 h2, .nk-scene-2 h2, .nk-scene-3 h2 {
       letter-spacing: -1.5px;
@@ -232,6 +261,13 @@
     /* 场景1：网络图 */
     .nk-net { position: relative; width: min(560px, 90vw); height: 300px; margin-top: 10px; }
     .nk-net svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .nk-net svg line {
+      stroke-dasharray: 2 6;
+      animation: nkDash 1.6s linear infinite;
+    }
+    @keyframes nkDash {
+      to { stroke-dashoffset: -8; }
+    }
     .nk-node {
       position: absolute;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -377,6 +413,20 @@
       box-shadow: 0 14px 44px rgba(34,211,238,0.4);
       transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
+    .nk-go { position: relative; overflow: hidden; }
+    .nk-go::after {
+      content: "";
+      position: absolute;
+      top: 0; left: -40%;
+      width: 35%; height: 100%;
+      background: linear-gradient(105deg, transparent, rgba(255,255,255,0.55), transparent);
+      transform: skewX(-18deg);
+      animation: nkGoSheen 2.8s ease-in-out infinite;
+    }
+    @keyframes nkGoSheen {
+      0% { left: -40%; }
+      60%, 100% { left: 130%; }
+    }
     .nk-go:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 22px 60px rgba(34,211,238,0.55); }
     .nk-go svg { transition: transform 0.25s ease; }
     .nk-go:hover svg { transform: translateX(5px); }
@@ -414,6 +464,8 @@
 </head>
 <body>
 
+  <canvas id="nkStars" aria-hidden="true"></canvas>
+
   <nav class="nk-nav">
     <div class="nk-brand"><span class="mark">N</span> NEXUS GAME</div>
     <a class="nk-cta-nav" href="game/?v=n1">进入游戏室 →</a>
@@ -422,7 +474,7 @@
   <!-- 首屏 -->
   <section class="nk-hero">
     <div class="kicker">ALL FREE · ALL ONLINE</div>
-    <h1>NEXUS&nbsp;GAME</h1>
+    <h1 id="nkTitle">NEXUS GAME</h1>
     <div class="sub">Games that connect</div>
     <div class="nk-feats">
       <div class="nk-feat"><i></i>免费联机</div>
@@ -493,6 +545,114 @@
   <script>
   (function () {
     'use strict';
+
+    /* ================= 高级动画 ================= */
+
+    /* ---------- 1) 粒子星云背景（Canvas） ---------- */
+    (function stars() {
+      var canvas = document.getElementById('nkStars');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var W = 0, H = 0, dpr = Math.min(2, window.devicePixelRatio || 1);
+      var parts = [];
+      var mouse = { x: -999, y: -999 };
+
+      function resize() {
+        W = window.innerWidth; H = window.innerHeight;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // 重新生成粒子
+        var n = Math.min(130, Math.floor(W * H / 12000));
+        parts = [];
+        for (var i = 0; i < n; i++) {
+          parts.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 2.2 + 0.6,
+            vx: (Math.random() - 0.5) * 0.22,
+            vy: (Math.random() - 0.5) * 0.22,
+            a: Math.random() * 0.55 + 0.25,
+            hue: Math.random() < 0.6 ? 190 : (Math.random() < 0.5 ? 262 : 152)  // 青/紫/绿
+          });
+        }
+      }
+
+      // 滚动视差：粒子层上移偏移，制造纵深
+      var scrollY = 0;
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        var parallax = scrollY * 0.18;
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i];
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10;
+          if (p.y < -10) p.y = H + 10; if (p.y > H + 10) p.y = -10;
+          var py = (p.y + parallax) % H;
+          if (py < 0) py += H;
+          ctx.globalAlpha = p.a * (0.6 + 0.4 * Math.sin(Date.now() / 900 + i));
+          ctx.fillStyle = 'hsl(' + p.hue + ', 80%, 72%)';
+          ctx.beginPath();
+          ctx.arc(p.x, py, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          // 微弱连线（近邻）
+          for (var j = i + 1; j < parts.length; j++) {
+            var q = parts[j];
+            var dx = p.x - q.x, dy = (p.y - q.y + parallax * 0.4) % H;
+            if (Math.abs(dx) < 110 && Math.abs(dy) < 110) {
+              var dist2 = dx * dx + dy * dy;
+              if (dist2 < 12100) {
+                ctx.strokeStyle = 'rgba(34,211,238,' + (0.08 * (1 - dist2 / 12100)) + ')';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(q.x, q.y);
+                ctx.stroke();
+              }
+            }
+          }
+        }
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(draw);
+      }
+      window.addEventListener('scroll', function () { scrollY = window.scrollY; }, { passive: true });
+      window.addEventListener('resize', resize);
+      resize(); draw();
+    })();
+
+    /* ---------- 2) Hero 标题逐字浮现 ---------- */
+    (function titleFx() {
+      var h1 = document.getElementById('nkTitle');
+      if (!h1) return;
+      var text = h1.textContent;         // "NEXUS GAME"
+      h1.textContent = '';
+      h1.classList.add('nk-title-wrap');
+      var frag = document.createDocumentFragment();
+      var chars = text.split('');
+      for (var i = 0; i < chars.length; i++) {
+        var ch = chars[i];
+        if (ch === ' ') ch = '\u00a0';
+        var s = document.createElement('span');
+        s.className = 'nk-letter';
+        s.textContent = ch;
+        s.style.opacity = '0';
+        s.style.display = 'inline-block';
+        s.style.transform = 'translateY(0.55em) rotateX(-55deg)';
+        s.style.transformOrigin = '50% 100%';
+        s.style.transition = 'opacity 0.55s ease, transform 0.7s cubic-bezier(0.2,1.5,0.4,1)';
+        s.style.transitionDelay = (0.25 + i * 0.045) + 's';
+        frag.appendChild(s);
+      }
+      h1.appendChild(frag);
+      h1.style.perspective = '800px';
+      setTimeout(function () {
+        var ls = h1.querySelectorAll('.nk-letter');
+        for (var k = 0; k < ls.length; k++) {
+          ls[k].style.opacity = '1';
+          ls[k].style.transform = 'translateY(0) rotateX(0)';
+        }
+      }, 150);
+    })();
 
     /* ---------- 滚动驱动叙事 ---------- */
     var scenes = document.querySelectorAll('.nk-stage');
