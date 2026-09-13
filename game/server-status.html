@@ -73,6 +73,14 @@
     .st-uptime-grid i.ok { background: #34d399; box-shadow: 0 0 4px rgba(52,211,153,0.4); }
     .st-uptime-grid i.err { background: #f87171; box-shadow: 0 0 4px rgba(248,113,113,0.5); }
     .st-hr-idx { width: 22px; font-size: 9px; color: var(--faint); font-family: var(--mono); line-height: 8px; }
+    .st-monthly-grid { display: flex; flex-wrap: wrap; gap: 5px; margin: 14px 0 12px; }
+    .st-monthly-grid i {
+      width: 14px; height: 14px; border-radius: 3px; background: rgba(255,255,255,0.06);
+      flex: 0 0 auto; cursor: default;
+    }
+    .st-monthly-grid i.ok { background: #34d399; box-shadow: 0 0 4px rgba(52,211,153,0.4); }
+    .st-monthly-grid i.err { background: #f87171; box-shadow: 0 0 5px rgba(248,113,113,0.5); }
+    .st-monthly-grid i.today { outline: 1.5px solid rgba(255,255,255,0.6); outline-offset: 1px; }
     .st-uptime-legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
     .st-uptime-legend .legend-item { display: inline-flex; align-items: center; gap: 5px; }
     .st-uptime-legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -154,7 +162,7 @@
 
   <!-- 历史 7 天 -->
   <div class="st-chart-head">
-    <div class="st-chart-title">近 7 天调用 <span class="dim" id="stChartNote"></span></div>
+    <div class="st-chart-title">近 7 天调用</div>
   </div>
   <div class="st-chart" id="stChart">
     <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
@@ -169,7 +177,7 @@
   <!-- 分钟级可用性（红绿长条图） -->
   <div class="st-uptime">
     <div class="st-chart-head">
-      <div class="st-chart-title">最近 24 小时可用性 <span class="dim" id="stUptimeNote"></span></div>
+      <div class="st-chart-title">最近 24 小时可用性</div>
       <div class="st-chart-title"><span class="dim">绿=正常 · 红=异常 · 灰=无数据</span></div>
     </div>
     <div class="st-uptime-grid" id="stUptimeGrid"></div>
@@ -179,6 +187,22 @@
       <span class="legend-item"><i class="dot none"></i>无数据</span>
       <span class="legend-item">可&#29992;&#29575;<b id="stUptimePct">--</b></span>
       <span class="legend-item">平均耗时 <b id="stUptimeAvg">--</b></span>
+    </div>
+  </div>
+
+  <!-- 最近 30 天可用性（月度长条） -->
+  <div class="st-uptime st-monthly">
+    <div class="st-chart-head">
+      <div class="st-chart-title">最近 1 个月可用性</div>
+      <div class="st-chart-title"><span class="dim">30 天 · 一天一格</span></div>
+    </div>
+    <div class="st-monthly-grid" id="stMonthlyGrid"></div>
+    <div class="st-uptime-legend">
+      <span class="legend-item"><i class="dot ok"></i>全部正常</span>
+      <span class="legend-item"><i class="dot err"></i>有异常</span>
+      <span class="legend-item"><i class="dot none"></i>无数据</span>
+      <span class="legend-item">可用率<b id="stMonthlyPct">--</b></span>
+      <span class="legend-item">今日平均耗时 <b id="stMonthlyAvg">--</b></span>
     </div>
   </div>
 
@@ -227,6 +251,7 @@
       if (d.error) throw new Error(d.error);
       render(d);
       if (window.__renderUptime) window.__renderUptime(d);
+      if (window.__renderMonthly) window.__renderMonthly(d);
     })
     .catch(function (e) {
       // 实时接口失败 → 兜底读静态 JSON（不会让页面空白）
@@ -274,8 +299,6 @@
       var max = 1;
       hist.forEach(function (h) { if (h.calls > max) max = h.calls; });
       var cols = document.querySelectorAll('#stChart .st-bar-col');
-      var note = '最大 ' + max.toLocaleString('zh-CN') + ' 次/天';
-      $('stChartNote').textContent = note;
       hist.forEach(function (h, i) {
         if (!cols[i]) return;
         var bar = cols[i].querySelector('.st-bar');
@@ -320,7 +343,6 @@
     // 红绿长条图：渲染最近 24h 分钟槽（1440 格，60×24 密集长条，对齐 API 平台风格）
     function renderUptime(data) {
       var grid = document.getElementById('stUptimeGrid');
-      var note = document.getElementById('stUptimeNote');
       var pct = document.getElementById('stUptimePct');
       var avg = document.getElementById('stUptimeAvg');
       if (!grid || !data || !data.uptime || !data.uptime.length) { if (grid) grid.innerHTML = ''; return; }
@@ -348,10 +370,36 @@
         pct.textContent = (okN / has * 100).toFixed(1) + '%';
         avg.textContent = n > 0 ? (sum / n).toFixed(0) + ' ms' : '--';
       }
-      if (note) note.textContent = '（最近 24 小时 · 每分钟一格 · 共 ' + data.uptime.length + ' 格，一行 = 1 小时）';
+
+    }
+    // 月度长条图：最近 30 天一天一格
+    function renderMonthly(data) {
+      var grid = document.getElementById('stMonthlyGrid');
+      var pct = document.getElementById('stMonthlyPct');
+      var avg = document.getElementById('stMonthlyAvg');
+      if (!grid || !data || !data.monthly || !data.monthly.length) { if (grid) grid.innerHTML = ''; return; }
+      var html = '';
+      var okN = 0, errN = 0, hasN = 0;
+      var last = data.monthly[data.monthly.length - 1];
+      data.monthly.forEach(function (m) {
+        var cls = m.state === 'err' ? 'err' : (m.state === 'ok' ? 'ok' : 'none');
+        if (m.state === 'err') { errN++; hasN++; }
+        else if (m.state === 'ok') { okN++; hasN++; }
+        html += '<i class="' + cls + '" title="' + m.label + ' · ' +
+          (m.state === null ? '无数据' : ('正常 ' + m.ok + ' / 异常 ' + m.err + (m.avgMs != null ? (' · 平均 ' + m.avgMs + 'ms') : ''))) + '"></i>';
+      });
+      grid.innerHTML = html;
+      // 高亮今天
+      var cells = grid.querySelectorAll('i');
+      if (cells.length) cells[cells.length - 1].classList.add('today');
+      if (hasN > 0) {
+        pct.textContent = (okN / hasN * 100).toFixed(1) + '%';
+        if (last && last.avgMs != null && last.state) avg.textContent = last.avgMs + ' ms';
+      }
     }
     // 暴露给下方主逻辑（fetch 成功后调用）
     window.__renderUptime = renderUptime;
+    window.__renderMonthly = renderMonthly;
     // 实时探测：每 30 秒 ping 一次，刷新最后一格（无需重载页面）
     function probe() {
       fetch('https://quoridor-mp.pages.dev/api/ping?t=' + Date.now(), { cache: 'no-store' })
