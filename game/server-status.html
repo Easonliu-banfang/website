@@ -63,6 +63,22 @@
     .st-chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
     .st-chart-title { font-family: var(--mono); font-size: 16px; color: var(--text); letter-spacing: 1px; }
     .st-chart-title .dim { color: var(--faint); font-size: 12.5px; }
+    /* 分钟级可用性红绿长条图 */
+    .st-uptime { background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px; padding: 20px; margin-bottom: 26px; }
+    .st-uptime-grid { display: flex; flex-wrap: wrap; gap: 3px; margin: 14px 0 12px; }
+    .st-uptime-grid i {
+      width: 8px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.06);
+      flex: 0 0 auto;
+    }
+    .st-uptime-grid i.ok { background: #34d399; box-shadow: 0 0 4px rgba(52,211,153,0.4); }
+    .st-uptime-grid i.err { background: #f87171; box-shadow: 0 0 4px rgba(248,113,113,0.5); }
+    .st-uptime-legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
+    .st-uptime-legend .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+    .st-uptime-legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+    .st-uptime-legend .dot.ok { background: #34d399; }
+    .st-uptime-legend .dot.err { background: #f87171; }
+    .st-uptime-legend .dot.none { background: rgba(255,255,255,0.12); }
+    .st-uptime-legend b { color: var(--text); font-family: var(--mono); font-size: 14px; }
     .st-chart {
       background: var(--card); border: 1px solid var(--card-edge); border-radius: 16px;
       padding: 22px 20px 16px; display: flex; align-items: flex-end; gap: 10px; height: 210px;
@@ -149,6 +165,22 @@
     <div class="st-bar-col"><div class="st-bar-num">--</div><div class="st-bar" data-h="0"></div><div class="st-bar-day">--</div></div>
   </div>
 
+  <!-- 分钟级可用性（红绿长条图） -->
+  <div class="st-uptime">
+    <div class="st-chart-head">
+      <div class="st-chart-title">最近 24 小时可用性 <span class="dim" id="stUptimeNote"></span></div>
+      <div class="st-chart-title"><span class="dim">绿=正常 · 红=异常 · 灰=无数据</span></div>
+    </div>
+    <div class="st-uptime-grid" id="stUptimeGrid"></div>
+    <div class="st-uptime-legend">
+      <span class="legend-item"><i class="dot ok"></i>正常</span>
+      <span class="legend-item"><i class="dot err"></i>异常</span>
+      <span class="legend-item"><i class="dot none"></i>无数据</span>
+      <span class="legend-item">可&#29992;&#29575;<b id="stUptimePct">--</b></span>
+      <span class="legend-item">平均耗时 <b id="stUptimeAvg">--</b></span>
+    </div>
+  </div>
+
   <!-- 明细 -->
   <div class="st-detail">
     <h3>运行明细</h3>
@@ -193,6 +225,7 @@
     .then(function (d) {
       if (d.error) throw new Error(d.error);
       render(d);
+      if (window.__renderUptime) window.__renderUptime(d);
     })
     .catch(function (e) {
       // 实时接口失败 → 兜底读静态 JSON（不会让页面空白）
@@ -280,6 +313,50 @@
     }
 })();
 </script>
+  <script>
+  (function () {
+    'use strict';
+    // 红绿长条图：渲染最近 24h 分钟槽（来自 /api/status 的 uptime 字段）
+    function renderUptime(data) {
+      var grid = document.getElementById('stUptimeGrid');
+      var note = document.getElementById('stUptimeNote');
+      var pct = document.getElementById('stUptimePct');
+      var avg = document.getElementById('stUptimeAvg');
+      if (!grid || !data || !data.uptime || !data.uptime.length) { if (grid) grid.innerHTML = ''; return; }
+      var html = '';
+      var okN = 0, errN = 0, noneN = 0, sum = 0, n = 0;
+      data.uptime.forEach(function (u) {
+        var cls = 'none';
+        if (u.slot) {
+          if (u.slot.err > 0) { cls = 'err'; errN++; }
+          else if (u.slot.ok > 0) { cls = 'ok'; okN++; }
+          else noneN++;
+          sum += u.slot.ms || 0; n += u.slot.n || 1;
+        } else noneN++;
+        html += '<i class="' + cls + '" title="' + u.hour + ' · ' +
+          (u.slot ? ('正常 ' + (u.slot.ok||0) + ' / 异常 ' + (u.slot.err||0)) : '无数据') + '"></i>';
+      });
+      grid.innerHTML = html;
+      var has = okN + errN;
+      if (has > 0) {
+        pct.textContent = (okN / has * 100).toFixed(1) + '%';
+        avg.textContent = n > 0 ? (sum / n).toFixed(0) + ' ms' : '--';
+      }
+      if (note) note.textContent = '（24 小时 · 每分钟一个格子，共 ' + data.uptime.length + ' 格）';
+    }
+    // 暴露给下方主逻辑（fetch 成功后调用）
+    window.__renderUptime = renderUptime;
+    // 实时探测：每 30 秒 ping 一次，刷新最后一格（无需重载页面）
+    function probe() {
+      fetch('https://quoridor-mp.pages.dev/api/ping?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { window.__ping = d; })
+        .catch(function () {});
+    }
+    probe();
+    setInterval(probe, 30000);
+  })();
+  </script>
   <script src="device.js?v=d1"></script>
 <script src="auth-check.js?v=a2"></script>
 </body>

@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var API = 'https://quoridor-mp.pages.dev/api/status?t=';
+  var API = 'https://quoridor-mp.pages.dev/api/ping?t=';   // 轻量健康探测（无缓存、实时）
   var TIMEOUT_MS = 20000;      // 20 秒超时判定
   var INTERVAL_MS = 60000;     // 每 60 秒重探
 
@@ -59,7 +59,7 @@
           if (done) return;
           done = true;
           clearTimeout(to);
-          resolve(!(d && d.error));
+          resolve(!!(d && d.ok !== false));
         })
         .catch(function () {
           // 实时接口失败 → 兜底静态 JSON（有数据也算可用）
