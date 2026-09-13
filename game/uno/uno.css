@@ -450,21 +450,15 @@
 }
 
 
-/* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现（与掼蛋同款方案） ============ */
-body.portrait {
-  position: fixed;
-  top: 0;
-  left: 100vw;
+/* ============ 竖屏等比缩小正立显示：画面与横屏一致，只是缩小（不旋转） ============ */
+body.portrait { background: #0a1428; }
+body.portrait #gameRoot {
   width: 100vh;
   height: 100vw;
-  min-height: 0;              /* 覆盖 .uno-play-body height:100dvh / body min-height 撑高问题 */
-  transform: rotate(90deg);
-  transform-origin: 0 0;
-  overflow: hidden;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(var(--ps, 0.5));
+  transform-origin: center center;
 }
 body.portrait #landscapeOverlay { display: none !important; }
-/* 旋转后 vw/vh 仍按真实视口（竖屏 390 宽）计算会错位 → 关键布局改用 %（相对旋转后逻辑视口） */
-body.portrait .uo-table-disc {
-  width: min(72%, 860px);
-  height: min(46%, 420px);
-}

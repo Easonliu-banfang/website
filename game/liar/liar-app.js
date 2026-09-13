@@ -949,6 +949,9 @@ var app = {
     document.body.classList.add(lh <= 430
       ? 'tier-short'
       : (lw <= 1024 ? 'tier-mid' : 'tier-wide'));
+    // 竖屏：等比缩小正立显示（画面与横屏一致，不旋转）
+    var ps = landscape ? 1 : (window.innerWidth / window.innerHeight);
+    document.documentElement.style.setProperty('--ps', ps.toFixed(4));
     var ov = document.getElementById('landscapeOverlay');
     if (ov) ov.hidden = true;
   }

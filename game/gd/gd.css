@@ -600,18 +600,17 @@ body.tier-short .shape-tag { font-size: 10px; padding: 1px 5px; }
 body.tier-short .trick-play .who { font-size: 11px; }
 body.tier-short .lo-phone { font-size: 44px; }
 
-/* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现 ============ */
-/* body 旋转后成为 fixed 子元素的 containing block（尺寸 vh×vw），
-   牌桌/弹窗/toast 全部跟随旋转并铺满竖屏视口；与 tier-* 压缩档叠加即为完整横屏体验 */
-body.portrait {
-  position: fixed;
-  top: 0;
-  left: 100vw;
+/* ============ 竖屏等比缩小正立显示：画面与横屏完全一致，只是缩小（不旋转） ============ */
+/* 竖屏时把 #gameRoot 的逻辑尺寸设为 vh×vw（即横屏视角），再按屏幕宽度等比缩放居中。
+   --ps 由 JS 计算 = innerWidth/innerHeight（竖屏 <1），画面正立、方向与横屏相同。 */
+body.portrait { background: #071f13; }
+body.portrait #gameRoot {
   width: 100vh;
   height: 100vw;
-  min-height: 0;              /* 覆盖全局 min-height:100vh，否则高度被撑回竖屏视口高 */
-  transform: rotate(90deg);
-  transform-origin: 0 0;
-  overflow: hidden;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(var(--ps, 0.5));
+  transform-origin: center center;
 }
 body.portrait #landscapeOverlay { display: none !important; }

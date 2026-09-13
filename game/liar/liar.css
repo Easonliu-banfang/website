@@ -550,20 +550,16 @@
 }
 
 
-/* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现（与掼蛋同款方案） ============ */
-body.portrait {
-  position: fixed;
-  top: 0;
-  left: 100vw;
+/* ============ 竖屏等比缩小正立显示：画面与横屏一致，只是缩小（不旋转） ============ */
+body.portrait { background: #0a0e14; }
+body.portrait #game {
   width: 100vh;
   height: 100vw;
-  min-height: 0;              /* 覆盖 body min-height:100vh 撑高问题 */
-  transform: rotate(90deg);
-  transform-origin: 0 0;
-  overflow: hidden;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(var(--ps, 0.5));
+  transform-origin: center center;
 }
 body.portrait #landscapeOverlay { display: none !important; }
-/* shell 原 height:100vh（真实视口）在旋转后应为逻辑视口高 100vw，否则底部被裁 */
-body.portrait .liar-shell { height: 100vw; }
 body.portrait .liar-stage { overflow: hidden; }
-body.portrait .liar-chat { bottom: 12px; }

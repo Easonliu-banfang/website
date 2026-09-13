@@ -494,9 +494,9 @@
     }, 700 + Math.random() * 900);
   }
 
-  // 方向适配：横屏直接用；竖屏给 body 加 .portrait 整体旋转 90°，
-  // 以横屏布局呈现（替代「请横屏」遮罩）。压缩档按逻辑宽高设置
-  // （旋转后逻辑宽高互换，媒体查询按真实视口判断会失效，故用 class 驱动）。
+  // 方向适配：横屏直接用；竖屏用 scale 等比缩小正立显示（画面与横屏一致，
+  // 只是小一号，方向不变——不旋转内容），替代「请横屏」遮罩。
+  // 压缩档按逻辑宽高设置（竖屏时宽高互换，媒体查询按真实视口判断会失效，故用 class 驱动）。
   function checkOrientation() {
     var landscape = window.innerWidth >= window.innerHeight;
     document.body.classList.toggle('portrait', !landscape);
@@ -506,6 +506,9 @@
     document.body.classList.add(lh <= 430
       ? 'tier-short'
       : (lw <= 1024 ? 'tier-mid' : 'tier-wide'));
+    // 竖屏：缩放到屏幕宽度（画面正立，与横屏完全相同只是缩小）
+    var ps = landscape ? 1 : (window.innerWidth / window.innerHeight);
+    document.documentElement.style.setProperty('--ps', ps.toFixed(4));
     el.landscapeOverlay.hidden = true;
   }
 
