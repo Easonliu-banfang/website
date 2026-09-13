@@ -130,10 +130,13 @@
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      /* 入场渐显由 .nk-letter 逐字动画接管（见 JS） */
+      animation: nkFadeUp 1s ease 0.35s forwards;
+      opacity: 0;
     }
     /* Hero 标题渐变流光扫过 */
     .nk-title-wrap { position: relative; display: inline-block; }
+    /* 拆字字母：单独继承同一渐变并裁剪，修复 background-clip:text 在子 span 上失效 */
+
     .nk-title-wrap::after {
       content: "";
       position: absolute;
@@ -474,7 +477,7 @@
   <!-- 首屏 -->
   <section class="nk-hero">
     <div class="kicker">ALL FREE · ALL ONLINE</div>
-    <h1 id="nkTitle">NEXUS GAME</h1>
+    <h1>NEXUS&nbsp;GAME</h1>
     <div class="sub">Games that connect</div>
     <div class="nk-feats">
       <div class="nk-feat"><i></i>免费联机</div>
@@ -620,39 +623,8 @@
       resize(); draw();
     })();
 
-    /* ---------- 2) Hero 标题逐字浮现 ---------- */
-    (function titleFx() {
-      var h1 = document.getElementById('nkTitle');
-      if (!h1) return;
-      var text = h1.textContent;         // "NEXUS GAME"
-      h1.textContent = '';
-      h1.classList.add('nk-title-wrap');
-      var frag = document.createDocumentFragment();
-      var chars = text.split('');
-      for (var i = 0; i < chars.length; i++) {
-        var ch = chars[i];
-        if (ch === ' ') ch = '\u00a0';
-        var s = document.createElement('span');
-        s.className = 'nk-letter';
-        s.textContent = ch;
-        s.style.opacity = '0';
-        s.style.display = 'inline-block';
-        s.style.transform = 'translateY(0.55em) rotateX(-55deg)';
-        s.style.transformOrigin = '50% 100%';
-        s.style.transition = 'opacity 0.55s ease, transform 0.7s cubic-bezier(0.2,1.5,0.4,1)';
-        s.style.transitionDelay = (0.25 + i * 0.045) + 's';
-        frag.appendChild(s);
-      }
-      h1.appendChild(frag);
-      h1.style.perspective = '800px';
-      setTimeout(function () {
-        var ls = h1.querySelectorAll('.nk-letter');
-        for (var k = 0; k < ls.length; k++) {
-          ls[k].style.opacity = '1';
-          ls[k].style.transform = 'translateY(0) rotateX(0)';
-        }
-      }, 150);
-    })();
+    /* (titleFx 拆字已回退：background-clip:text 与逐 span 在真实浏览器渲染异常，
+        标题使用整块渐变 + fadeUp 入场 + 流光扫过，效果稳定) */
 
     /* ---------- 滚动驱动叙事 ---------- */
     var scenes = document.querySelectorAll('.nk-stage');
