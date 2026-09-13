@@ -90,10 +90,17 @@
     return 'cards/' + c.toUpperCase() + file + '.png';
   }
 
-  /* ---------- 横屏强制 ---------- */
+  /* ---------- 方向适配：竖屏自动旋转 90° 横屏展示（同掼蛋方案） ---------- */
   function checkOrientation() {
     var landscape = window.innerWidth >= window.innerHeight;
-    el.landscapeOverlay.hidden = landscape;
+    document.body.classList.toggle('portrait', !landscape);
+    var lw = landscape ? window.innerWidth : window.innerHeight;
+    var lh = landscape ? window.innerHeight : window.innerWidth;
+    document.body.classList.remove('tier-short', 'tier-mid');
+    document.body.classList.add(lh <= 430
+      ? 'tier-short'
+      : (lw <= 1024 ? 'tier-mid' : 'tier-wide'));
+    el.landscapeOverlay.hidden = true;
   }
 
   /* ---------- 规则辅助（本地预检，服务端仍权威） ---------- */

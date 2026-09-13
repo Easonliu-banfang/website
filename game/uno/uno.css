@@ -364,8 +364,8 @@
   box-shadow: 0 3px 8px rgba(60, 90, 140, 0.35);
 }
 
-/* 小屏 / 横屏手机适配 */
-@media (max-width: 760px) {
+/* 小屏 / 横屏手机适配（只对真实横屏生效；竖屏旋转场景走下方 body.portrait 块） */
+@media (orientation: landscape) and (max-width: 760px) {
   .uo-timer-time { font-size: 26px; min-width: 72px; }
   .uo-timer-icon { width: 34px; height: 34px; }
   .uo-table-disc { width: min(88vw, 640px); height: min(42vh, 320px); border-width: 8px; }
@@ -444,7 +444,27 @@
   box-shadow: 0 8px 20px rgba(200, 30, 30, 0.2);
 }
 
-/* 万色选择小屏适配 */
-@media (max-width: 640px) {
+/* 万色选择小屏适配（仅横屏） */
+@media (orientation: landscape) and (max-width: 640px) {
   .cp { width: 76px; }
+}
+
+
+/* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现（与掼蛋同款方案） ============ */
+body.portrait {
+  position: fixed;
+  top: 0;
+  left: 100vw;
+  width: 100vh;
+  height: 100vw;
+  min-height: 0;              /* 覆盖 .uno-play-body height:100dvh / body min-height 撑高问题 */
+  transform: rotate(90deg);
+  transform-origin: 0 0;
+  overflow: hidden;
+}
+body.portrait #landscapeOverlay { display: none !important; }
+/* 旋转后 vw/vh 仍按真实视口（竖屏 390 宽）计算会错位 → 关键布局改用 %（相对旋转后逻辑视口） */
+body.portrait .uo-table-disc {
+  width: min(72%, 860px);
+  height: min(46%, 420px);
 }
