@@ -1,3 +1,6 @@
+// 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
+var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
+var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
 /* 交互层：读取 URL 参数开局（local / ai / online），处理鼠标操作、AI 对手、渲染循环、联机同步 */
 (function () {
   'use strict';
@@ -91,7 +94,7 @@
         sub = (first === myPlayer) ? '你先手，开始！' : '对手先手';
       } else {
         firstLabel = first === 0 ? '🟥 红方先手' : '🔵 蓝方先手';
-        sub = first === 0 ? '玩家一先手' : '玩家二先手';
+        sub = first === 0 ? L2P1 + '先手' : L2P2 + '先手';
       }
       el.coinResult.textContent = firstLabel;
       el.coinSub.textContent = sub;
@@ -123,7 +126,7 @@
     winTimer && clearTimeout(winTimer);
     hideBanner();
     window.Notify.clearAll();        // 新局：清掉上一局胜负常驻通知
-    el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? (oppName || '对手') : '玩家二');
+    el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? (oppName || '对手') : L2P2);
     coinShown = false;
     syncUI();
     playCoin(state.turn, { ai: vsAI, mode: 'local' });
@@ -143,7 +146,7 @@
       } else if (aiThinking) {
         window.Notify.setTurn('电脑思考中');
       } else {
-        window.Notify.setTurn((state.turn === 0 ? (vsAI ? myName() : '玩家一') : (vsAI ? '电脑' : '玩家二')) + ' 行动');
+        window.Notify.setTurn((state.turn === 0 ? (vsAI ? myName() : L2P1) : (vsAI ? '电脑' : L2P2)) + ' 行动');
       }
     }
 
@@ -174,7 +177,7 @@
       } else if (onlineMode) {
         showWinBanner(state.winner === myPlayer ? '🎉 你赢了！' : '对手获胜', false);
       } else {
-        showWinBanner((state.winner === 0 ? '玩家一' : '玩家二') + ' 获胜', false);
+        showWinBanner((state.winner === 0 ? L2P1 : L2P2) + ' 获胜', false);
       }
       return;
     }

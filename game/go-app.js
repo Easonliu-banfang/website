@@ -1,3 +1,6 @@
+// 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
+var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
+var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
 /* 围棋交互层：落子 / 停一手 / 三模式（local / ai / online）/ 终局数子（自动死活 + 可手动微调）。URL 驱动开局。 */
 (function () {
   'use strict';
@@ -118,8 +121,8 @@
         firstLabel = (first === myPlayer) ? '⚫ ' + myName() + '（黑）先手' : '⚪ 对手（白）先手';
         sub = (first === myPlayer) ? '你执黑，开始！' : '对手执黑，你执白';
       } else {
-        firstLabel = first === 0 ? '⚫ 玩家一（黑）先手' : '⚪ 玩家二（白）先手';
-        sub = first === 0 ? '玩家一执黑先行' : '玩家二执黑先行';
+        firstLabel = first === 0 ? '⚫ ' + L2P1 + '（黑）先手' : '⚪ ' + L2P2 + '（白）先手';
+        sub = first === 0 ? L2P1 + '执黑先行' : L2P2 + '执黑先行';
       }
       el.coinResult.textContent = firstLabel;
       el.coinSub.textContent = sub;

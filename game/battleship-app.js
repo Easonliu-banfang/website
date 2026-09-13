@@ -1,3 +1,6 @@
+// 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
+var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
+var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
 /* 海战棋交互层：放船阶段 + 开火阶段；三模式（local / ai / online），URL 驱动开局。
  * 渲染：两块 Canvas（己方海洋 ocean + 追踪板 tracking），沿用 Quoridor 的「服务端权威、本地整体替换」思路。
  */
@@ -118,8 +121,8 @@
       syncUI();
       // 人类布阵（带 pass 遮罩防偷看？同设备仅一人，不需遮罩）
     } else if (mode === 'local') {
-      window.Notify.setTurn('布阵阶段 · 玩家一先摆');
-      showPass('玩家一 布阵中', '请把设备交给玩家一，布好舰队后点击「确认布阵」。其他人请勿偷看。', function () {
+      window.Notify.setTurn(L2P1 + ' 先摆');
+      showPass(L2P1 + ' 布阵中', '请把设备交给' + L2P1 + '，布好舰队后点击「确认布阵」。其他人请勿偷看。', function () {
         el.passModal.hidden = true; syncUI();
       });
     } else {
@@ -186,10 +189,10 @@
     if (mode === 'local') {
       if (placeTurn === 0) {
         // 交给玩家二
-        showPass('玩家二 布阵中', '请把设备交给玩家二，布好舰队后点击「确认布阵」。玩家一请勿偷看。', function () {
+        showPass(L2P2 + ' 布阵中', '请把设备交给' + L2P2 + '，布好舰队后点击「确认布阵」。' + L2P1 + '请勿偷看。', function () {
           el.passModal.hidden = true;
           placeTurn = 1; curShip = 0; horizontal = false;
-          window.Notify.setTurn('布阵阶段 · 玩家二摆放');
+          window.Notify.setTurn(L2P2 + ' 摆放');
           syncUI(); updatePlacePanel();
         });
       } else {
@@ -209,7 +212,7 @@
     el.placePanel.hidden = true;
     window.Notify.setTurn('开火阶段');
     var myNick = (window.Auth && window.Auth.user && String(window.Auth.user).trim()) ? String(window.Auth.user).slice(0, 10) : '玩家';
-    var first = state.turn === 0 ? (vsAI ? myNick : '玩家一') : (vsAI ? '电脑' : '玩家二');
+    var first = state.turn === 0 ? (vsAI ? myNick : L2P1) : (vsAI ? '电脑' : L2P2);
     showBanner(first + ' 先手！', false);
     syncUI(); updateFleet();
     maybeAI();
@@ -233,8 +236,8 @@
     hideBanner();
     if (mode === 'local' && !onlineMode) {
       // 热座：交给对手前先弹遮罩
-      showPass('传给 ' + (state.turn === 0 ? '玩家一' : '玩家二'),
-        '轮到 ' + (state.turn === 0 ? '玩家一' : '玩家二') + ' 开火，请把设备交给 TA。', function () {
+      showPass('传给 ' + (state.turn === 0 ? L2P1 : L2P2),
+        '轮到 ' + (state.turn === 0 ? L2P1 : L2P2) + ' 开火，请把设备交给 TA。', function () {
           el.passModal.hidden = true; syncUI(); updateFleet();
         });
     }
@@ -252,7 +255,7 @@
     } else if (vsAI) {
       showBanner(winner === 0 ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？', true, true);
     } else {
-      showBanner((winner === 0 ? '玩家一' : '玩家二') + ' 获胜', true);
+      showBanner((winner === 0 ? L2P1 : L2P2) + ' 获胜', true);
     }
   }
 
@@ -438,12 +441,12 @@
         : (state.turn === myPlayer ? myName() + '开火' : '对手开火'));
     } else if (phase === 'place') {
       window.Notify.setTurn(mode === 'local'
-        ? ('玩家' + (placeTurn + 1) + ' 布阵')
+        ? ((placeTurn === 0 ? L2P1 : L2P2) + ' 布阵')
         : '布置你的舰队');
     } else {
       window.Notify.setTurn(state.turn === 0
-        ? (vsAI ? myName() + ' 开火' : '玩家一 开火')
-        : (vsAI ? '电脑开火' : '玩家二 开火'));
+        ? (vsAI ? myName() + ' 开火' : L2P1 + ' 开火')
+        : (vsAI ? '电脑开火' : L2P2 + ' 开火'));
     }
     el.btnNew.disabled = reqPending;
     el.firePanel.hidden = (phase !== 'fire');
@@ -468,8 +471,8 @@
       return html + '</div>';
     }
     // 联机：自己看自己的舰队 + 对手（仅知沉没），不看对手船形
-    var meTitle = onlineMode ? '我方舰队' : '玩家' + (vp + 1) + ' 舰队';
-    var opTitle = onlineMode ? '敌方舰队' : '玩家' + (opp + 1) + ' 舰队';
+    var meTitle = onlineMode ? '我方舰队' : ((vp === 0 ? L2P1 : L2P2) + ' 舰队');
+    var opTitle = onlineMode ? '敌方舰队' : ((opp === 0 ? L2P1 : L2P2) + ' 舰队');
     el.fleetStatus2.innerHTML = col(vp, meTitle) + col(opp, opTitle);
   }
 

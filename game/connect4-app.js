@@ -1,3 +1,6 @@
+// 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
+var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
+var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
 /* 四子棋交互层：三模式（local / ai / online），URL 驱动开局。
  * 渲染：竖版 Canvas（白架 + 红蓝棋 + 重力掉落动画）
  * 联机：统一等待室(GameLobby) → 开始 → 对局（服务端权威）
@@ -109,8 +112,8 @@
         firstLabel = (first === myPlayer) ? myName() + '（红）先手' : '对手（蓝）先手';
         sub = (first === myPlayer) ? '你执红，开始！' : '对手执红，你执蓝';
       } else {
-        firstLabel = first === 0 ? '玩家一（红）先手' : '玩家二（蓝）先手';
-        sub = first === 0 ? '玩家一执红先行' : '玩家二执蓝先行';
+        firstLabel = first === 0 ? L2P1 + '（红）先手' : L2P2 + '（蓝）先手';
+        sub = first === 0 ? L2P1 + '执红先行' : L2P2 + '执蓝先行';
       }
       el.coinResult.textContent = firstLabel;
       el.coinSub.textContent = sub;

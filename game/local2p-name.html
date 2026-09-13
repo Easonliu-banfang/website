@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>对局准备 · 双人昵称</title>
+<style>
+  :root {
+    --bg-deep: #0a0e1a;
+    --bg-top: #101830;
+    --panel: rgba(16, 22, 42, 0.72);
+    --panel-border: rgba(120, 140, 220, 0.16);
+    --panel-highlight: rgba(140, 160, 255, 0.10);
+    --text-hi: #eef1ff;
+    --text-lo: #8a94b8;
+    --accent: #6fa8ff;
+    --accent-2: #b180ff;
+    --danger: #ff6b81;
+    --ok: #4ade80;
+    --p1: #ff6b81;
+    --p2: #4da3ff;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--sans);
+    color: var(--text-hi);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(96, 120, 255, 0.14), transparent 60%),
+      radial-gradient(900px 500px at 85% 110%, rgba(177, 128, 255, 0.10), transparent 55%),
+      linear-gradient(160deg, var(--bg-top), var(--bg-deep) 70%);
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-x: hidden;
+  }
+  /* 背景网格 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(120, 140, 220, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 140, 220, 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, #000 30%, transparent 75%);
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, #000 30%, transparent 75%);
+    pointer-events: none;
+  }
+
+  .stage { position: relative; width: 100%; max-width: 720px; }
+
+  /* 顶部徽标 */
+  .topline {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 18px; font-family: var(--mono);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-lo); letter-spacing: 1px; }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .game-tag {
+    font-size: 12px; padding: 5px 12px; border-radius: 999px;
+    border: 1px solid var(--panel-border); background: var(--panel);
+    color: var(--text-lo); white-space: nowrap;
+  }
+  .game-tag b { color: var(--text-hi); font-weight: 600; }
+
+  /* 主卡片 */
+  .card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: clamp(24px, 5vw, 44px);
+    overflow: hidden;
+  }
+  .card::after {
+    content: ""; position: absolute; inset: 0; border-radius: 22px;
+    background: linear-gradient(120deg, rgba(140,160,255,0.05), transparent 40%, transparent 60%, rgba(177,128,255,0.05));
+    pointer-events: none;
+  }
+
+  .title-wrap { text-align: center; margin-bottom: 28px; }
+  .title {
+    font-size: clamp(24px, 5vw, 32px); font-weight: 700; letter-spacing: 1px;
+    background: linear-gradient(100deg, #fff, #c3d2ff 60%, #bfa5ff);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .title .vs-sym {
+    font-family: var(--mono); font-size: 14px; color: var(--text-lo);
+    border: 1px solid var(--panel-border); border-radius: 999px; padding: 4px 12px;
+    -webkit-text-fill-color: var(--text-lo); letter-spacing: 2px;
+  }
+  .subtitle { margin-top: 10px; font-size: 13.5px; color: var(--text-lo); }
+
+  /* 玩家行 */
+  .players { display: flex; flex-direction: column; gap: 16px; margin-bottom: 26px; }
+  .player {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--panel-highlight);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 16px 16px 16px 18px;
+    transition: border-color .2s, box-shadow .2s, transform .15s;
+  }
+  .player.focus-1 { border-color: rgba(255, 107, 129, 0.5); box-shadow: 0 0 0 3px rgba(255,107,129,0.08), 0 10px 30px rgba(0,0,0,0.25); transform: translateY(-1px); }
+  .player.focus-2 { border-color: rgba(77, 163, 255, 0.5); box-shadow: 0 0 0 3px rgba(77,163,255,0.08), 0 10px 30px rgba(0,0,0,0.25); transform: translateY(-1px); }
+
+  .p-badge {
+    flex: 0 0 46px; height: 46px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: 1px;
+  }
+  .p-badge.p1 { background: rgba(255, 107, 129, 0.14); color: var(--p1); border: 1px solid rgba(255,107,129,0.3); }
+  .p-badge.p2 { background: rgba(77, 163, 255, 0.14); color: var(--p2); border: 1px solid rgba(77,163,255,0.3); }
+
+  .p-field { flex: 1; min-width: 0; }
+  .p-label { font-size: 11.5px; color: var(--text-lo); margin-bottom: 6px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+  .p-label .hint { font-family: var(--mono); font-size: 10px; opacity: 0.8; }
+  .p-input {
+    width: 100%; background: rgba(6, 10, 22, 0.55);
+    border: 1px solid transparent; border-radius: 10px;
+    padding: 10px 14px; font-size: 17px; font-weight: 600; color: var(--text-hi);
+    outline: none; font-family: var(--sans);
+    transition: border-color .2s;
+  }
+  .p-input::placeholder { color: rgba(138, 148, 184, 0.45); font-weight: 400; font-size: 15px; }
+  .p1i:focus { border-color: rgba(255, 107, 129, 0.55); }
+  .p2i:focus { border-color: rgba(77, 163, 255, 0.55); }
+
+  .p-count { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--text-lo); align-self: flex-end; padding-bottom: 10px; }
+
+  /* 下一步按钮 */
+  .confirm-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .btn-go {
+    position: relative;
+    width: 100%; border: none; cursor: pointer; border-radius: 14px;
+    padding: 16px; font-size: 17px; font-weight: 700; letter-spacing: 4px; color: #fff;
+    background: linear-gradient(100deg, var(--accent), var(--accent-2));
+    box-shadow: 0 12px 34px rgba(111, 168, 255, 0.32), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform .12s, box-shadow .2s, filter .2s;
+    font-family: var(--sans);
+  }
+  .btn-go:hover { filter: brightness(1.07); transform: translateY(-1px); box-shadow: 0 16px 42px rgba(111, 168, 255, 0.42); }
+  .btn-go:active { transform: translateY(1px) scale(0.995); }
+  .btn-go:disabled { opacity: 0.55; cursor: not-allowed; transform: none; filter: none; }
+  .btn-go .arrow { font-family: var(--mono); letter-spacing: 0; margin-left: 6px; }
+
+  .footnote { text-align: center; font-size: 12px; color: var(--text-lo); opacity: 0.85; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .footnote .k { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--panel-border); border-radius: 6px; padding: 1px 6px; color: var(--text-lo); }
+
+  /* 底部状态 */
+  .status { text-align: center; margin-top: 16px; font-size: 12.5px; min-height: 18px; font-family: var(--mono); letter-spacing: 0.5px; }
+
+  /* 移动端 */
+  @media (max-width: 480px) {
+    .player { padding: 12px; }
+    .p-badge { flex-basis: 40px; height: 40px; font-size: 11px; }
+    .p-input { font-size: 15px; padding: 9px 12px; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="topline">
+      <div class="brand"><span class="dot"></span>LOCAL MATCHUP · 双人同屏</div>
+      <div class="game-tag" id="gameTag">🎯 <b>双人游戏</b></div>
+    </div>
+
+    <div class="card">
+      <div class="title-wrap">
+        <div class="title">
+          <span>双人对局</span>
+          <span class="vs-sym">VS</span>
+          <span>准备</span>
+        </div>
+        <div class="subtitle">输入两位玩家的昵称，对局中所有名称显示都会替换为它们</div>
+      </div>
+
+      <div class="players">
+        <div class="player" id="row1">
+          <div class="p-badge p1">P1</div>
+          <div class="p-field">
+            <div class="p-label">玩家 1 <span class="hint">· 红方 / 先手</span></div>
+            <input class="p-input p1i" id="name1" maxlength="10" placeholder="输入玩家 1 昵称…" autocomplete="off" spellcheck="false" />
+          </div>
+          <span class="p-count"><span id="c1">0</span>/10</span>
+        </div>
+        <div class="player" id="row2">
+          <div class="p-badge p2">P2</div>
+          <div class="p-field">
+            <div class="p-label">玩家 2 <span class="hint">· 蓝方 / 后手</span></div>
+            <input class="p-input p2i" id="name2" maxlength="10" placeholder="输入玩家 2 昵称…" autocomplete="off" spellcheck="false" />
+          </div>
+          <span class="p-count"><span id="c2">0</span>/10</span>
+        </div>
+      </div>
+
+      <div class="confirm-wrap">
+        <button class="btn-go" id="goBtn" disabled>开始对局<span class="arrow">→</span></button>
+        <div class="footnote"><span class="k">ENTER</span> 提交 · 昵称将保存用于下次双人同屏</div>
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+  var KEY = 'local2p_names';
+  var name1 = document.getElementById('name1');
+  var name2 = document.getElementById('name2');
+  var c1 = document.getElementById('c1');
+  var c2 = document.getElementById('c2');
+  var row1 = document.getElementById('row1');
+  var row2 = document.getElementById('row2');
+  var goBtn = document.getElementById('goBtn');
+  var statusEl = document.getElementById('status');
+  var gameTag = document.getElementById('gameTag');
+
+  // ??game= 参数：显示是哪款游戏
+  var q = new URLSearchParams(location.search);
+  var game = q.get('game');
+  if (game) gameTag.innerHTML = '🎯 <b>' + escapeHtml(game) + '</b> · 双人同屏';
+  else gameTag.innerHTML = '👥 <b>双人同屏</b>';
+
+  // 读上次昵称
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || '{}') || {};
+    if (saved.p1) name1.value = saved.p1;
+    if (saved.p2) name2.value = saved.p2;
+  } catch (e) {}
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+  function refresh() {
+    var v1 = name1.value.trim(), v2 = name2.value.trim();
+    c1.textContent = v1.length; c2.textContent = v2.length;
+    goBtn.disabled = !(v1 && v2);
+    row1.classList.toggle('focus-1', document.activeElement === name1);
+    row2.classList.toggle('focus-2', document.activeElement === name2);
+    statusEl.textContent = (v1 && v2) ? '' : '请为两位玩家都输入昵称';
+  }
+  name1.addEventListener('input', refresh);
+  name2.addEventListener('input', refresh);
+  name1.addEventListener('focus', refresh);
+  name2.addEventListener('focus', refresh);
+  name1.addEventListener('blur', refresh);
+  name2.addEventListener('blur', refresh);
+
+  // ?goto= 目标（已编码），支持占位符 {p1}/{p2}
+  var gotoRaw = q.get('goto');
+  var target = gotoRaw ? decodeURIComponent(gotoRaw) : null;
+
+  function submit() {
+    var v1 = name1.value.trim(), v2 = name2.value.trim();
+    if (!v1 || !v2) { statusEl.textContent = '请为两位玩家都输入昵称'; return; }
+    localStorage.setItem(KEY, JSON.stringify({ p1: v1, p2: v2, ts: Date.now() }));
+    if (target) {
+      var url = target
+        .replace('{p1}', encodeURIComponent(v1))
+        .replace('{p2}', encodeURIComponent(v2));
+      location.href = url;
+    } else {
+      location.href = 'index.html';
+    }
+  }
+  goBtn.addEventListener('click', submit);
+  name1.addEventListener('keydown', function (e) { if (e.key === 'Enter') { name2.focus(); } });
+  name2.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+  refresh();
+})();
+</script>
+</body>
+</html>
