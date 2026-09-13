@@ -73,7 +73,9 @@
     return state;
   }
 
-  /* 推挤（每 lane 全部羊整体互动）：返回是否需要继续推挤的标志 */
+  /* 推挤（每 lane）：只对「前沿接触羊」正面僵持/推挤，后排羊自由前进不受影响。
+ * 接触模型：相遇(交叉)后前沿对保持「恰好接触」(pos0+pos1 === LEN)，
+ * 弱侧被顶后退 v*dt，强侧跟进贴住（不重叠、不分离），按力量差推进。 */
   function resolvePush(laneArr, dt, events, laneNo) {
     var left = [], right = [];
     for (var i = 0; i < laneArr.length; i++) {
@@ -82,50 +84,47 @@
     }
     if (!left.length || !right.length) return;      // 单边无羊 → 自由行
 
-    // 最前羊（各自 pos 最大者）是否相遇
+    // 前沿羊（各自 pos 最大者）是否相遇 / 已交叉
     var aL = left[0], bR = right[0];
     for (var j = 1; j < left.length; j++) if (left[j].pos > aL.pos) aL = left[j];
     for (var k = 1; k < right.length; k++) if (right[k].pos > bR.pos) bR = right[k];
-    // slot1 羊位置 = LEN - pos（右→左），相遇 ⇔ pos0 + pos1 >= LEN
-    if (aL.pos + bR.pos < LEN) return;              // 未相遇
 
+    if (aL.pos + bR.pos < LEN) return;              // 尚未相遇
+
+    // 力量按该赛道全体羊合计（前沿接触 + 可能的后排增援）
     var Lpow = 0, Rpow = 0;
     for (var m = 0; m < left.length; m++) Lpow += left[m].lv;
     for (var n = 0; n < right.length; n++) Rpow += right[n].lv;
 
     if (Lpow === Rpow) {
-      // 僵持：双方顶住，谁也不动（本步前进作废）
-      for (var p = 0; p < laneArr.length; p++) {
-        laneArr[p].pos = laneArr[p].prev;
-        laneArr[p].spd = 0;
+      // 僵持：前沿对静止在相遇处（对齐到恰好接触），后排继续自由前进，
+      // 增援力量并入后可打破僵持——不会出现「后排还没碰到就停下」。
+      // 首次相遇时 prev 和 < LEN：两羊各走一半到达接触点
+      var reach = (LEN - (aL.prev + bR.prev)) / 2;
+      if (reach > 0 && reach <  1.4) {
+        aL.pos = aL.prev + reach;
+        bR.pos = bR.prev + reach;
+      } else {
+        aL.pos = aL.prev; bR.pos = bR.prev;
       }
+      aL.spd = 0; bR.spd = 0;
       events.push({ t: 'clash', lane: laneNo, stall: true });
       return;
     }
     if (Lpow > Rpow) {
-      // 左推右：推挤速度 ∝ 力量差（越悬殊推得越快）
+      // 左推右（左强）：弱侧被顶后退 v*dt，强侧跟进保持接触 (sum === LEN)
       var v = SPEED * (Lpow - Rpow) / Lpow;
-      for (var q = 0; q < left.length; q++) {
-        left[q].pos = left[q].prev + v * dt;
-        left[q].spd = v;
-      }
-      for (var r = 0; r < right.length; r++) {
-        right[r].pos = right[r].prev - v * dt;
-        right[r].spd = -v;
-      }
+      bR.pos = bR.prev - v * dt;          // 右羊被顶回自家基地方向
+      aL.pos = LEN - bR.pos;              // 左羊贴住右羊（sum 恒 = LEN）
+      aL.spd = v; bR.spd = -v;
       events.push({ t: 'clash', lane: laneNo, winSide: 0, push: true });
       return;
     }
-    // 右推左
+    // 右推左（右强）
     var w = SPEED * (Rpow - Lpow) / Rpow;
-    for (var s2 = 0; s2 < left.length; s2++) {
-      left[s2].pos = left[s2].prev - w * dt;
-      left[s2].spd = -w;
-    }
-    for (var t2 = 0; t2 < right.length; t2++) {
-      right[t2].pos = right[t2].prev + w * dt;
-      right[t2].spd = w;
-    }
+    aL.pos = aL.prev - w * dt;            // 左羊被顶回
+    bR.pos = LEN - aL.pos;                // 右羊贴住（sum 恒 = LEN）
+    aL.spd = -w; bR.spd = w;
     events.push({ t: 'clash', lane: laneNo, winSide: 1, push: true });
   }
 
@@ -217,6 +216,13 @@
     }
     var idx = state.hands[slot].indexOf(lv);
     if (idx < 0) return { ok: false, error: '手里没有这只羊' };
+    // 该赛道该侧已有羊在途（未被顶回/未得分）→ 不能再放
+    for (var t = 0; t < state.sheep.length; t++) {
+      var ex = state.sheep[t];
+      if (ex.slot === slot && ex.lane === lane) {
+        return { ok: false, error: '该赛道已有羊在推进，战罢才能再放', busyLane: lane };
+      }
+    }
     state.hands[slot].splice(idx, 1);
     state.cool[slot][lv] = now + COOL_MS[lv];     // 该等级羊进入冷却（与赛道无关）
     state.sheep.push({

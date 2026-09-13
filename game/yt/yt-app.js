@@ -27,13 +27,27 @@
 
   /* ---------- 手牌渲染 ---------- */
   var ICON = (window.YTRender && YTRender.ICON) || ['', '🐑', '🐐', '🐏', '🐏'];
+  var LV_NAME = (window.YTRender && YTRender.LV_NAME) || ['', '小羊', '中羊', '大羊', '巨羊'];
+  var COOL_TOTAL = [0, 5000, 8000, 11000, 15000];       // CD 总时长（与引擎一致）
   function sheepHtml(lv, slot, idx) {
-    var selCls = (selected && selected.slot === slot && selected.idx === idx) ? ' sel' : '';
+    var selCls = (selected && selected.slot === slot && selected.idx === idx) ? ' active' : '';
     var cd = coolLeft(slot, lv);
     var cdCls = cd > 0 ? ' cooling' : '';
+    // 绿色回环：CD 中 --cdp 为「已走进度」%；cd=0 时满环（绿色整圈）
+    var total = COOL_TOTAL[lv] || 5000;
+    var pct = cd > 0 ? Math.max(0, Math.min(100, Math.round((1 - cd / (total / 1000)) * 100))) : 100;
     var cdTag = cd > 0 ? '<span class="cd">' + cd.toFixed(1) + 's</span>' : '';
-    return '<div class="yt-sheep lv' + lv + selCls + cdCls + '" data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '">' +
-      '<span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span>' + cdTag + '</div>';
+    // 当前选中的圆圈排到最上面（order -1）；其余按等级保持；CD 回环用量 --cdp 内联
+    var inline = '--cdp:' + pct + '%;' + (selCls ? 'order:-1;' : '');
+    return '<button class="yt-sheep seg lv' + lv + selCls + cdCls + '" type="button"' +
+      ' data-lv="' + lv + '" data-slot="' + slot + '" data-idx="' + idx + '" style="' + inline + '">' +
+      '<span class="seg-inner"><span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></span>' +
+      cdTag + '</button>';
+  }
+  // 空槽：该等级手中没有羊（展示回环底座，不可点）
+  function sheepEmptyHtml(lv) {
+    return '<button class="yt-sheep seg empty" type="button" disabled style="--cdp:0%">' +
+      '<span class="seg-inner"><span class="ico">' + (ICON[lv] || '🐑') + '</span><span class="lv">' + lv + ' 力</span></span></button>';
   }
   // 自动选中手牌第一只（最小的羊）→ 点赛道即可直接放，省一步
   function autoSelectFirst() {
@@ -41,14 +55,13 @@
     selected = null;
     function pick(slot, list) {
       if (!list || !list.length) return null;
-      // 优先未冷却的最小羊；全都冷却则选最小（会提示冷却）
-      var idxs = list.map(function (v, i) { return i; });
-      idxs.sort(function (a, b) { return list[a] - list[b]; });
-      for (var k = 0; k < idxs.length; k++) {
-        if (coolLeft(slot, list[idxs[k]]) <= 0) return { slot: slot, lv: list[idxs[k]], idx: idxs[k] };
+      // 从最小到最大遍历；命中「手中第一只该等级且未冷却」→ 选中（idx 与渲染 indexOf 一致）
+      var sorted = list.slice().sort(function (a, b) { return a - b; });
+      for (var k = 0; k < sorted.length; k++) {
+        var lv = sorted[k];
+        if (coolLeft(slot, lv) <= 0) return { slot: slot, lv: lv, idx: list.indexOf(lv) };
       }
-      var f = idxs[0];
-      return { slot: slot, lv: list[f], idx: f };
+      return { slot: slot, lv: sorted[0], idx: list.indexOf(sorted[0]) };
     }
     if (mode === 'local') selected = pick(0, handList(0));
     else selected = pick(me, handList(me));
@@ -58,25 +71,37 @@
     if (!v || !v.cool) return '';
     return v.cool[0].join(',') + '|' + v.cool[1].join(',');
   }
+  // 竖排圆圈选择器：1~4 力各一圈（绿回环 CD），当前选中的排最上方
+  function circuitHtml(slot) {
+    var list = handList(slot);
+    var html = '';
+    for (var lv = 1; lv <= 4; lv++) {
+      var idx = list.indexOf(lv);
+      if (idx >= 0) html += sheepHtml(lv, slot, idx);
+      else html += sheepEmptyHtml(lv);
+    }
+    return html || '<span class="yt-hand-empty">暂无羊，等待补充…</span>';
+  }
   function renderHand() {
     var box = $('myHand');
+    if (!box) return;
     if (!view) { box.innerHTML = ''; return; }
-    var isLocalDual = (mode === 'local');       // 面对面：显示两方手牌
-    var html = '';
+    var isLocalDual = (mode === 'local');       // 面对面：显示两方手牌（两组竖排）
     if (isLocalDual) {
-      html += '<div class="yt-hand-group" style="width:100%">' +
-        '<div class="yt-sub" style="margin:2px 0 4px">左方（玩家 1）手牌</div>' +
-        '<div class="yt-hand" data-slot="0">' + ((localState.hands[0] || []).map(function (lv, i) { return sheepHtml(lv, 0, i); }).join('') || '<span class="yt-hand-empty">暂无羊，等待补充…</span>') + '</div>' +
-        '<div class="yt-sub" style="margin:8px 0 4px">右方（玩家 2）手牌</div>' +
-        '<div class="yt-hand" data-slot="1">' + ((localState.hands[1] || []).map(function (lv, i) { return sheepHtml(lv, 1, i); }).join('') || '<span class="yt-hand-empty">暂无羊，等待补充…</span>') + '</div>' +
+      box.innerHTML =
+        '<div class="yt-hand-group" style="display:flex;gap:18px;width:100%">' +
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+            '<div class="yt-sub">左方（玩家 1）</div>' +
+            '<div class="yt-circuit" data-slot="0" style="width:100%">' + circuitHtml(0) + '</div>' +
+          '</div>' +
+          '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+            '<div class="yt-sub">右方（玩家 2）</div>' +
+            '<div class="yt-circuit" data-slot="1" style="width:100%">' + circuitHtml(1) + '</div>' +
+          '</div>' +
         '</div>';
     } else {
-      var hand = (view.hand || []).slice().sort(function (a, b) { return a - b; });
-      html = hand.length
-        ? hand.map(function (lv, i) { return sheepHtml(lv, me, i); }).join('')
-        : '<span class="yt-hand-empty">暂无羊，等待补充…</span>';
+      box.innerHTML = '<div class="yt-circuit" data-slot="' + me + '">' + circuitHtml(me) + '</div>';
     }
-    box.innerHTML = html;
     renderLaneBtns();
     renderCdBar();
   }
@@ -109,9 +134,13 @@
     if (!view) { box.innerHTML = ''; return; }
     // 冷却按「羊」计：选中羊处于冷却时不能放（换一只未冷却的羊即可）
     var cd = selected ? coolLeft(selected.slot, selected.lv) : 0;
+    // 该赛道该侧是否已有羊在推进（引擎会拒绝重复投放；这里提前禁用提示）
+    var mySlot = (mode === 'local') ? (selected ? selected.slot : 0) : me;
     var html = '';
     for (var i = 0; i < (view.lanes || 5); i++) {
-      html += '<button class="yt-lane-btn" data-lane="' + i + '"' + (cd > 0 ? ' disabled' : '') + '>' +
+      var busy = !!((view.sheep || []).some(function (sh) { return sh.slot === mySlot && sh.lane === i; }));
+      html += '<button class="yt-lane-btn' + (busy ? ' busy' : '') + '" data-lane="' + i + '"' +
+        ((cd > 0 || busy) ? ' disabled' : '') + '>' +
         '赛道 ' + (i + 1) + '</button>';
     }
     box.innerHTML = html;

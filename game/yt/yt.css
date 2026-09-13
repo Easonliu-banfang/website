@@ -135,3 +135,61 @@
 .cd-chip b { color: var(--text); font-family: var(--mono); }
 .cd-chip.on { color: #ffd166; border-color: rgba(255, 209, 102, 0.55); background: rgba(255, 209, 102, 0.08); }
 .cd-chip i { font-style: normal; margin-left: 4px; font-family: var(--mono); }
+
+/* ---------- v9 竖排羊关卡选择器（出战羊群） ---------- */
+.yt-deploy-card .yt-card-title { margin-bottom: 12px; }
+.yt-deploy { display: flex; align-items: center; gap: 14px; }
+.yt-circuit {
+  display: flex; flex-direction: column; gap: 10px;
+  align-items: center; justify-content: center;
+  padding: 6px 2px;
+}
+.yt-sheep.seg {
+  position: relative; width: 64px; height: 64px;
+  border-radius: 50%; cursor: pointer; padding: 0;
+  background: conic-gradient(from 0deg, #22c55e var(--cdp, 100%), rgba(255,255,255,0.09) 0);
+  transition: transform 0.14s ease, box-shadow 0.14s;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  flex: 0 0 auto;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 内圈白底，让绿色只显为外圈回环 */
+.yt-sheep.seg .seg-inner {
+  position: absolute; inset: 6px; border-radius: 50%;
+  background: linear-gradient(160deg, #f6f8fc, #dde5f2);
+  border: 2px solid #b9c8e2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #1d2a3a; font-family: var(--mono);
+}
+.yt-sheep.seg .ico { font-size: 22px; line-height: 1; }
+.yt-sheep.seg .lv { font-size: 10px; font-weight: 800; color: #8a5a20; }
+.yt-sheep.seg.lv2 .seg-inner { background: linear-gradient(160deg, #f4fff6, #d9f4e2); border-color: #6fdc8e; }
+.yt-sheep.seg.lv3 .seg-inner { background: linear-gradient(160deg, #f0f7ff, #d5e8ff); border-color: #6db5ff; }
+.yt-sheep.seg.lv4 .seg-inner { background: linear-gradient(160deg, #fff3cf, #ffe0a1); border-color: #f0b429; }
+/* 选中：最上面 + 高亮描边 */
+.yt-sheep.seg.active {
+  transform: scale(1.14);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.4), 0 6px 16px rgba(0,0,0,0.4);
+}
+.yt-sheep.seg.active .seg-inner { border-color: var(--cyan); }
+/* 冷却中：整圈变灰，绿色回环进度由 --cdp 控制（0% → 100% 转圈填充） */
+.yt-sheep.seg.cooling .seg-inner { filter: grayscale(0.85) brightness(0.7); cursor: not-allowed; }
+.yt-sheep.seg .cd {
+  position: absolute; left: 50%; top: 110%;
+  transform: translateX(-50%);
+  font-family: var(--mono); font-size: 10px; font-weight: 800; color: #ffd166;
+  white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+/* 回环提示：无羊可放时显示空槽 */
+.yt-sheep.seg.empty { background: conic-gradient(#22c55e 0%, rgba(255,255,255,0.09) 0); opacity: 0.85; }
+.yt-sheep.seg.empty .seg-inner { border-style: dashed; color: #7c879e; background: rgba(20,28,40,0.5); }
+.yt-hand-empty { font-size: 12px; color: var(--dim); text-align: center; }
+@media (max-width: 480px) {
+  .yt-sheep.seg { width: 56px; height: 56px; }
+  .yt-deploy { gap: 10px; }
+}
+
+/* 赛道已推羊：按钮禁用态提示（占位符号 ★ 表示场上该赛道已有羊） */
+.yt-lane-btn.busy { color: #ff8a5c; border-color: rgba(255, 122, 122, 0.45); }
+.yt-lane-btn.busy::after { content: ' ★'; font-size: 10px; }
