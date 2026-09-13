@@ -41,6 +41,7 @@
   var aiTimer = null;
   var coinLock = false;      // 抛硬币动画期间锁输入
   var coinShown = false;
+  var lastTurnLabel = '';    // 上次回合提示文案（防止重复弹通知；须声明，严格模式）
 
   var el = {};
   ['boardTitle', 'btnNew', 'btnUndo', 'roomCodeTag', 'reqModal', 'reqText', 'reqSub',

@@ -25,6 +25,7 @@
     var w = Math.max(280, Math.min(rect.width, 560));
     this.canvas.width = w * dpr;
     this.canvas.height = w * dpr;
+    this.canvas.style.width = w + 'px';      // 关键：不设则会被子容器(max-width:640)横向拉伸 → 圆变椭圆+鼠标错位
     this.canvas.style.height = w + 'px';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.cssW = w;
