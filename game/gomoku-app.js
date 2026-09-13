@@ -1,6 +1,7 @@
 // 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
 var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
 var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
+var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执黑, 1=玩家二执黑
 /* 五子棋交互层：落子 + 三模式（local / ai / online），URL 驱动开局。
  * 渲染：单块 Canvas（棋盘+棋子），沿用「服务端权威、本地整体替换」思路。
  */
@@ -92,6 +93,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     window.Notify.clearAll();        // 新局/重开：清上一局胜负常驻
     if (!onlineMode) {
       var bp = Math.random() < 0.5 ? 0 : 1;      // 抛硬币：0=玩家一(人类)执黑, 1=玩家二(AI)执黑
+      L2P_BLACK = bp;
       if (ai) { humanColor = bp === 0 ? 1 : 2; aiSide = 3 - humanColor; }
       syncUI();
       playCoin(bp, { ai: ai });
@@ -261,7 +263,7 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
     } else if (vsAI) {
       showBanner(winner === humanColor ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？', true, true);
     } else {
-      showBanner((winner === 1 ? '黑棋' : '白棋') + ' 获胜', true);
+      showBanner((winner === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1)) + ' 获胜', true);
     }
   }
 
@@ -471,7 +473,7 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
       window.Notify.setTurn(onlineMode
         ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
         : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
-                : (state.turn === 1 ? '黑棋落子' : '白棋落子')));
+                : (state.turn === 1 ? ((window.Local2P && mode === 'local' && !vsAI) ? (L2P_BLACK === 0 ? L2P1 : L2P2) : '黑棋') : ((window.Local2P && mode === 'local' && !vsAI) ? (L2P_BLACK === 0 ? L2P2 : L2P1) : '白棋')) + '落子'));
     }
     el.btnNew.disabled = reqPending;
     if (el.btnUndo) el.btnUndo.disabled = undoPending || reqPending || !state || state.winner >= 0 || state.history.length === 0;

@@ -1,6 +1,7 @@
 // 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
 var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
 var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
+var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执黑, 1=玩家二执黑
 /* 围棋交互层：落子 / 停一手 / 三模式（local / ai / online）/ 终局数子（自动死活 + 可手动微调）。URL 驱动开局。 */
 (function () {
   'use strict';
@@ -92,6 +93,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     if (el.btnRescore) el.btnRescore.hidden = true;
     if (!onlineMode) {
       var bp = Math.random() < 0.5 ? 0 : 1;      // 抛硬币：0=玩家一(人类)执黑, 1=玩家二(AI)执黑
+      L2P_BLACK = bp;
       if (ai) { humanColor = bp === 0 ? 1 : 2; aiSide = 3 - humanColor; }
       syncUI();
       playCoin(bp, { ai: ai });
@@ -189,7 +191,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     state.winner = winnerColor;
     if (timer) timer.active = false;
     syncUI();
-    showOnlineStatus('对方超时，' + (winnerColor === 1 ? '黑' : '白') + '获胜', 'connected');
+    showOnlineStatus('对方超时，' + (winnerColor === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1)) + '获胜', 'connected');
     onWin(winnerColor);
   }
 
@@ -329,8 +331,8 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
     } else if (onlineMode) txt = winner === myColor() ? '🎉 你赢了！' : '对手获胜';
     else if (vsAI) txt = winner === humanColor ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？';
     else {
-      var name = winner === 1 ? '黑棋' : '白棋';
-      var sc = res ? ('（黑 ' + res.score1 + ' · 白 ' + res.score2 + '）') : '';
+      var name = winner === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1);
+      var sc = res ? ('（' + (L2P_BLACK === 0 ? L2P1 : L2P2) + ' ' + res.score1 + ' · ' + (L2P_BLACK === 0 ? L2P2 : L2P1) + ' ' + res.score2 + '）') : '';
       txt = name + ' 获胜 ' + sc;
     }
     showBanner(txt, true, true);
@@ -527,7 +529,7 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
       window.Notify.setTurn(onlineMode
         ? (state.turn === myColor() ? '轮到你落子' : '对手落子中')
         : (vsAI ? (state.turn === humanColor ? '轮到你落子' : '电脑思考中')
-                : (state.turn === 1 ? '黑棋落子' : '白棋落子')));
+                : (state.turn === 1 ? ((window.Local2P && mode === 'local' && !vsAI) ? (L2P_BLACK === 0 ? L2P1 : L2P2) : '黑棋') : ((window.Local2P && mode === 'local' && !vsAI) ? (L2P_BLACK === 0 ? L2P2 : L2P1) : '白棋')) + '落子'));
     }
     if (el.btnPass) el.btnPass.disabled = !myTurn();
     if (el.btnNew) el.btnNew.disabled = reqPending;

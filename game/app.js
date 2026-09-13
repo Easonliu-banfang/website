@@ -93,7 +93,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
         firstLabel = first === 0 ? '🟥 红方先手' : '🔵 蓝方先手';
         sub = (first === myPlayer) ? '你先手，开始！' : '对手先手';
       } else {
-        firstLabel = first === 0 ? '🟥 红方先手' : '🔵 蓝方先手';
+        firstLabel = first === 0 ? '🟥 ' + L2P1 + ' 先手' : '🔵 ' + L2P2 + ' 先手';
         sub = first === 0 ? L2P1 + '先手' : L2P2 + '先手';
       }
       el.coinResult.textContent = firstLabel;

@@ -1,6 +1,7 @@
 // 双人同屏昵称（local2p-name.html 输入，local2p.js 读取）；非双人模式回退「玩家一/玩家二」
 var L2P1 = (window.Local2P ? window.Local2P.p1() : '玩家一');
 var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
+var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执红/黑, 1=玩家二执红/黑
 /* 四子棋交互层：三模式（local / ai / online），URL 驱动开局。
  * 渲染：竖版 Canvas（白架 + 红蓝棋 + 重力掉落动画）
  * 联机：统一等待室(GameLobby) → 开始 → 对局（服务端权威）
@@ -84,6 +85,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     window.Notify.clearAll();
     if (!onlineMode) {
       var bp = Math.random() < 0.5 ? 0 : 1;      // 抛硬币：0=玩家一(人类)先, 1=玩家二(AI)先
+      L2P_BLACK = bp;
       if (ai) { humanColor = bp === 0 ? 1 : 2; aiSide = 3 - humanColor; }
       state.blackPlayer = bp;
       playCoin(bp, { ai: ai });                  // 先播硬币（coinLock=true 期间 syncUI 不弹回合提示）
@@ -161,7 +163,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     } else if (vsAI) {
       txt = winner === humanColor ? '🎉 恭喜你胜利了！' : '😶 电脑获胜，再来一局？';
     } else {
-      txt = (winner === 1 ? '红方' : '蓝方') + ' 获胜';
+      txt = (winner === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1)) + ' 获胜';
     }
     showBanner(txt, true, true);
     // 高亮胜利四连（简化为通知文案）
@@ -256,12 +258,12 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
   /* ---------- 渲染 ---------- */
   function turnLabel() {
     if (!state) return '';
-    if (state.winner === 1) return '红方获胜！';
-    if (state.winner === 2) return '蓝方获胜！';
+    if (state.winner === 1) return (mode === 'local' && !vsAI ? (L2P_BLACK === 0 ? L2P1 : L2P2) : '红方') + '获胜！';
+    if (state.winner === 2) return (mode === 'local' && !vsAI ? (L2P_BLACK === 0 ? L2P2 : L2P1) : '蓝方') + '获胜！';
     if (state.winner === 0) return '平局';
     if (onlineMode) return (state.turn === myColor() ? '轮到你落子' : '对手思考中');
     if (vsAI) return (state.turn === humanColor ? '轮到你落子' : '电脑思考中');
-    return '轮到' + (state.turn === 1 ? '红' : '蓝') + '方落子';
+    return '轮到' + (mode === 'local' && !vsAI ? (state.turn === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1)) : (state.turn === 1 ? '红' : '蓝')) + '方落子';
   }
   function colorName(c) { return c === 1 ? '红' : '蓝'; }
 
