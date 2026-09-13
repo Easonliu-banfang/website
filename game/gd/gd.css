@@ -548,3 +548,58 @@ html, body { height: 100%; margin: 0; }
 .hand-area { max-width: 100vw; }
 .dialog .btn { margin-top: 4px; }
 #modalCards .card { cursor: pointer; }
+
+/* ============ 掼蛋 · 横屏响应式适配（手机/平板任意尺寸） ============ */
+/* —— 手牌超宽安全居中：flex center 溢出会向两侧发散（左半滚不到）。
+      改用 safe center：内容超宽时退化为靠左排列，溢出只出现在滚动方向，
+      配合 .hand-area 的 overflow-x 可滚动到最左/最右一张牌。 —— */
+.hand-area { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.hand-area::-webkit-scrollbar { display: none; }
+.hand { justify-content: safe center; }
+
+/* —— 中等横屏（≤1024 宽：平板/大手机/小窗口）—— */
+@media (orientation: landscape) and (max-width: 1024px) {
+  :root { --card-w: 62px; --card-h: 86px; --card-w-sm: 38px; --card-h-sm: 54px; }
+  .hudbar { padding: 6px 12px; font-size: 13px; }
+  .hudbar .levels { gap: 10px; }
+  .level-chip { padding: 3px 10px; font-size: 12px; }
+  .seat { padding: 8px 12px; gap: 8px; }
+  .seat-name { font-size: 13px; }
+  .trick-inner { width: min(560px, 78vw); height: min(300px, 52vh); }
+  .actionbar { gap: 12px; min-height: 56px; }
+  .hand { min-height: calc(var(--card-h) + 22px); padding-top: 22px; }
+  .dialog { min-width: min(380px, 82vw); }
+}
+
+/* —— 手机横屏矮屏（≤430 高：所有手机横屏）—— */
+@media (orientation: landscape) and (max-height: 430px) {
+  :root { --card-w: 52px; --card-h: 72px; --card-w-sm: 31px; --card-h-sm: 43px; }
+  .hudbar { padding: 3px 10px; font-size: 12px; }
+  .hudbar .levels { gap: 7px; }
+  .level-chip { padding: 2px 8px; font-size: 11px; }
+  #modeTagTxt { display: none; }            /* 窄屏隐藏模式标签，只留退出 */
+  .trick-inner { width: min(560px, 74vw); height: min(300px, 40vh); }
+  .seat { padding: 5px 9px; gap: 6px; border-radius: 10px; }
+  .seat-name { font-size: 12px; }
+  .seat-count { font-size: 11px; min-width: 26px; }
+  .seat-cards { display: none; }            /* 矮屏隐藏对手牌条，座位变矮不重叠 */
+  .seat-place { font-size: 10px; padding: 0 5px; }
+  .hand { min-height: calc(var(--card-h) + 20px); padding-top: 20px; }
+  .hand .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.55); }
+  .hand.tight .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.6); }
+  .card.selected { transform: translateY(-14px); }
+  .actionbar { min-height: 46px; gap: 9px; padding: 3px 0 9px; }
+  .actionbar .status { left: 12px; font-size: 12px; max-width: 44vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn { padding: 7px 16px; font-size: 14px; }
+  .btn.small { padding: 4px 9px; font-size: 12px; }
+  .toast { top: 40px; padding: 7px 16px; font-size: 13px; }
+  .dialog { padding: 16px 20px; min-width: min(360px, 84vw); }
+  .dialog h3 { letter-spacing: 2px; font-size: 20px; }
+  .seat.top { top: 8px; }
+  .seat.left { left: 8px; }
+  .seat.right { right: 8px; }
+  .pass-mark { font-size: 16px; letter-spacing: 2px; }
+  .shape-tag { font-size: 10px; padding: 1px 5px; }
+  .trick-play .who { font-size: 11px; }
+  .lo-phone { font-size: 44px; }
+}
