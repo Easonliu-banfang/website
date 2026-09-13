@@ -46,30 +46,43 @@
               <stop offset="0" stop-color="rgba(56,132,255,0.35)"/><stop offset="1" stop-color="transparent"/>
             </radialGradient>
             <linearGradient id="c4red" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#ff6d78"/><stop offset="1" stop-color="#c22434"/>
+              <stop offset="0" stop-color="#ff7d85"/><stop offset="1" stop-color="#c22434"/>
             </linearGradient>
             <linearGradient id="c4blue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#6db4ff"/><stop offset="1" stop-color="#1f66d8"/>
+              <stop offset="0" stop-color="#7dbdff"/><stop offset="1" stop-color="#1f66d8"/>
             </linearGradient>
           </defs>
           <rect width="240" height="168" fill="url(#c4bg)"/>
           <rect width="240" height="168" fill="url(#c4glow)"/>
-          <rect x="62" y="20" width="116" height="118" rx="10" fill="#0a1020" stroke="rgba(120,170,255,0.35)" stroke-width="2"/>
-          <g fill="#131f3d">
-            <circle cx="82" cy="40" r="10.5"/><circle cx="106" cy="40" r="10.5"/><circle cx="130" cy="40" r="10.5"/><circle cx="154" cy="40" r="10.5"/>
-            <circle cx="82" cy="64" r="10.5"/><circle cx="106" cy="64" r="10.5"/><circle cx="130" cy="64" r="10.5"/><circle cx="154" cy="64" r="10.5"/>
-            <circle cx="82" cy="88" r="10.5"/><circle cx="106" cy="88" r="10.5"/><circle cx="130" cy="88" r="10.5"/><circle cx="154" cy="88" r="10.5"/>
-            <circle cx="82" cy="112" r="10.5"/><circle cx="106" cy="112" r="10.5"/><circle cx="130" cy="112" r="10.5"/><circle cx="154" cy="112" r="10.5"/>
-            <circle cx="82" cy="136" r="10.5"/><circle cx="106" cy="136" r="10.5"/><circle cx="130" cy="136" r="10.5"/><circle cx="154" cy="136" r="10.5"/>
+          <!-- 竖立棋盘（7x6 孔位） -->
+          <rect x="56" y="16" width="128" height="132" rx="8" fill="#0a1020" stroke="rgba(120,170,255,0.35)" stroke-width="2"/>
+          <g fill="#14203c">
+            <circle cx="78" cy="38" r="8"/><circle cx="100" cy="38" r="8"/><circle cx="122" cy="38" r="8"/><circle cx="144" cy="38" r="8"/><circle cx="166" cy="38" r="8"/>
+            <circle cx="78" cy="62" r="8"/><circle cx="100" cy="62" r="8"/><circle cx="122" cy="62" r="8"/><circle cx="144" cy="62" r="8"/><circle cx="166" cy="62" r="8"/>
+            <circle cx="78" cy="86" r="8"/><circle cx="100" cy="86" r="8"/><circle cx="122" cy="86" r="8"/><circle cx="144" cy="86" r="8"/><circle cx="166" cy="86" r="8"/>
+            <circle cx="78" cy="110" r="8"/><circle cx="100" cy="110" r="8"/><circle cx="122" cy="110" r="8"/><circle cx="144" cy="110" r="8"/><circle cx="166" cy="110" r="8"/>
+            <circle cx="78" cy="134" r="8"/><circle cx="100" cy="134" r="8"/><circle cx="122" cy="134" r="8"/><circle cx="144" cy="134" r="8"/><circle cx="166" cy="134" r="8"/>
           </g>
-          <circle cx="82" cy="40" r="8.5" fill="url(#c4red)"/><circle cx="106" cy="40" r="8.5" fill="url(#c4blue)"/>
-          <circle cx="130" cy="40" r="8.5" fill="url(#c4red)"/><circle cx="82" cy="64" r="8.5" fill="url(#c4blue)"/>
-          <circle cx="106" cy="64" r="8.5" fill="url(#c4red)"/><circle cx="130" cy="64" r="8.5" fill="url(#c4blue)"/>
-          <circle cx="154" cy="64" r="8.5" fill="url(#c4red)"/><circle cx="82" cy="88" r="8.5" fill="url(#c4red)"/>
-          <circle cx="106" cy="88" r="8.5" fill="url(#c4blue)"/><circle cx="130" cy="88" r="8.5" fill="url(#c4red)"/>
-          <rect x="91" y="102" width="30" height="3" rx="1.5" fill="#4dd8ff" opacity="0.35"/>
-          <circle cx="106" cy="118" r="8.5" fill="url(#c4blue)" stroke="#9fe" stroke-width="1"/>
-          <g fill="#fff" opacity="0.7"><circle cx="106" cy="44" r="2"/><circle cx="82" cy="44" r="2"/><circle cx="130" cy="44" r="2"/></g>
+          <!-- 底部往上叠加的重力棋子 -->
+          <g>
+            <!-- 第1列 -->
+            <circle cx="78" cy="134" r="6.5" fill="url(#c4red)"/><circle cx="78" cy="110" r="6.5" fill="url(#c4blue)"/>
+            <circle cx="78" cy="86" r="6.5" fill="url(#c4red)"/>
+            <!-- 第2列 -->
+            <circle cx="100" cy="134" r="6.5" fill="url(#c4blue)"/><circle cx="100" cy="110" r="6.5" fill="url(#c4red)"/>
+            <!-- 第3列 -->
+            <circle cx="122" cy="134" r="6.5" fill="url(#c4red)"/><circle cx="122" cy="110" r="6.5" fill="url(#c4blue)"/>
+            <circle cx="122" cy="86" r="6.5" fill="url(#c4blue)"/>
+            <!-- 第4列 -->
+            <circle cx="144" cy="134" r="6.5" fill="url(#c4red)"/>
+            <!-- 顶部正在掉落的棋子（第5列） -->
+            <rect x="160" y="24" width="22" height="3" rx="1.5" fill="#7dd3fc" opacity="0.45"/>
+            <circle cx="166" cy="42" r="6.5" fill="url(#c4red)" stroke="#ffb4b4" stroke-width="1.2"/>
+          </g>
+          <!-- 落下的速度线 -->
+          <g stroke="rgba(125,211,252,0.25)" stroke-width="1.5" stroke-linecap="round">
+            <line x1="156" y1="34" x2="156" y2="40"/><line x1="176" y1="34" x2="176" y2="40"/>
+          </g>
         </svg>
       </div>
       <div class="gc-body">
@@ -156,16 +169,19 @@
           <rect width="240" height="168" fill="url(#liarbg)"/>
           <rect width="240" height="168" fill="url(#liarglow)"/>
           <ellipse cx="120" cy="126" rx="98" ry="22" fill="url(#liarwood)" stroke="rgba(255,255,255,0.08)"/>
-          <rect x="86" y="38" width="62" height="88" rx="9" fill="#1e2735" stroke="rgba(34,211,238,0.6)" stroke-width="2"/>
-          <rect x="96" y="48" width="42" height="56" rx="6" fill="#27354a"/>
-          <text x="117" y="84" text-anchor="middle" font-family="Georgia, serif" font-size="34" font-weight="800" fill="#7dd3fc">?</text>
-          <text x="117" y="112" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.45)">真话还是谎言?</text>
-          <ellipse cx="117" cy="128" rx="30" ry="4" fill="rgba(0,0,0,0.5)"/>
+          <rect x="86" y="34" width="62" height="92" rx="9" fill="#1e2735" stroke="rgba(34,211,238,0.6)" stroke-width="2"/>
+          <rect x="96" y="44" width="42" height="64" rx="6" fill="#27354a"/>
+          <text x="117" y="88" text-anchor="middle" font-family="Georgia, serif" font-size="42" font-weight="800" fill="#7dd3fc">?</text>
+          <ellipse cx="117" cy="128" rx="36" ry="4" fill="rgba(0,0,0,0.5)"/>
+          <!-- 两端左轮弹膛 -->
           <g stroke="rgba(248,113,113,0.7)" stroke-width="3" fill="none" stroke-linecap="round">
-            <circle cx="60" cy="68" r="10"/><circle cx="180" cy="68" r="10"/>
+            <circle cx="58" cy="66" r="10"/><circle cx="182" cy="66" r="10"/>
           </g>
-          <circle cx="60" cy="68" r="3.5" fill="#fb7185"/><circle cx="180" cy="68" r="3.5" fill="#fb7185"/>
-          <circle cx="117" cy="82" r="52" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          <circle cx="58" cy="66" r="3.5" fill="#fb7185"/><circle cx="182" cy="66" r="3.5" fill="#fb7185"/>
+          <!-- 下方两枚筹码 -->
+          <circle cx="76" cy="112" r="8" fill="#c9a45c"/><circle cx="76" cy="112" r="5" fill="none" stroke="#8a6a34" stroke-width="1.5"/>
+          <circle cx="164" cy="112" r="8" fill="#c9a45c"/><circle cx="164" cy="112" r="5" fill="none" stroke="#8a6a34" stroke-width="1.5"/>
+          <circle cx="117" cy="82" r="56" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
         </svg>
       </div>
       <div class="gc-body">
@@ -187,31 +203,38 @@
         <svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
             <linearGradient id="qrbg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#131b2e"/><stop offset="1" stop-color="#0d1526"/>
+              <stop offset="0" stop-color="#0e1626"/><stop offset="1" stop-color="#0a101c"/>
             </linearGradient>
-            <radialGradient id="qrglow" cx="0.5" cy="0.42" r="0.55">
-              <stop offset="0" stop-color="rgba(34,211,238,0.18)"/><stop offset="1" stop-color="transparent"/>
+            <radialGradient id="qrglow" cx="0.5" cy="0.45" r="0.55">
+              <stop offset="0" stop-color="rgba(91,155,255,0.16)"/><stop offset="1" stop-color="transparent"/>
             </radialGradient>
-            <linearGradient id="qrcy" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#0e9fc0"/>
+            <linearGradient id="qrred" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#ff8a8a"/><stop offset="1" stop-color="#8f2d2d"/>
             </linearGradient>
-            <linearGradient id="qrpu" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#7c5cff"/>
+            <linearGradient id="qrblue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#8ab8ff"/><stop offset="1" stop-color="#2a55a8"/>
+            </linearGradient>
+            <linearGradient id="qrwall" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#6d829c"/><stop offset="1" stop-color="#2a3443"/>
             </linearGradient>
           </defs>
           <rect width="240" height="168" fill="url(#qrbg)"/>
           <rect width="240" height="168" fill="url(#qrglow)"/>
+          <!-- 9x9 棋盘格 -->
           <g stroke="rgba(255,255,255,0.13)" stroke-width="1.4">
-            <line x1="62" y1="30" x2="62" y2="144"/><line x1="84" y1="30" x2="84" y2="144"/><line x1="106" y1="30" x2="106" y2="144"/><line x1="128" y1="30" x2="128" y2="144"/><line x1="150" y1="30" x2="150" y2="144"/><line x1="172" y1="30" x2="172" y2="144"/>
-            <line x1="62" y1="30" x2="172" y2="30"/><line x1="62" y1="56" x2="172" y2="56"/><line x1="62" y1="82" x2="172" y2="82"/><line x1="62" y1="108" x2="172" y2="108"/><line x1="62" y1="144" x2="172" y2="144"/>
+            <line x1="60" y1="20" x2="60" y2="148"/><line x1="82" y1="20" x2="82" y2="148"/><line x1="104" y1="20" x2="104" y2="148"/><line x1="126" y1="20" x2="126" y2="148"/><line x1="148" y1="20" x2="148" y2="148"/><line x1="170" y1="20" x2="170" y2="148"/>
+            <line x1="60" y1="20" x2="170" y2="20"/><line x1="60" y1="46" x2="170" y2="46"/><line x1="60" y1="72" x2="170" y2="72"/><line x1="60" y1="98" x2="170" y2="98"/><line x1="60" y1="124" x2="170" y2="124"/><line x1="60" y1="148" x2="170" y2="148"/>
           </g>
-          <rect x="139" y="72" width="8" height="52" rx="3.5" fill="url(#qrpu)" opacity="0.92"/>
-          <rect x="150" y="72" width="8" height="52" rx="3.5" fill="url(#qrpu)" opacity="0.92"/>
-          <circle cx="106" cy="108" r="11" fill="url(#qrcy)" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
-          <circle cx="106" cy="104" r="3.2" fill="#fff" opacity="0.65"/>
-          <circle cx="128" cy="44" r="11" fill="#30405c" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
-          <circle cx="128" cy="40" r="3.2" fill="#fff" opacity="0.4"/>
-          <path d="M56 128 L184 128" stroke="rgba(34,211,238,0.35)" stroke-width="2" stroke-dasharray="6 5"/>
+          <!-- 蓝棋在上、红棋在下，真实配色 -->
+          <circle cx="126" cy="52" r="12" fill="url(#qrblue)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
+          <circle cx="122" cy="48" r="3" fill="#fff" opacity="0.55"/>
+          <circle cx="104" cy="130" r="12" fill="url(#qrred)" stroke="rgba(255,255,255,0.4)" stroke-width="0.6"/>
+          <circle cx="100" cy="126" r="3" fill="#fff" opacity="0.5"/>
+          <!-- 单块墙：横在蓝棋前进路上（清蓝色，挡住一列） -->
+          <rect x="114" y="94" width="96" height="7" rx="3.5" fill="url(#qrwall)" stroke="rgba(125,150,185,0.5)" stroke-width="1"/>
+          <!-- 目标行 -->
+          <line x1="56" y1="26" x2="176" y2="26" stroke="rgba(91,155,255,0.5)" stroke-width="2" stroke-dasharray="6 5"/>
+          <line x1="56" y1="150" x2="176" y2="150" stroke="rgba(239,91,91,0.5)" stroke-width="2" stroke-dasharray="6 5"/>
         </svg>
       </div>
       <div class="gc-body">
@@ -284,27 +307,42 @@
             <radialGradient id="bsglow" cx="0.5" cy="0.4" r="0.55">
               <stop offset="0" stop-color="rgba(56,132,255,0.2)"/><stop offset="1" stop-color="transparent"/>
             </radialGradient>
-            <linearGradient id="bships" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stop-color="#3d556e"/><stop offset="1" stop-color="#22364c"/>
+            <linearGradient id="bs1" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#63e6ff"/><stop offset="1" stop-color="#2aa8c7"/>
+            </linearGradient>
+            <linearGradient id="bs2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#b7a3f7"/><stop offset="1" stop-color="#7c5cff"/>
+            </linearGradient>
+            <linearGradient id="bs3" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#ffd766"/><stop offset="1" stop-color="#d9a209"/>
+            </linearGradient>
+            <linearGradient id="bs4" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#66e0a8"/><stop offset="1" stop-color="#1f9e55"/>
             </linearGradient>
           </defs>
           <rect width="240" height="168" fill="url(#bsbg)"/>
           <rect width="240" height="168" fill="url(#bsglow)"/>
-          <g stroke="rgba(125,190,255,0.1)" stroke-width="1">
-            <line x1="58" y1="26" x2="58" y2="136"/><line x1="86" y1="26" x2="86" y2="136"/><line x1="114" y1="26" x2="114" y2="136"/><line x1="142" y1="26" x2="142" y2="136"/><line x1="170" y1="26" x2="170" y2="136"/>
-            <line x1="58" y1="26" x2="186" y2="26"/><line x1="58" y1="48" x2="186" y2="48"/><line x1="58" y1="70" x2="186" y2="70"/><line x1="58" y1="92" x2="186" y2="92"/><line x1="58" y1="114" x2="186" y2="114"/><line x1="58" y1="136" x2="186" y2="136"/>
+          <!-- 10x10 网格（56..184，格宽 12.8） -->
+          <g stroke="rgba(125,190,255,0.12)" stroke-width="0.8">
+            <line x1="56" y1="20" x2="56" y2="148"/><line x1="68.8" y1="20" x2="68.8" y2="148"/><line x1="81.6" y1="20" x2="81.6" y2="148"/><line x1="94.4" y1="20" x2="94.4" y2="148"/><line x1="107.2" y1="20" x2="107.2" y2="148"/><line x1="120" y1="20" x2="120" y2="148"/><line x1="132.8" y1="20" x2="132.8" y2="148"/><line x1="145.6" y1="20" x2="145.6" y2="148"/><line x1="158.4" y1="20" x2="158.4" y2="148"/><line x1="171.2" y1="20" x2="171.2" y2="148"/><line x1="184" y1="20" x2="184" y2="148"/>
+            <line x1="56" y1="20" x2="184" y2="20"/><line x1="56" y1="32.8" x2="184" y2="32.8"/><line x1="56" y1="45.6" x2="184" y2="45.6"/><line x1="56" y1="58.4" x2="184" y2="58.4"/><line x1="56" y1="71.2" x2="184" y2="71.2"/><line x1="56" y1="84" x2="184" y2="84"/><line x1="56" y1="96.8" x2="184" y2="96.8"/><line x1="56" y1="109.6" x2="184" y2="109.6"/><line x1="56" y1="122.4" x2="184" y2="122.4"/><line x1="56" y1="135.2" x2="184" y2="135.2"/><line x1="56" y1="148" x2="184" y2="148"/>
           </g>
-          <rect x="72" y="60" width="88" height="20" rx="6" fill="url(#bships)" stroke="rgba(125,200,255,0.45)" stroke-width="1.5"/>
-          <rect x="84" y="48" width="30" height="14" rx="4" fill="#31506e"/>
-          <circle cx="96" cy="55" r="4" fill="rgba(255,255,255,0.15)"/>
-          <line x1="72" y1="80" x2="72" y2="90" stroke="#4a6b8e" stroke-width="3"/>
-          <line x1="160" y1="80" x2="160" y2="90" stroke="#4a6b8e" stroke-width="3"/>
-          <circle cx="160" cy="92" r="7" fill="#fb7185" opacity="0.9"/>
-          <circle cx="160" cy="92" r="11" fill="none" stroke="#fb7185" stroke-width="2" opacity="0.5"/>
-          <path d="M160 80 L160 104 M148 92 L172 92" stroke="#fb7185" stroke-width="2"/>
-          <circle cx="92" cy="115" r="4.5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
-          <circle cx="142" cy="115" r="4.5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
-          <path d="M180 30 A 80 80 0 0 1 200 70" fill="none" stroke="rgba(34,211,238,0.3)" stroke-width="1.5" stroke-dasharray="4 5"/>
+          <!-- 舰队（横/竖 + 各色渐变） -->
+          <g>
+            <rect x="58" y="22" width="38" height="10" rx="2" fill="url(#bs1)"/>          <!-- 5格航母 青色 -->
+            <rect x="70" y="34" width="10" height="30" rx="2" fill="url(#bs2)"/>          <!-- 4格战列舰 紫色 -->
+            <rect x="109" y="36" width="30" height="10" rx="2" fill="url(#bs3)"/>         <!-- 3格巡洋 金色 -->
+            <rect x="148" y="32" width="10" height="22" rx="2" fill="url(#bs4)"/>         <!-- 2格驱逐 绿色 -->
+            <rect x="134" y="60" width="20" height="10" rx="2" fill="url(#bs1)" opacity="0.8"/> <!-- 剩余 -->
+          </g>
+          <!-- 命中标记（红叉） -->
+          <g stroke="#fb7185" stroke-width="2.4" stroke-linecap="round">
+            <line x1="61" y1="25" x2="69" y2="33"/><line x1="69" y1="25" x2="61" y2="33"/>
+          </g>
+          <circle cx="152" cy="45" r="4.5" fill="#f87171"/>
+          <circle cx="152" cy="45" r="7" fill="none" stroke="#f87171" stroke-width="1.5" opacity="0.5"/>
+          <!-- 未命中蓝点 -->
+          <g fill="#3f5d82"><circle cx="96" cy="122" r="3"/><circle cx="158" cy="110" r="3"/><circle cx="120" cy="130" r="3"/></g>
         </svg>
       </div>
       <div class="gc-body">
@@ -326,29 +364,47 @@
         <svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
             <linearGradient id="gmbg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#241c12"/><stop offset="1" stop-color="#171208"/>
+              <stop offset="0" stop-color="#2a2214"/><stop offset="1" stop-color="#19150a"/>
             </linearGradient>
-            <radialGradient id="gmgrid" cx="0.5" cy="0.5" r="0.7">
-              <stop offset="0" stop-color="#c9a35e"/><stop offset="1" stop-color="#8a6a34"/>
+            <linearGradient id="gmwood" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#dbbe74"/><stop offset="1" stop-color="#a8843f"/>
+            </linearGradient>
+            <radialGradient id="gmgrain" cx="0.5" cy="0.5" r="0.75" fx="0.3" fy="0.28">
+              <stop offset="0" stop-color="#e7cd8b"/><stop offset="0.6" stop-color="#c9a35e"/><stop offset="1" stop-color="#96742f"/>
             </radialGradient>
             <radialGradient id="gmhint" cx="0.5" cy="0.5" r="0.5">
-              <stop offset="0" stop-color="rgba(34,211,238,0.5)"/><stop offset="1" stop-color="transparent"/>
+              <stop offset="0" stop-color="rgba(34,211,238,0.55)"/><stop offset="1" stop-color="transparent"/>
             </radialGradient>
           </defs>
           <rect width="240" height="168" fill="url(#gmbg)"/>
-          <rect x="46" y="20" width="148" height="128" rx="6" fill="url(#gmgrid)" opacity="0.9"/>
-          <g stroke="rgba(60,38,12,0.55)" stroke-width="1.3">
-            <line x1="62" y1="36" x2="178" y2="36"/><line x1="62" y1="58" x2="178" y2="58"/><line x1="62" y1="80" x2="178" y2="80"/><line x1="62" y1="102" x2="178" y2="102"/><line x1="62" y1="124" x2="178" y2="124"/>
-            <line x1="62" y1="36" x2="62" y2="124"/><line x1="84" y1="36" x2="84" y2="124"/><line x1="106" y1="36" x2="106" y2="124"/><line x1="128" y1="36" x2="128" y2="124"/><line x1="150" y1="36" x2="150" y2="124"/><line x1="172" y1="36" x2="172" y2="124"/>
+          <!-- 木纹棋盘（15 路：34..206，格宽 12.3） -->
+          <rect x="30" y="14" width="180" height="140" rx="4" fill="url(#gmwood)"/>
+          <rect x="30" y="14" width="180" height="140" rx="4" fill="url(#gmgrain)" opacity="0.4"/>
+          <g stroke="rgba(60,40,14,0.55)" stroke-width="1.1">
+            <line x1="42" y1="26" x2="198" y2="26"/><line x1="42" y1="38.3" x2="198" y2="38.3"/><line x1="42" y1="50.6" x2="198" y2="50.6"/><line x1="42" y1="62.9" x2="198" y2="62.9"/><line x1="42" y1="75.2" x2="198" y2="75.2"/><line x1="42" y1="87.5" x2="198" y2="87.5"/><line x1="42" y1="99.8" x2="198" y2="99.8"/><line x1="42" y1="112.1" x2="198" y2="112.1"/><line x1="42" y1="124.4" x2="198" y2="124.4"/><line x1="42" y1="136.7" x2="198" y2="136.7"/><line x1="42" y1="149" x2="198" y2="149"/>
+            <line x1="42" y1="26" x2="42" y2="149"/><line x1="54.3" y1="26" x2="54.3" y2="149"/><line x1="66.6" y1="26" x2="66.6" y2="149"/><line x1="78.9" y1="26" x2="78.9" y2="149"/><line x1="91.2" y1="26" x2="91.2" y2="149"/><line x1="103.5" y1="26" x2="103.5" y2="149"/><line x1="115.8" y1="26" x2="115.8" y2="149"/><line x1="128.1" y1="26" x2="128.1" y2="149"/><line x1="140.4" y1="26" x2="140.4" y2="149"/><line x1="152.7" y1="26" x2="152.7" y2="149"/><line x1="165" y1="26" x2="165" y2="149"/><line x1="177.3" y1="26" x2="177.3" y2="149"/><line x1="189.6" y1="26" x2="189.6" y2="149"/><line x1="198" y1="26" x2="198" y2="149"/>
           </g>
-          <g fill="rgba(60,38,12,0.7)"><circle cx="84" cy="58" r="2"/><circle cx="150" cy="58" r="2"/><circle cx="84" cy="102" r="2"/><circle cx="150" cy="102" r="2"/></g>
-          <circle cx="84" cy="58" r="8" fill="#14171c" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
-          <circle cx="106" cy="58" r="8" fill="#e9eef5" stroke="#14171c" stroke-width="1"/>
-          <circle cx="128" cy="58" r="8" fill="#14171c"/>
-          <circle cx="150" cy="58" r="8" fill="#e9eef5" stroke="#14171c" stroke-width="1"/>
-          <circle cx="172" cy="58" r="8" fill="#14171c"/>
-          <circle cx="84" cy="80" r="8" fill="#e9eef5" stroke="#14171c" stroke-width="1"/>
-          <circle cx="172" cy="58" r="11" fill="url(#gmhint)"/>
+          <!-- 星位 -->
+          <g fill="rgba(50,34,12,0.75)"><circle cx="78.9" cy="62.9" r="2"/><circle cx="152.7" cy="62.9" r="2"/><circle cx="78.9" cy="112.1" r="2"/><circle cx="152.7" cy="112.1" r="2"/><circle cx="140.4" cy="87.5" r="2"/></g>
+          <!-- 对攻棋形：黑冲四（横向4连即将5）+ 白活三贴防 -->
+          <g>
+            <!-- 黑子：横向 91.2/103.5/115.8/128.1 在 y=87.5（4连），加 152.7 斜防 -->
+            <circle cx="91.2" cy="87.5" r="7" fill="#181b20" stroke="#000" stroke-width="0.8"/>
+            <circle cx="103.5" cy="87.5" r="7" fill="#181b20" stroke="#000" stroke-width="0.8"/>
+            <circle cx="115.8" cy="87.5" r="7" fill="#181b20" stroke="#000" stroke-width="0.8"/>
+            <circle cx="128.1" cy="87.5" r="7" fill="#181b20" stroke="#000" stroke-width="0.8"/>
+            <!-- 白子：斜线防守 91.2/103.5 上斜、152.7 右下 -->
+            <circle cx="91.2" cy="112.1" r="7" fill="#f1f3f6" stroke="#b9bfc9" stroke-width="0.8"/>
+            <circle cx="103.5" cy="99.8" r="7" fill="#f1f3f6" stroke="#b9bfc9" stroke-width="0.8"/>
+            <circle cx="152.7" cy="112.1" r="7" fill="#f1f3f6" stroke="#b9bfc9" stroke-width="0.8"/>
+            <circle cx="54.3" cy="75.2" r="7" fill="#f1f3f6" stroke="#b9bfc9" stroke-width="0.8"/>
+            <circle cx="140.4" cy="62.9" r="7" fill="#f1f3f6" stroke="#b9bfc9" stroke-width="0.8"/>
+            <!-- 黑子扩充 -->
+            <circle cx="66.6" cy="87.5" r="7" fill="#181b20" stroke="#000" stroke-width="0.8"/>
+            <circle cx="152.7" cy="87.5" r="7" fill="#181b20" stroke="#000" stroke-width="0.8"/>
+          </g>
+          <!-- 活四延伸提示（黑方下一手） -->
+          <circle cx="66.6" cy="87.5" r="10" fill="url(#gmhint)"/>
         </svg>
       </div>
       <div class="gc-body">
@@ -370,25 +426,50 @@
         <svg viewBox="0 0 240 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs>
             <linearGradient id="gobg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#1f2a1a"/><stop offset="1" stop-color="#121a0e"/>
+              <stop offset="0" stop-color="#241d10"/><stop offset="1" stop-color="#141107"/>
             </linearGradient>
-            <radialGradient id="gogrid" cx="0.5" cy="0.5" r="0.7">
-              <stop offset="0" stop-color="#c9b46a"/><stop offset="1" stop-color="#8f7a3e"/>
+            <radialGradient id="gograin" cx="0.5" cy="0.5" r="0.72" fx="0.28" fy="0.24">
+              <stop offset="0" stop-color="#d9ba70"/><stop offset="0.65" stop-color="#b39148"/><stop offset="1" stop-color="#82652c"/>
             </radialGradient>
           </defs>
           <rect width="240" height="168" fill="url(#gobg)"/>
-          <rect x="46" y="20" width="148" height="128" rx="6" fill="url(#gogrid)" opacity="0.9"/>
-          <g stroke="rgba(60,42,16,0.5)" stroke-width="1.2">
-            <line x1="62" y1="36" x2="178" y2="36"/><line x1="62" y1="58" x2="178" y2="58"/><line x1="62" y1="80" x2="178" y2="80"/><line x1="62" y1="102" x2="178" y2="102"/><line x1="62" y1="124" x2="178" y2="124"/>
-            <line x1="62" y1="36" x2="62" y2="124"/><line x1="84" y1="36" x2="84" y2="124"/><line x1="106" y1="36" x2="106" y2="124"/><line x1="128" y1="36" x2="128" y2="124"/><line x1="150" y1="36" x2="150" y2="124"/><line x1="172" y1="36" x2="172" y2="124"/>
+          <!-- 木棋盘（19 路抽象为 11 路：34..206） -->
+          <rect x="30" y="14" width="180" height="140" rx="4" fill="url(#gograin)"/>
+          <g stroke="rgba(50,35,12,0.5)" stroke-width="1">
+            <line x1="42" y1="26" x2="198" y2="26"/><line x1="42" y1="39.6" x2="198" y2="39.6"/><line x1="42" y1="53.2" x2="198" y2="53.2"/><line x1="42" y1="66.8" x2="198" y2="66.8"/><line x1="42" y1="80.4" x2="198" y2="80.4"/><line x1="42" y1="94" x2="198" y2="94"/><line x1="42" y1="107.6" x2="198" y2="107.6"/><line x1="42" y1="121.2" x2="198" y2="121.2"/><line x1="42" y1="134.8" x2="198" y2="134.8"/><line x1="42" y1="148" x2="198" y2="148"/>
+            <line x1="42" y1="26" x2="42" y2="148"/><line x1="55.6" y1="26" x2="55.6" y2="148"/><line x1="69.2" y1="26" x2="69.2" y2="148"/><line x1="82.8" y1="26" x2="82.8" y2="148"/><line x1="96.4" y1="26" x2="96.4" y2="148"/><line x1="110" y1="26" x2="110" y2="148"/><line x1="123.6" y1="26" x2="123.6" y2="148"/><line x1="137.2" y1="26" x2="137.2" y2="148"/><line x1="150.8" y1="26" x2="150.8" y2="148"/><line x1="164.4" y1="26" x2="164.4" y2="148"/><line x1="178" y1="26" x2="178" y2="148"/><line x1="198" y1="26" x2="198" y2="148"/>
           </g>
-          <g fill="rgba(60,42,16,0.7)"><circle cx="84" cy="58" r="2"/><circle cx="150" cy="58" r="2"/><circle cx="84" cy="102" r="2"/><circle cx="150" cy="102" r="2"/><circle cx="117" cy="80" r="2"/></g>
-          <circle cx="84" cy="58" r="8" fill="#14171c"/><circle cx="106" cy="80" r="8" fill="#14171c"/>
-          <circle cx="128" cy="58" r="8" fill="#14171c"/><circle cx="128" cy="102" r="8" fill="#14171c"/>
-          <circle cx="106" cy="58" r="8" fill="#e9eef5" stroke="#14171c" stroke-width="1"/>
-          <circle cx="150" cy="80" r="8" fill="#14171c"/>
-          <circle cx="106" cy="102" r="8" fill="#14171c" opacity="0.45"/>
-          <circle cx="106" cy="102" r="8" fill="none" stroke="rgba(244,63,94,0.7)" stroke-width="1.4"/>
+          <!-- 星位 -->
+          <g fill="rgba(44,30,10,0.8)"><circle cx="96.4" cy="53.2" r="2.2"/><circle cx="150.8" cy="53.2" r="2.2"/><circle cx="96.4" cy="107.6" r="2.2"/><circle cx="150.8" cy="107.6" r="2.2"/><circle cx="123.6" cy="80.4" r="2.2"/></g>
+          <!-- 对局：黑白各 11 子，中腹攻防 + 边角落子 -->
+          <g>
+            <!-- 黑子 11 -->
+            <circle cx="96.4" cy="53.2" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="110" cy="66.8" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="123.6" cy="53.2" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="137.2" cy="66.8" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="123.6" cy="107.6" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="55.6" cy="94" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="69.2" cy="66.8" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="82.8" cy="121.2" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="164.4" cy="107.6" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <circle cx="178" cy="53.2" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+            <!-- 白子 11 -->
+            <circle cx="110" cy="53.2" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="96.4" cy="66.8" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="137.2" cy="53.2" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="123.6" cy="66.8" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="110" cy="94" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="69.2" cy="80.4" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="82.8" cy="94" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="150.8" cy="80.4" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="164.4" cy="94" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="55.6" cy="53.2" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+            <circle cx="42" cy="134.8" r="7" fill="#f2f4f7" stroke="#b7bdc7" stroke-width="0.8"/>
+          </g>
+          <!-- 中腹被围：黑子被白棋包围，作为提子候选 -->
+          <circle cx="110" cy="80.4" r="7" fill="#171a1e" stroke="#000" stroke-width="0.8"/>
+          <circle cx="110" cy="80.4" r="9.5" fill="none" stroke="#ff4d6d" stroke-width="1.6" opacity="0.9"/>
         </svg>
       </div>
       <div class="gc-body">
