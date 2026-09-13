@@ -72,6 +72,7 @@
     }
     .st-uptime-grid i.ok { background: #34d399; box-shadow: 0 0 4px rgba(52,211,153,0.4); }
     .st-uptime-grid i.err { background: #f87171; box-shadow: 0 0 4px rgba(248,113,113,0.5); }
+    .st-hr-idx { width: 22px; font-size: 9px; color: var(--faint); font-family: var(--mono); line-height: 8px; }
     .st-uptime-legend { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--dim); }
     .st-uptime-legend .legend-item { display: inline-flex; align-items: center; gap: 5px; }
     .st-uptime-legend .dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
@@ -316,16 +317,16 @@
   <script>
   (function () {
     'use strict';
-    // 红绿长条图：渲染最近 24h 分钟槽（来自 /api/status 的 uptime 字段）
+    // 红绿长条图：渲染最近 24h 分钟槽（1440 格，60×24 密集长条，对齐 API 平台风格）
     function renderUptime(data) {
       var grid = document.getElementById('stUptimeGrid');
       var note = document.getElementById('stUptimeNote');
       var pct = document.getElementById('stUptimePct');
       var avg = document.getElementById('stUptimeAvg');
       if (!grid || !data || !data.uptime || !data.uptime.length) { if (grid) grid.innerHTML = ''; return; }
-      var html = '';
       var okN = 0, errN = 0, noneN = 0, sum = 0, n = 0;
-      data.uptime.forEach(function (u) {
+      var html = '';
+      data.uptime.forEach(function (u, idx) {
         var cls = 'none';
         if (u.slot) {
           if (u.slot.err > 0) { cls = 'err'; errN++; }
@@ -333,8 +334,13 @@
           else noneN++;
           sum += u.slot.ms || 0; n += u.slot.n || 1;
         } else noneN++;
+        // 每组 60 格换行（= 1 小时一行），行首加小时刻度
+        if (idx % 60 === 0) {
+          var hh = u.hour.split(':')[0];
+          html += '<span class="st-hr-idx">' + hh + '</span>';
+        } else if (idx % 60 === 60) { }
         html += '<i class="' + cls + '" title="' + u.hour + ' · ' +
-          (u.slot ? ('正常 ' + (u.slot.ok||0) + ' / 异常 ' + (u.slot.err||0)) : '无数据') + '"></i>';
+          (u.slot ? ('正常 ' + (u.slot.ok||0) + ' / 异常 ' + (u.slot.err||0) + ' · 平均 ' + (n ? Math.round(sum/n) : 0) + 'ms') : '无数据') + '"></i>';
       });
       grid.innerHTML = html;
       var has = okN + errN;
@@ -342,7 +348,7 @@
         pct.textContent = (okN / has * 100).toFixed(1) + '%';
         avg.textContent = n > 0 ? (sum / n).toFixed(0) + ' ms' : '--';
       }
-      if (note) note.textContent = '（24 小时 · 每分钟一个格子，共 ' + data.uptime.length + ' 格）';
+      if (note) note.textContent = '（最近 24 小时 · 每分钟一格 · 共 ' + data.uptime.length + ' 格，一行 = 1 小时）';
     }
     // 暴露给下方主逻辑（fetch 成功后调用）
     window.__renderUptime = renderUptime;
