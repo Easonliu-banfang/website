@@ -50,7 +50,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
 
   var el = {};
   ['turnLabel', 'w1', 'w2', 'banner', 'btnMove', 'btnWall', 'btnUndo',
-   'btnNew', 'stepCount', 'p2name', 'onlineStatus', 'roomCodeTag',
+   'btnNew', 'stepCount', 'p1name', 'p2name', 'onlineStatus', 'roomCodeTag',
    'reqModal', 'reqText', 'reqSub', 'btnReqOk', 'btnReqNo',
    'coinModal', 'coin', 'coinTitle', 'coinResult', 'coinSub'].forEach(function (id) {
     el[id] = document.getElementById(id);
@@ -126,6 +126,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     winTimer && clearTimeout(winTimer);
     hideBanner();
     window.Notify.clearAll();        // 新局：清掉上一局胜负常驻通知
+    if (el.p1name) el.p1name.textContent = onlineMode ? myName() : L2P1;
     el.p2name.textContent = vsAI ? '电脑' : (onlineMode ? (oppName || '对手') : L2P2);
     coinShown = false;
     syncUI();
@@ -740,6 +741,7 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
     reqPending = false; reqKind = null; incomingKind = null; leftShown = false; wantNew = false; resetSent = false;
     coinShown = false; coinLock = false;
     state = Q.createState();
+    if (el.p1name) el.p1name.textContent = myName();
     el.p2name.textContent = oppName || '对手';
     started = true;
     roomStarted = false; currentRoom = room;
@@ -830,6 +832,10 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
       location.href = 'quoridor.html';
     }
   }
+
+  // 首屏预填玩家名（双人同屏昵称）；各模式开局时会被精确覆盖
+  if (el.p1name) el.p1name.textContent = L2P1;
+  if (el.p2name) el.p2name.textContent = L2P2;
 
   boot();
 

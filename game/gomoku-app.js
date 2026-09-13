@@ -156,6 +156,7 @@ var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执黑, 1=玩家二执黑
     var cfgOn = !!(timerCfg && timerCfg.mode !== 'off');
     if (el.clockRow) el.clockRow.hidden = !(timer && timer.mode !== 'off');
     var names = ['黑', '白'];
+    if ((window.Local2P && mode === 'local' && !vsAI)) names = [(L2P_BLACK === 0 ? L2P1 : L2P2), (L2P_BLACK === 0 ? L2P2 : L2P1)];
     if (el.timerTag) {
       var t = timerCfg || null;
       if (!t || t.mode === 'off') el.timerTag.textContent = '不限时';

@@ -160,8 +160,8 @@ var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执黑, 1=玩家二执黑
       else if (t.mode === 'blitz') el.timerTag.textContent = '包干 ' + Math.round(t.baseMs / 60000) + ' 分钟';
       else el.timerTag.textContent = '读秒 ' + Math.round(t.baseMs / 60000) + ' 分 + ' + t.byoCount + '×' + Math.round(t.byoMs / 1000) + ' 秒';
     }
-    if (el.clockName0) el.clockName0.textContent = onlineMode ? (myPlayer === 0 ? myName() : '对手') : '黑';
-    if (el.clockName1) el.clockName1.textContent = onlineMode ? (myPlayer === 1 ? myName() : '对手') : '白';
+    if (el.clockName0) el.clockName0.textContent = onlineMode ? (myPlayer === 0 ? myName() : '对手') : ((window.Local2P && mode === 'local' && !vsAI) ? (L2P_BLACK === 0 ? L2P1 : L2P2) : '黑');
+    if (el.clockName1) el.clockName1.textContent = onlineMode ? (myPlayer === 1 ? myName() : '对手') : ((window.Local2P && mode === 'local' && !vsAI) ? (L2P_BLACK === 0 ? L2P2 : L2P1) : '白');
   }
 
   function renderClock() {
@@ -302,10 +302,13 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
     var res = G.score(state, deadSet);
     el.scorePanel.hidden = false;
     var black = res.score1, white = res.score2;
-    var lead = (black >= white) ? ('黑 +' + (black - white).toFixed(1)) : ('白 +' + (white - black).toFixed(1));
+    var l2pLocal = !!(window.Local2P && mode === 'local' && !vsAI);
+    var B = l2pLocal ? (L2P_BLACK === 0 ? L2P1 : L2P2) : '黑';
+    var W = l2pLocal ? (L2P_BLACK === 0 ? L2P2 : L2P1) : '白';
+    var lead = (black >= white) ? (B + ' +' + (black - white).toFixed(1)) : (W + ' +' + (white - black).toFixed(1));
     el.scoreText.innerHTML =
-      '<div class="score-row"><span>黑（含贴目前）</span><b>' + black.toFixed(1) + '</b></div>' +
-      '<div class="score-row"><span>白（含贴目 ' + res.komi + '）</span><b>' + white.toFixed(1) + '</b></div>' +
+      '<div class="score-row"><span>' + B + '（含贴目前）</span><b>' + black.toFixed(1) + '</b></div>' +
+      '<div class="score-row"><span>' + W + '（含贴目 ' + res.komi + '）</span><b>' + white.toFixed(1) + '</b></div>' +
       '<div class="score-row total"><span>当前领先</span><b>' + lead + '</b></div>' +
       '<div class="score-note">死子 ' + deadSet.length + ' 枚（点棋盘可改判）。确认后不可更改。</div>';
     el._lastScore = res;

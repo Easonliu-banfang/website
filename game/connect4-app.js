@@ -274,8 +274,8 @@ var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执红/黑, 1=玩家二执�
     R.render(board, { interactive: interactive });
     if (el.boardTitle) {
       if (!state) el.boardTitle.textContent = '棋盘';
-      else if (state.winner >= 0) el.boardTitle.textContent = (state.winner === 0 ? '平局' : (colorName(state.winner) + '方获胜'));
-      else el.boardTitle.textContent = colorName(state.turn) + '方回合';   // 去掉左侧红 emoji（用户要求）
+      else if (state.winner >= 0) el.boardTitle.textContent = (state.winner === 0 ? '平局' : (mode === 'local' && !vsAI ? (state.winner === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1)) : (colorName(state.winner) + '方')) + '获胜');
+      else el.boardTitle.textContent = (mode === 'local' && !vsAI ? (state.turn === 1 ? (L2P_BLACK === 0 ? L2P1 : L2P2) : (L2P_BLACK === 0 ? L2P2 : L2P1)) : colorName(state.turn)) + '方回合';   // 去掉左侧红 emoji（用户要求）
     }
     // 回合提示（Notify 一次性）
     if (state && state.winner < 0 && (onlineMode ? roomStarted : true)) {
