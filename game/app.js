@@ -618,8 +618,7 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
           // 对局结束回房：对方退出/多次重连失败，服务端把房间退回等待室
           if (fromGame && state && (state.history && state.history.length > 0)) {
             state = Q.createState();
-            timer = null; atStart = false;
-            window.Notify.clearAll();
+                        window.Notify.clearAll();
             window.Notify.show('对局已结束（对方退出/掉线），返回房间', 'warn', { sticky: true });
           }
           lobby.show(currentRoom); lobby.render(d);
@@ -631,7 +630,7 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
       window.Notify.clearAll();
       window.Notify.show('多次重连失败，返回房间…', 'warn', { sticky: true });
       if (online) online._intentionalClose = true;
-      setTimeout(function () { location.href = '" + lobby_page + "'; }, 1500);
+      setTimeout(function () { location.href = 'quoridor.html'; }, 1500);
     });
     o.on('dissolve', function () {
       roomStarted = false;
@@ -771,7 +770,7 @@ var wallCursor = null;        // 触屏墙光标 {r,c,dir}
         e.preventDefault();
         if (window.confirm('对局进行中，确定退出吗？退出后将返回房间')) {
           if (online) online.sendLeave();
-          location.href = '" + lobby_page + "';
+          location.href = 'quoridor.html';
         }
       }
     });

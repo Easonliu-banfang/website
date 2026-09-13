@@ -62,13 +62,13 @@
       else if (target.k === 'trioPlusPair') { r = tryKind('trioPlusPair', 3, 2); }
       // 顺子/连对/钢板：枚举窗口
       if (!r && (target.k === 'straight' || target.k === 'flushStraight')) {
-        var wins = straightWins(target.key);
+        var wins = straightWins(target.key, level);
         for (i = 0; i < wins.length && !r; i++) {
           r = tryWindow(hand, level, wins[i], 1, 5, target.key);
         }
       }
       if (!r && target.k === 'trioRun') {
-        var rw = runWins(3, target.key);
+        var rw = runWins(3, target.key, level);
         for (i = 0; i < rw.length && !r; i++) r = tryWindow(hand, level, rw[i], 2, 6, target.key);
       }
       if (r) { interps = GD.interpret(r, level); for (j = 0; j < interps.length; j++) if (GD.beats(interps[j], target)) return { cards: r, interpId: j }; }
@@ -97,20 +97,26 @@
     return null;
   }
 
-  function straightWins(topKey) {
-    // 由 topKey 反推所有 ≥ topKey 的 5 连窗口（不含级牌/王）
+  function straightWins(topKey, level) {
+    // 由 topKey 反推所有 ≥ topKey 的 5 连窗口（不含级牌/王，与引擎 straightWindows 一致）
     var wins = [];
+    if (level !== 2 && level !== 14) {
+      var a23 = [14, 2, 3, 4, 5];
+      if (a23.indexOf(level) < 0) wins.push(a23);
+    }
     for (var s = 3; s <= 10; s++) {
       var ranks = [s, s + 1, s + 2, s + 3, s + 4];
+      if (ranks.indexOf(level) >= 0) continue;
       wins.push(ranks);
     }
     return wins;
   }
-  function runWins(len, topKey) {
+  function runWins(len, topKey, level) {
     var wins = [];
     for (var s = 3; s + len - 1 <= 14; s++) {
       var ranks = [];
       for (var i = 0; i < len; i++) ranks.push(s + i);
+      if (ranks.indexOf(level) >= 0) continue;
       wins.push(ranks);
     }
     return wins;

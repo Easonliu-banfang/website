@@ -321,8 +321,7 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
           // 对局结束回房：对方退出/多次重连失败，服务端把房间退回等待室
           if (fromGame && state && (state.history && state.history.length > 0)) {
             state = G.createState();
-            timer = null; atStart = false;
-            window.Notify.clearAll();
+                        window.Notify.clearAll();
             window.Notify.show('对局已结束（对方退出/掉线），返回房间', 'warn', { sticky: true });
           }
           lobby.show(currentRoom); lobby.render(d);
@@ -334,7 +333,7 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
       window.Notify.clearAll();
       window.Notify.show('多次重连失败，返回房间…', 'warn', { sticky: true });
       if (online) online._intentionalClose = true;
-      setTimeout(function () { location.href = '" + lobby_page + "'; }, 1500);
+      setTimeout(function () { location.href = 'gomoku.html'; }, 1500);
     });
     o.on('dissolve', function () {
       roomStarted = false;
@@ -529,7 +528,7 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
         e.preventDefault();
         if (window.confirm('对局进行中，确定退出吗？退出后将返回房间')) {
           if (online) online.sendLeave();
-          location.href = '" + lobby_page + "';
+          location.href = 'gomoku.html';
         }
       }
     });

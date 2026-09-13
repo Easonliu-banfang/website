@@ -222,13 +222,21 @@
     $('btnNew').addEventListener('click', function () {
       if (mode === 'online') {
         if (isHost && o) o.send({ type: 'reset' });
+        else toast('只有房主才能重开');
       } else startLocal();
     });
     $('btnAgain').addEventListener('click', function () {
       $('ytResult').hidden = true;
-      if (mode === 'online') { if (isHost && o) o.send({ type: 'reset' }); }
-      else startLocal();
+      if (mode === 'online') {
+        if (isHost && o) o.send({ type: 'reset' });
+        else toast('只有房主才能重开');
+      } else startLocal();
     });
+    // 联机非房主：重开按钮置灰（避免点了无反应）
+    if (mode === 'online' && !isHost) {
+      $('btnNew').disabled = true;
+      $('btnAgain').disabled = true;
+    }
     $('btnLeave2').addEventListener('click', function () {
       if (o) o.sendLeave();
       location.href = 'yt.html';

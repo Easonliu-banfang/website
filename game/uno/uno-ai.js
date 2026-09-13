@@ -19,7 +19,17 @@
   }
   function isPlayable(state, id) {
     var k = kindOf(id);
-    if (k === 'w' || k === 'w4') return true;
+    if (k === 'w') return true;
+    // 万色+4：官方规则要求手中没有任何「与当前颜色匹配」的牌才可出（同数字不同色不算）
+    if (k === 'w4') {
+      if (state.nextDraw > 0) return false;   // 罚期不能出（本引擎不支持叠牌）
+      if (!state.topColor) return true;
+      return !(state.hand || []).some(function (c) {
+        var kk = kindOf(c);
+        if (kk === 'w' || kk === 'w4') return false;
+        return colorOf(c) === state.topColor;
+      });
+    }
     if (state.topColor && colorOf(id) === state.topColor) return true;
     var tk = kindOf(state.top);
     if (tk === k) { if (k === 'n') return id.slice(1) === state.top.slice(1); return true; }
@@ -44,15 +54,9 @@
     if (state.turn !== s) return null;
     // 刚出万能牌 → 选色（回合不推进，等出牌者选）
     if (state.awaitColor) return { type: 'setColor', color: bestColor(hand), as: s };
-    // 被 +2/+4 罚时：优先用 +2 / 万色+4 叠加甩给下家，无牌才接受惩罚
+    // 被 +2/+4 罚时：本引擎不支持「叠牌」（nextDraw>0 时 play 被拒，只能 draw），
+    // 按引擎规则直接接受惩罚摸牌（摸完自动过）
     if (state.nextDraw > 0) {
-      var stackSet = hand.filter(function (c) { var k = kindOf(c); return k === 'w4' || (k === 'd' && isPlayable(state, c)); });
-      if (stackSet.length) {
-        var sc = pickCard(stackSet);
-        var sActs = [{ type: 'play', card: sc, as: s }];
-        if (hand.length - 1 === 1) sActs.push({ type: 'callUno', as: s });
-        return sActs;
-      }
       return { type: 'draw', as: s };
     }
     var playable = hand.filter(function (c) { return isPlayable(state, c); });

@@ -69,7 +69,8 @@
       var col = (s === state.blackPlayer) ? 1 : 2;
       if (!W.GoAI) return null;
       var mv = W.GoAI.nextMove(state, col);
-      if (mv) return { type: 'move', r: mv.r, c: mv.c, as: s };
+      // GoAI.nextMove 返回 [r, c] 数组（见 go-ai.js heuristicBest/mcts）
+      if (mv && Array.isArray(mv) && mv.length >= 2) return { type: 'move', r: mv[0], c: mv[1], as: s };
       return { type: 'pass', as: s };   // 无可行点 → 停一手（两停即终局，引擎处理）
     },
     // 步步为营
@@ -124,7 +125,11 @@
       if (state.winner != null && state.winner >= 0) return null;
       if (state.phase === 'tribute' || state.phase === 'tributeReturn') {
         for (var st = 0; st < 4; st++) {
-          if (ctx.controls[st] && state.turn === st) return W.GdAI.decide(state, st, state.hand || []);
+          // 用归我代打的 AI 槽位自己的手牌（AI 补发在 state.ai[st]），切勿用视图属主手牌 state.hand
+          if (ctx.controls[st] && state.turn === st) {
+            var th = (state.ai && state.ai[st]) ? state.ai[st] : [];
+            return W.GdAI.decide(state, st, th);
+          }
         }
         return null;
       }

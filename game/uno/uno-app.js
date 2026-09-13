@@ -328,6 +328,8 @@
         again.className = 'btn on uo-again';
         again.textContent = '再来一局 →';
         again.addEventListener('click', function () {
+          gameSeconds = GAME_SECONDS;        // 新一局重置整局时钟与超时通知
+          gameOverNotified = false;
           if (mode === 'ai') startLocalAI();
           else if (o) o.sendReset();
         });

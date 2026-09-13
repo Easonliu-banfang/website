@@ -628,6 +628,7 @@ var app = {
     if (online) {
       els.onlineContinue.hidden = false;
       await sleep(2600);
+      els.reveal.hidden = true;          // 联机：动画播完即关闭弹窗，等服务端推送下一局 state
     } else {
       els.continueBtn.hidden = true;   // 取消「继续」按钮，直接 5 秒停留
       // 单人：质疑结果停留 5 秒让人看清，再自动进入下一局
@@ -723,6 +724,9 @@ var app = {
   function openSocket(code, name, host) {
     app.mode = 'online';
     app.room = { code: code, host: host };
+    app._reconnectAttempts = 0;
+    app._reconnectTimer = null;
+    app._intentionalClose = false;
     var bk = document.getElementById('backToGameBtn');
     if (bk) bk.textContent = '← 返回房间';   // 联机模式：显示「返回房间」
     // 统一等待室（GameLobby 组件，对齐其余游戏）
@@ -730,7 +734,7 @@ var app = {
       onReady: function () { sendOnline({ type: 'ready' }); },
       onStart: function () { sendOnline({ type: 'start' }); },
       onNotify: function () { sendOnline({ type: 'notify' }); },
-      onLeave: function () { if (app.ws) app.ws.close(); location.href = 'liar.html'; },
+      onLeave: function () { if (app.ws) app.ws.close(); app._intentionalClose = true; location.href = 'liar.html'; },
       onAddAI: function (i) { sendOnline({ type: 'add_ai', slot: i }); },
       onRemoveAI: function (i) { sendOnline({ type: 'remove_ai', slot: i }); },
     });
@@ -739,14 +743,21 @@ var app = {
     app.lobby.show(code);
     app.lobby.setStatus('已连接，等待准备开始', 'connected');
     setChatVisible(false);   // 房间页隐藏快捷短语按钮（仅对局中显示）
+    openWsInner(code, name, host);
+  }
+
+  function openWsInner(code, name, host) {
+    if (app._intentionalClose) return;
     var ws = new WebSocket(WS_BASE + encodeURIComponent(code) + '/ws');
     app.ws = ws;
     ws.onopen = function () {
+      app._reconnectAttempts = 0;
       ws.send(JSON.stringify({ type: 'hello', name: name }));
       app.playerName = name;
       // 心跳：每 15s 发 ping，避免服务端 30s 无消息判定死连接而被误杀（骗子酒馆掉线根因）
       if (app._hb) clearInterval(app._hb);
       app._hb = setInterval(function () { sendOnline({ type: 'ping' }); }, 15000);
+      if (window.Notify) window.Notify.clear('📡 正在重连…');
     };
     ws.onmessage = function (ev) {
       var msg = JSON.parse(ev.data);
@@ -755,9 +766,24 @@ var app = {
     ws.onclose = function () {
       app.connOk = false;
       if (app._hb) { clearInterval(app._hb); app._hb = null; }
-      if (app.mode === 'online') toast('连接已断开');
+      if (app._intentionalClose || app.mode !== 'online') return;
+      scheduleReconnect(code, name, host);
     };
-    ws.onerror = function () { toast('连接失败'); };
+    ws.onerror = function () { /* onclose 会接手重连 */ };
+  }
+
+  // 指数退避自动重连（对齐 gd/uno：base 1s ×2^n，封顶 30s，最多 8 次后放弃）
+  function scheduleReconnect(code, name, host) {
+    if (app._intentionalClose || app.mode !== 'online') return;
+    if (app._reconnectAttempts >= 8) {
+      if (window.Notify) window.Notify.show('多次重连失败，请刷新重试', 'error', { sticky: true });
+      return;
+    }
+    app._reconnectAttempts++;
+    var delay = Math.min(30000, 1000 * Math.pow(2, app._reconnectAttempts - 1));
+    if (window.Notify) window.Notify.show('连接中断，' + Math.round(delay / 1000) + 's 后第 ' + app._reconnectAttempts + ' 次重连…', 'warn', { sticky: true });
+    if (app._reconnectTimer) clearTimeout(app._reconnectTimer);
+    app._reconnectTimer = setTimeout(function () { openWsInner(code, name, host); }, delay);
   }
 
   function sendOnline(message) {
@@ -827,6 +853,7 @@ var app = {
     if (message.type === 'state') {
       // 新局检测：round 前进且 phase=playing → 播开局动画（先手/底牌/发牌）
       var isNewRound = message.state.phase === 'playing' && (!app.view || message.state.round > (app.view.round || 0));
+      if (isNewRound) lastNotified = 0;    // 联机新局：重置历史横幅指针，避免后续局不再弹通知
       var wasIntro = app.introPlaying;
       app.view = message.state;
       app.connOk = true;
