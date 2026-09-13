@@ -939,8 +939,7 @@ var app = {
     });
   }
 
-  /* ---------- 方向适配：竖屏自动旋转 90° 横屏展示（同掼蛋方案） ---------- */
-  function checkOrientation() {
+    function checkOrientation() {
     var landscape = window.innerWidth >= window.innerHeight;
     document.body.classList.toggle('portrait', !landscape);
     var lw = landscape ? window.innerWidth : window.innerHeight;
@@ -949,12 +948,11 @@ var app = {
     document.body.classList.add(lh <= 430
       ? 'tier-short'
       : (lw <= 1024 ? 'tier-mid' : 'tier-wide'));
-    // 竖屏：等比缩小正立显示（画面与横屏一致，不旋转）
-    var ps = landscape ? 1 : (window.innerWidth / window.innerHeight);
-    document.documentElement.style.setProperty('--ps', ps.toFixed(4));
+    // 竖屏：整体旋转 90°（画面横过来，用户转 90° 手机正看）
     var ov = document.getElementById('landscapeOverlay');
     if (ov) ov.hidden = true;
   }
+
 
   /* ---------- 启动：URL 驱动开局 ---------- */
   function boot() {

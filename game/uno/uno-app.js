@@ -90,8 +90,7 @@
     return 'cards/' + c.toUpperCase() + file + '.png';
   }
 
-  /* ---------- 方向适配：竖屏自动旋转 90° 横屏展示（同掼蛋方案） ---------- */
-  function checkOrientation() {
+    function checkOrientation() {
     var landscape = window.innerWidth >= window.innerHeight;
     document.body.classList.toggle('portrait', !landscape);
     var lw = landscape ? window.innerWidth : window.innerHeight;
@@ -100,11 +99,10 @@
     document.body.classList.add(lh <= 430
       ? 'tier-short'
       : (lw <= 1024 ? 'tier-mid' : 'tier-wide'));
-    // 竖屏：等比缩小正立显示（画面与横屏一致，不旋转）
-    var ps = landscape ? 1 : (window.innerWidth / window.innerHeight);
-    document.documentElement.style.setProperty('--ps', ps.toFixed(4));
+    // 竖屏：整体旋转 90°（画面横过来，用户转 90° 手机正看）
     el.landscapeOverlay.hidden = true;
   }
+
 
   /* ---------- 规则辅助（本地预检，服务端仍权威） ---------- */
   function kindOf(c) { if (c === 'w' || c === 'w4') return 'w'; return c.charAt(0); }
