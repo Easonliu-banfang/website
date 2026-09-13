@@ -1,8 +1,11 @@
 /* 顶哪个羊（羊顶羊）规则引擎 —— 纯逻辑，Worker（服务端权威）与前端（插值渲染/AI）共用
  *
- * 场地：4 条横向赛道，左（slot 0）右（slot 1）各占一侧，各 100 点血量。
+ * 场地：5 条横向赛道，左（slot 0）右（slot 1）各占一侧，各 100 点血量。
  * 羊：4 档力气 1-4（小羊/中羊/大羊/巨羊）。
- *   · 同赛道两方羊相遇：力气大者留下，小者被顶掉；同级双双消失。
+ *   · 同赛道两方羊相遇：不直接抵消——大力者推着小力者走（推挤）。
+ *     推挤速度 ∝ 力量差：中羊(2) 推小羊(1) 慢速推挤；三只大羊(9) 推小羊(1) 快速推进。
+ *   · 双方力量相同：僵持顶住，谁都推不动谁（不消失）。
+ *   · 弱方被一路推回自家基地 → 消失（被顶回老家，不扣血）；强方继续推进得分。
  *   · 羊推进到对方基地：对方扣血 = 羊的等级。
  * 冷却：按「羊」冷却 —— 放出一只某等级的羊后，该等级进入冷却（与赛道无关），
  *       冷却期间不能再放同等级的羊；等级越高冷却越久。
@@ -10,15 +13,18 @@
  *
  * 时间模型（无需定时器）：
  *   state.simAt = 已模拟到的时刻；pos 由「出生时间 + 速度」推导。
- *   simulate(state, now) 以 50ms 步长推进，处理补牌 / 前进 / 碰撞 / 得分。
- *   前端用 pos + (Date.now()-simAt)/1000*SPEED 插值到当前时刻（平滑动画）。
+ *   simulate(state, now) 以 50ms 步长推进，处理补牌 / 前进 / 推挤碰撞 / 得分。
+ *   前端用 pos + (Date.now()-simAt)/1000*spd 插值到当前时刻（平滑动画）；
+ *   推挤中的羊 spd 可能为负（后退），插值方向随之反转。
  */
 (function (global) {
   'use strict';
 
   var LANES = 5;             // 5 条赛道（规则允许 3-5 条；更多并行通道 → 突破更可能）
   var LEN = 100;             // 赛道长度（虚拟单位）
-  var SPEED = 13;            // 羊前进速度（单位/秒）→ 约 7.7 秒走完全程
+  var SPEED = 13;            // 羊自由前进速度（单位/秒）→ 约 7.7 秒走完全程
+  var BORN_POS = 3;          // 出生位置（自家基地前沿）
+  var RETURN_POS = 3;        // 被推回该位置以下 → 判定「被顶回老家」消失
   var STEP_MS = 50;          // 模拟步长
   var MAX_HP = 100;
   var HAND_MAX = 6;
@@ -38,7 +44,7 @@
     return {
       lanes: lanes || LANES,
       hp: [MAX_HP, MAX_HP],
-      sheep: [],              // {id, slot, lane, lv, pos}
+      sheep: [],              // {id, slot, lane, lv, pos, prev, spd}
       hands: [[], []],
       cool: [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],   // 按等级的冷却：cool[slot][lv] = 可再放该等级羊的时刻
       nextDraw: [0, 0],
@@ -67,6 +73,62 @@
     return state;
   }
 
+  /* 推挤（每 lane 全部羊整体互动）：返回是否需要继续推挤的标志 */
+  function resolvePush(laneArr, dt, events, laneNo) {
+    var left = [], right = [];
+    for (var i = 0; i < laneArr.length; i++) {
+      var sh = laneArr[i];
+      if (sh.slot === 0) left.push(sh); else right.push(sh);
+    }
+    if (!left.length || !right.length) return;      // 单边无羊 → 自由行
+
+    // 最前羊（各自 pos 最大者）是否相遇
+    var aL = left[0], bR = right[0];
+    for (var j = 1; j < left.length; j++) if (left[j].pos > aL.pos) aL = left[j];
+    for (var k = 1; k < right.length; k++) if (right[k].pos > bR.pos) bR = right[k];
+    // slot1 羊位置 = LEN - pos（右→左），相遇 ⇔ pos0 + pos1 >= LEN
+    if (aL.pos + bR.pos < LEN) return;              // 未相遇
+
+    var Lpow = 0, Rpow = 0;
+    for (var m = 0; m < left.length; m++) Lpow += left[m].lv;
+    for (var n = 0; n < right.length; n++) Rpow += right[n].lv;
+
+    if (Lpow === Rpow) {
+      // 僵持：双方顶住，谁也不动（本步前进作废）
+      for (var p = 0; p < laneArr.length; p++) {
+        laneArr[p].pos = laneArr[p].prev;
+        laneArr[p].spd = 0;
+      }
+      events.push({ t: 'clash', lane: laneNo, stall: true });
+      return;
+    }
+    if (Lpow > Rpow) {
+      // 左推右：推挤速度 ∝ 力量差（越悬殊推得越快）
+      var v = SPEED * (Lpow - Rpow) / Lpow;
+      for (var q = 0; q < left.length; q++) {
+        left[q].pos = left[q].prev + v * dt;
+        left[q].spd = v;
+      }
+      for (var r = 0; r < right.length; r++) {
+        right[r].pos = right[r].prev - v * dt;
+        right[r].spd = -v;
+      }
+      events.push({ t: 'clash', lane: laneNo, winSide: 0, push: true });
+      return;
+    }
+    // 右推左
+    var w = SPEED * (Rpow - Lpow) / Rpow;
+    for (var s2 = 0; s2 < left.length; s2++) {
+      left[s2].pos = left[s2].prev - w * dt;
+      left[s2].spd = -w;
+    }
+    for (var t2 = 0; t2 < right.length; t2++) {
+      right[t2].pos = right[t2].prev + w * dt;
+      right[t2].spd = w;
+    }
+    events.push({ t: 'clash', lane: laneNo, winSide: 1, push: true });
+  }
+
   /* 推进模拟到 now（幂等；多次调用等价于一次大步） */
   function simulate(state, now) {
     if (state.winner >= 0) { state.simAt = now; return { events: [] }; }
@@ -93,56 +155,49 @@
         }
       }
 
-      // 2) 前进 + 到达判定（记录 prev 供碰撞穿越检测）
-      var alive = [];
+      // 2) 前进（默认全速推进；推挤会覆写为推挤速度）
       for (var i = 0; i < state.sheep.length; i++) {
         var sh = state.sheep[i];
         sh.prev = sh.pos;
+        sh.spd = SPEED;
         sh.pos += SPEED * dt;
-        if (sh.pos >= LEN) {
-          var foe = 1 - sh.slot;
-          state.hp[foe] -= sh.lv;
-          events.push({ t: 'goal', slot: sh.slot, lv: sh.lv, lane: sh.lane, hp: state.hp[foe] });
-          if (state.hp[foe] <= 0) {
-            state.hp[foe] = Math.max(0, state.hp[foe]);
-            state.winner = sh.slot;
-            events.push({ t: 'win', slot: sh.slot });
-          }
-          continue;   // 该羊消失
-        }
-        alive.push(sh);
       }
-      state.sheep = alive;
-      if (state.winner >= 0) break;
 
-      // 3) 同赛道异方相撞（相遇条件：双方进度之和达到赛道长度，即位置重合/交叉）
-      //    slot0 羊位置 = pos（左→右），slot1 羊位置 = LEN - pos（右→左）
-      //    两羊相遇 ⇔ pos0 + pos1 >= LEN；穿越 ⇔ 上一帧和 < LEN 且本帧 >= LEN
+      // 3) 同赛道异方相遇 → 推挤（按赛道分组，全体羊一并处理）
       var byLane = {};
       for (var j = 0; j < state.sheep.length; j++) {
         var sj = state.sheep[j];
         (byLane[sj.lane] = byLane[sj.lane] || []).push(sj);
       }
-      var dead = {};
-      Object.keys(byLane).forEach(function (lane) {
-        var arr = byLane[lane];
-        var left = arr.filter(function (x) { return x.slot === 0; });
-        var right = arr.filter(function (x) { return x.slot === 1; });
-        left.forEach(function (a) {
-          right.forEach(function (b) {
-            if (dead[a.id] || dead[b.id]) return;
-            var before = (a.prev !== undefined ? a.prev : a.pos) + (b.prev !== undefined ? b.prev : b.pos);
-            var now = a.pos + b.pos;
-            if (!(before < LEN && now >= LEN)) return;      // 非本步穿越
-            if (a.lv > b.lv) { dead[b.id] = true; events.push({ t: 'clash', lane: Number(lane), win: a.id, lose: b.id }); }
-            else if (b.lv > a.lv) { dead[a.id] = true; events.push({ t: 'clash', lane: Number(lane), win: b.id, lose: a.id }); }
-            else { dead[a.id] = true; dead[b.id] = true; events.push({ t: 'clash', lane: Number(lane), both: true }); }
-          });
-        });
-      });
-      if (Object.keys(dead).length) {
-        state.sheep = state.sheep.filter(function (sh) { return !dead[sh.id]; });
+      var laneNos = Object.keys(byLane);
+      for (var li = 0; li < laneNos.length; li++) {
+        resolvePush(byLane[laneNos[li]], dt, events, Number(laneNos[li]));
       }
+
+      // 4) 到达判定 / 被顶回老家判定
+      var alive = [];
+      for (var i2 = 0; i2 < state.sheep.length; i2++) {
+        var sh2 = state.sheep[i2];
+        if (sh2.pos >= LEN) {
+          var foe = 1 - sh2.slot;
+          state.hp[foe] -= sh2.lv;
+          events.push({ t: 'goal', slot: sh2.slot, lv: sh2.lv, lane: sh2.lane, hp: state.hp[foe] });
+          if (state.hp[foe] <= 0) {
+            state.hp[foe] = Math.max(0, state.hp[foe]);
+            state.winner = sh2.slot;
+            events.push({ t: 'win', slot: sh2.slot });
+          }
+          continue;   // 该羊得分后消失
+        }
+        if (sh2.pos <= RETURN_POS && sh2.prev > sh2.pos) {
+          // 被一路推回自家基地 → 被顶回老家（不扣血）
+          events.push({ t: 'retreat', slot: sh2.slot, lv: sh2.lv, lane: sh2.lane });
+          continue;   // 该羊消失
+        }
+        alive.push(sh2);
+      }
+      state.sheep = alive;
+      if (state.winner >= 0) break;
     }
     if (state.simAt < now) state.simAt = now;
     return { events: events };
@@ -167,8 +222,9 @@
     state.sheep.push({
       id: state.idSeq++,
       slot: slot, lane: lane, lv: lv,
-      pos: 3,                       // 从自己基地前沿出发（3% 处）
-      prev: 3,                      // 上一帧位置初始 = 出生位置，保证新羊参与碰撞穿越检测
+      pos: BORN_POS,                 // 从自己基地前沿出发
+      prev: BORN_POS,                // 上一帧位置初始 = 出生位置
+      spd: SPEED,
       born: now,
     });
     return { ok: true };
@@ -182,7 +238,7 @@
       lanes: state.lanes,
       hp: state.hp.slice(),
       sheep: state.sheep.map(function (sh) {
-        return { id: sh.id, slot: sh.slot, lane: sh.lane, lv: sh.lv, pos: Math.round(sh.pos * 10) / 10 };
+        return { id: sh.id, slot: sh.slot, lane: sh.lane, lv: sh.lv, pos: Math.round(sh.pos * 10) / 10, spd: Math.round(sh.spd * 10) / 10 };
       }),
       hand: sortHand(state.hands[slot] || []),
       handCount: [state.hands[0].length, state.hands[1].length],
@@ -199,7 +255,8 @@
   function coolMs(lv) { return COOL_MS[lv] || 0; }
 
   global.YT = {
-    LANES: LANES, LEN: LEN, SPEED: SPEED, MAX_HP: MAX_HP, HAND_MAX: HAND_MAX, DRAW_INTERVAL: DRAW_INTERVAL,
+    LANES: LANES, LEN: LEN, SPEED: SPEED, BORN_POS: BORN_POS, RETURN_POS: RETURN_POS,
+    MAX_HP: MAX_HP, HAND_MAX: HAND_MAX, DRAW_INTERVAL: DRAW_INTERVAL,
     createState: createState, start: start, simulate: simulate, deploy: deploy, viewFor: viewFor,
     pickLevel: pickLevel, coolMs: coolMs, sortHand: sortHand,
   };

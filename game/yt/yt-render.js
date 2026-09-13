@@ -37,13 +37,15 @@
     this.view = v;
   };
 
-  // 计算某只羊的当前显示位置（服务端 pos + 本地经过时间 × 速度）
+  // 计算某只羊的当前显示位置（服务端 pos + 本地经过时间 × 该羊当前速度 spd）
+  // spd 由引擎给出：自由行=SPEED，被推挤的后退羊可能为负（插值方向随之反转）
   function currentPos(sh, view) {
     if (!view) return sh.pos;
     var dt = (Date.now() - (view.simAt || view.now || Date.now())) / 1000;
     if (dt < 0) dt = 0;
     if (dt > 3) dt = 3;                    // 网络卡顿时不跳太远
-    var p = sh.pos + dt * YT.SPEED;
+    var spd = (typeof sh.spd === 'number' && isFinite(sh.spd)) ? sh.spd : YT.SPEED;
+    var p = sh.pos + dt * spd;
     return Math.max(0, Math.min(YT.LEN, p));
   }
 
