@@ -557,49 +557,61 @@ html, body { height: 100%; margin: 0; }
 .hand-area::-webkit-scrollbar { display: none; }
 .hand { justify-content: safe center; }
 
-/* —— 中等横屏（≤1024 宽：平板/大手机/小窗口）—— */
-@media (orientation: landscape) and (max-width: 1024px) {
-  :root { --card-w: 62px; --card-h: 86px; --card-w-sm: 38px; --card-h-sm: 54px; }
-  .hudbar { padding: 6px 12px; font-size: 13px; }
-  .hudbar .levels { gap: 10px; }
-  .level-chip { padding: 3px 10px; font-size: 12px; }
-  .seat { padding: 8px 12px; gap: 8px; }
-  .seat-name { font-size: 13px; }
-  .trick-inner { width: min(560px, 78vw); height: min(300px, 52vh); }
-  .actionbar { gap: 12px; min-height: 56px; }
-  .hand { min-height: calc(var(--card-h) + 22px); padding-top: 22px; }
-  .dialog { min-width: min(380px, 82vw); }
-}
+/* —— 中等档（逻辑宽度 ≤1024：平板/大手机/小窗口；竖屏旋转后同样命中）—— */
+body.tier-mid { --card-w: 62px; --card-h: 86px; --card-w-sm: 38px; --card-h-sm: 54px; }
+body.tier-mid .hudbar { padding: 6px 12px; font-size: 13px; }
+body.tier-mid .hudbar .levels { gap: 10px; }
+body.tier-mid .level-chip { padding: 3px 10px; font-size: 12px; }
+body.tier-mid .seat { padding: 8px 12px; gap: 8px; }
+body.tier-mid .seat-name { font-size: 13px; }
+body.tier-mid .trick-inner { width: min(560px, 78%); height: min(300px, 52%); }
+body.tier-mid .actionbar { gap: 12px; min-height: 56px; }
+body.tier-mid .hand { min-height: calc(var(--card-h) + 22px); padding-top: 22px; }
+body.tier-mid .dialog { min-width: min(380px, 82%); }
 
-/* —— 手机横屏矮屏（≤430 高：所有手机横屏）—— */
-@media (orientation: landscape) and (max-height: 430px) {
-  :root { --card-w: 52px; --card-h: 72px; --card-w-sm: 31px; --card-h-sm: 43px; }
-  .hudbar { padding: 3px 10px; font-size: 12px; }
-  .hudbar .levels { gap: 7px; }
-  .level-chip { padding: 2px 8px; font-size: 11px; }
-  #modeTagTxt { display: none; }            /* 窄屏隐藏模式标签，只留退出 */
-  .trick-inner { width: min(560px, 74vw); height: min(300px, 40vh); }
-  .seat { padding: 5px 9px; gap: 6px; border-radius: 10px; }
-  .seat-name { font-size: 12px; }
-  .seat-count { font-size: 11px; min-width: 26px; }
-  .seat-cards { display: none; }            /* 矮屏隐藏对手牌条，座位变矮不重叠 */
-  .seat-place { font-size: 10px; padding: 0 5px; }
-  .hand { min-height: calc(var(--card-h) + 20px); padding-top: 20px; }
-  .hand .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.55); }
-  .hand.tight .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.6); }
-  .card.selected { transform: translateY(-14px); }
-  .actionbar { min-height: 46px; gap: 9px; padding: 3px 0 9px; }
-  .actionbar .status { left: 12px; font-size: 12px; max-width: 44vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .btn { padding: 7px 16px; font-size: 14px; }
-  .btn.small { padding: 4px 9px; font-size: 12px; }
-  .toast { top: 40px; padding: 7px 16px; font-size: 13px; }
-  .dialog { padding: 16px 20px; min-width: min(360px, 84vw); }
-  .dialog h3 { letter-spacing: 2px; font-size: 20px; }
-  .seat.top { top: 8px; }
-  .seat.left { left: 8px; }
-  .seat.right { right: 8px; }
-  .pass-mark { font-size: 16px; letter-spacing: 2px; }
-  .shape-tag { font-size: 10px; padding: 1px 5px; }
-  .trick-play .who { font-size: 11px; }
-  .lo-phone { font-size: 44px; }
+/* —— 矮屏档（逻辑高度 ≤430：所有手机；竖屏旋转后同样命中）—— */
+body.tier-short { --card-w: 52px; --card-h: 72px; --card-w-sm: 31px; --card-h-sm: 43px; }
+body.tier-short .hudbar { padding: 3px 10px; font-size: 12px; }
+body.tier-short .hudbar .levels { gap: 7px; }
+body.tier-short .level-chip { padding: 2px 8px; font-size: 11px; }
+body.tier-short #modeTagTxt { display: none; }   /* 窄屏隐藏模式标签，只留退出 */
+body.tier-short .trick-inner { width: min(560px, 72%); height: min(300px, 62%); }
+body.tier-short .seat { padding: 5px 9px; gap: 6px; border-radius: 10px; }
+body.tier-short .seat-name { font-size: 12px; }
+body.tier-short .seat-count { font-size: 11px; min-width: 26px; }
+body.tier-short .seat-cards { display: none; }   /* 矮屏隐藏对手牌条，座位变矮不重叠 */
+body.tier-short .seat-place { font-size: 10px; padding: 0 5px; }
+body.tier-short .hand { min-height: calc(var(--card-h) + 20px); padding-top: 20px; }
+body.tier-short .hand .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.55); }
+body.tier-short .hand.tight .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.6); }
+body.tier-short .card.selected { transform: translateY(-14px); }
+body.tier-short .actionbar { min-height: 46px; gap: 9px; padding: 3px 0 9px; }
+body.tier-short .actionbar .status { left: 12px; font-size: 12px; max-width: 44%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.tier-short .btn { padding: 7px 16px; font-size: 14px; }
+body.tier-short .btn.small { padding: 4px 9px; font-size: 12px; }
+body.tier-short .toast { top: 40px; padding: 7px 16px; font-size: 13px; }
+body.tier-short .dialog { padding: 16px 20px; min-width: min(360px, 84%); }
+body.tier-short .dialog h3 { letter-spacing: 2px; font-size: 20px; }
+body.tier-short .seat.top { top: 8px; }
+body.tier-short .seat.left { left: 8px; }
+body.tier-short .seat.right { right: 8px; }
+body.tier-short .pass-mark { font-size: 16px; letter-spacing: 2px; }
+body.tier-short .shape-tag { font-size: 10px; padding: 1px 5px; }
+body.tier-short .trick-play .who { font-size: 11px; }
+body.tier-short .lo-phone { font-size: 44px; }
+
+/* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现 ============ */
+/* body 旋转后成为 fixed 子元素的 containing block（尺寸 vh×vw），
+   牌桌/弹窗/toast 全部跟随旋转并铺满竖屏视口；与 tier-* 压缩档叠加即为完整横屏体验 */
+body.portrait {
+  position: fixed;
+  top: 0;
+  left: 100vw;
+  width: 100vh;
+  height: 100vw;
+  min-height: 0;              /* 覆盖全局 min-height:100vh，否则高度被撑回竖屏视口高 */
+  transform: rotate(90deg);
+  transform-origin: 0 0;
+  overflow: hidden;
 }
+body.portrait #landscapeOverlay { display: none !important; }
