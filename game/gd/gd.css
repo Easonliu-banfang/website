@@ -407,10 +407,12 @@ button {
 .hand .card {
   cursor: pointer;
 }
-.hand .card:not(:first-child) {
+/* 注意：牌被 .card-wrap 包裹，负重叠 margin 必须加在 flex 子项 .card-wrap 上，
+   否则 .card:not(:first-child) 每个 card 都是自己 wrap 的首个子元素，永远不生效 */
+.hand .card-wrap:not(:first-child) {
   margin-left: calc(var(--card-w) * -0.42);
 }
-.hand.tight .card:not(:first-child) {
+.hand.tight .card-wrap:not(:first-child) {
   margin-left: calc(var(--card-w) * -0.5);
 }
 
@@ -582,8 +584,8 @@ body.tier-short .seat-count { font-size: 11px; min-width: 26px; }
 body.tier-short .seat-cards { display: none; }   /* 矮屏隐藏对手牌条，座位变矮不重叠 */
 body.tier-short .seat-place { font-size: 10px; padding: 0 5px; }
 body.tier-short .hand { min-height: calc(var(--card-h) + 20px); padding-top: 20px; }
-body.tier-short .hand .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.55); }
-body.tier-short .hand.tight .card:not(:first-child) { margin-left: calc(var(--card-w) * -0.6); }
+body.tier-short .hand .card-wrap:not(:first-child) { margin-left: calc(var(--card-w) * -0.55); }
+body.tier-short .hand.tight .card-wrap:not(:first-child) { margin-left: calc(var(--card-w) * -0.6); }
 body.tier-short .card.selected { transform: translateY(-14px); }
 body.tier-short .actionbar { min-height: 46px; gap: 9px; padding: 3px 0 9px; }
 body.tier-short .actionbar .status { left: 12px; font-size: 12px; max-width: 44%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
