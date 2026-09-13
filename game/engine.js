@@ -171,6 +171,8 @@
   }
 
   function move(s, p, r, c) {
+    if (s.winner >= 0) return false;         // 已终局，禁止继续走子
+    if (s.turn !== p) return false;          // 回合校验（防越权代走）
     var legal = legalMoves(s, p);
     for (var i = 0; i < legal.length; i++) {
       if (legal[i].r === r && legal[i].c === c) {
@@ -186,6 +188,8 @@
   }
 
   function placeWall(s, p, r, c, dir) {
+    if (s.winner >= 0) return false;         // 已终局，禁止放墙
+    if (s.turn !== p) return false;          // 回合校验
     if (s.players[p].walls <= 0) return false;
     if (!canPlaceWall(s, r, c, dir)) return false;
     var k = key(r, c);

@@ -178,7 +178,7 @@
     } else if (k === 's') {
       state.turn = nextSlot(state, nextSlot(state, s));
     } else if (k === 'r') {
-      if (state.capacity === 2) state.turn = nextSlot(state, state.turn);
+      if (state.capacity === 2) state.turn = s;   // 2 人局反转 = 跳过 → 自己再出
       else { state.dir = -state.dir; state.turn = nextSlot(state, s); }
     } else if (k === 'd') {
       state.nextDraw = 2;

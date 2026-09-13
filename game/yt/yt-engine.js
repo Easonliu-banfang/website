@@ -168,6 +168,7 @@
       id: state.idSeq++,
       slot: slot, lane: lane, lv: lv,
       pos: 3,                       // 从自己基地前沿出发（3% 处）
+      prev: 3,                      // 上一帧位置初始 = 出生位置，保证新羊参与碰撞穿越检测
       born: now,
     });
     return { ok: true };

@@ -81,7 +81,7 @@
 
   // 落子。返回 true/false（非法：越界/非空/劫/自杀）
   function place(s, p, r, c) {
-    if (s.winner >= 0) return false;
+    if (s.winner !== -1) return false;   // -1 进行中；>=0 已终局；-2 数子阶段同样禁止行棋
     if (s.turn !== p) return false;
     if (!inBoard(s, r, c) || s.board[r][c] !== 0) return false;
     if (s.ko && s.ko[0] === r && s.ko[1] === c) return false;   // 劫禁着
@@ -128,7 +128,7 @@
   }
 
   function pass(s, p) {
-    if (s.winner >= 0) return false;
+    if (s.winner !== -1) return false;   // 数子阶段/终局均禁止
     if (s.turn !== p) return false;
     pushSnapshot(s);           // 停一手也保存快照（悔棋可撤销停一手）
     s.ko = null;

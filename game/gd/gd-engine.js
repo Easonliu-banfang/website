@@ -83,7 +83,11 @@
   /* ---------- 连序窗口 ---------- */
   function straightWindows(level) {
     var out = [];
-    if (level !== 2 && level !== 14) out.push({ ranks: [14, 2, 3, 4, 5], topCode: 5 });
+    // A2345 顺子：级牌落在其中时同样不可作为普通顺子成员（与 3..10 窗口规则一致）
+    if (level !== 2 && level !== 14) {
+      var a23 = [14, 2, 3, 4, 5];
+      if (a23.indexOf(level) < 0) out.push({ ranks: a23, topCode: 5 });
+    }
     for (var s = 3; s <= 10; s++) {
       var ranks = [s, s + 1, s + 2, s + 3, s + 4];
       if (ranks.indexOf(level) >= 0) continue;
@@ -382,8 +386,22 @@
     if (!h || state.phase !== 'playing') return { ok: false, error: '当前不在出牌阶段' };
     if (h.turn !== seat) return { ok: false, error: '还没轮到该座位' };
     if (!cards || !cards.length) return { ok: false, error: '出牌不能为空' };
+    // 防作弊：同一张牌（唯一编码）不能重复出现在出牌列表里，否则手牌只扣 1 张却当作多张打出
+    if (cards.length !== Array.from(new Set(cards)).length) return { ok: false, error: '出牌存在重复牌' };
     var hand = h.hands[seat];
-    for (var i = 0; i < cards.length; i++) if (hand.indexOf(cards[i]) < 0) return { ok: false, error: '所出牌不在手中' };
+    // 按数量校验：每张出牌都必须在手中，且出现的次数不超过手中持有数
+    var used = {};
+    for (var i = 0; i < cards.length; i++) {
+      var idx = hand.indexOf(cards[i]);
+      if (idx < 0) return { ok: false, error: '所出牌不在手中' };
+      // 同一编码最多可出手中实际持有的张数（防重复编码混过存在性检查）
+      used[cards[i]] = (used[cards[i]] || 0) + 1;
+      if (used[cards[i]] > 1) {
+        var cnt = 0;
+        for (var j = 0; j < hand.length; j++) if (hand[j] === cards[i]) cnt++;
+        if (used[cards[i]] > cnt) return { ok: false, error: '所出牌数量超过手中持有' };
+      }
+    }
     var interps = interpret(cards, h.level);
     if (!interps.length) return { ok: false, error: '无法识别的牌型' };
     if (interpId < 0 || interpId >= interps.length) return { ok: false, error: '解释编号无效' };
@@ -391,7 +409,13 @@
     if (h.last && !beats(shape, h.last.shape)) return { ok: false, error: '该牌型压不过上家' };
 
     var hands = h.hands.map(function (x) { return x.slice(); });
-    hands[seat] = hands[seat].filter(function (c) { return cards.indexOf(c) < 0; });
+    // 按数量扣牌：只移除 cards 中实际出现的张数（filter 会全删同编码，必须按次删除）
+    var toRemove = cards.slice();
+    hands[seat] = hands[seat].filter(function (c) {
+      var k = toRemove.indexOf(c);
+      if (k >= 0) { toRemove.splice(k, 1); return false; }
+      return true;
+    });
     var placements = h.placements.slice();
     var out = hands[seat].length === 0;
     if (out) placements.push(seat);

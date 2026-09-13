@@ -177,21 +177,41 @@
   }
 
   // 校验客户端上传的布阵 layout（5 艘船的 cells），防明显作弊；合法则写入 ocean
+  // 先整体校验（尺寸/越界/重叠/共线连续），全部通过后才写入——避免中途失败留下半写脏状态
   function applyLayout(state, p, layout) {
     if (!Array.isArray(layout) || layout.length !== FLEET.length) return false;
-    clearPlacement(state, p);
     var seen = {};
     for (var si = 0; si < FLEET.length; si++) {
       var cells = layout[si];
       if (!Array.isArray(cells) || cells.length !== FLEET[si].size) return false;
+      // 越界 + 重叠校验（与连续性一起，先整体校验再写入）
       for (var i = 0; i < cells.length; i++) {
         var rr = cells[i][0], cc = cells[i][1];
         if (rr < 0 || rr >= SIZE || cc < 0 || cc >= SIZE) return false;
         var key = rr + ',' + cc;
         if (seen[key]) return false;                 // 重叠
         seen[key] = 1;
-        state.ocean[p][rr][cc].ship = si;
-        state.ships[p][si].cells.push([rr, cc]);
+      }
+      // 共线且连续：所有格同行或同列；排序后相邻格曼哈顿距离 = 1
+      var sameRow = true, sameCol = true;
+      for (var i2 = 1; i2 < cells.length; i2++) {
+        if (cells[i2][0] !== cells[0][0]) sameRow = false;
+        if (cells[i2][1] !== cells[0][1]) sameCol = false;
+      }
+      if (!(sameRow || sameCol)) return false;       // 不在一条直线上
+      var sorted = cells.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+      for (var j = 1; j < sorted.length; j++) {
+        var d = Math.abs(sorted[j][0] - sorted[j - 1][0]) + Math.abs(sorted[j][1] - sorted[j - 1][1]);
+        if (d !== 1) return false;                   // 断格（不连续）
+      }
+    }
+    // 校验全通过 → 清空旧布阵并写入
+    clearPlacement(state, p);
+    for (var si2 = 0; si2 < FLEET.length; si2++) {
+      var cells2 = layout[si2];
+      for (var i2 = 0; i2 < cells2.length; i2++) {
+        state.ocean[p][cells2[i2][0]][cells2[i2][1]].ship = si2;
+        state.ships[p][si2].cells.push(cells2[i2]);
       }
     }
     state.placed[p] = true;
