@@ -728,7 +728,7 @@ var app = {
     app._reconnectTimer = null;
     app._intentionalClose = false;
     var bk = document.getElementById('backToGameBtn');
-    if (bk) bk.textContent = '← 返回房间';   // 联机模式：显示「返回房间」
+    if (bk) bk.textContent = '← 返回';   // 联机模式：显示「返回房间」
     // 统一等待室（GameLobby 组件，对齐其余游戏）
     app.lobby = new window.GameLobby({
       onReady: function () { sendOnline({ type: 'ready' }); },
