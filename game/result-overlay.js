@@ -23,15 +23,7 @@
   var MEDAL = ['', '🥇', '🥈', '🥉', '🎖'];
 
   // 默认头像（内置 SVG data URI：深色底 + 白色羊形剪影，全站统一）
-  var DEFAULT_AVATAR = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
-    '<defs><radialGradient id="g" cx="35%" cy="30%" r="75%">' +
-    '<stop offset="0%" stop-color="#3a4a6e"/><stop offset="100%" stop-color="#1b2334"/></radialGradient></defs>' +
-    '<rect width="64" height="64" fill="url(#g)"/>' +
-    '<text x="32" y="43" font-size="30" text-anchor="middle" fill="#dbe4ff" ' +
-    'font-family="Apple Color Emoji,Segoe UI Emoji,sans-serif">🐑</text>' +
-    '</svg>'
-  );
+  var DEFAULT_AVATAR = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBAUEBAYFBQUGBgYHCQ4JCQgICRINDQoOFRIWFhUSFBQXGiEcFxgfGRQUHScdHyIjJSUlFhwpLCgkKyEkJST/2wBDAQYGBgkICREJCREkGBQYJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCT/wAARCACAAIADASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAAECBAUDBgf/xAAwEAACAgECBAQEBQUAAAAAAAAAAQIRAwQSBSFBUTEyYXETIpGxFEJy4fEjM1Jiof/EABgBAQEBAQEAAAAAAAAAAAAAAAABAgME/8QAFxEBAQEBAAAAAAAAAAAAAAAAAAERMf/aAAwDAQACEQMRAD8A+C2Ah2ehxAAAAILE2QJiGwRFMAAAAAGAAAAAAACxkQsqJeAN0RsBodiEOMZTkoxi5SfgkrbCkSNXS8AnNKWoyfDT/JHm/qXY8G0UOXw5S9ZSYxNedA9DPg+jkqWNxfeMmUdTwScE5YJ71/jLkxhrMAcouEnGUXGS8U1zQgoAAIAAABUFDABUFDAAUHOSjFNybpJdWek4bw6GixpySeZr5pdvRGbwPTrJqJZpL+2vl92btmolNiCxWaQMiwsTZBU4hoY6yG5Usq8su/ozAacW4yTTTpp9D1Ji8YwKGeOWK5ZFz90SxYz2gGCMqQAAD6iGACAYgNzgaS0kn1c39kaNmVwPJeHLj6xlu+v8GnZuMpWJsVisoYgFYAzP4yr00X2mvsy+ZvGslYsePq5bvp/JLwZQABzaDAGCKDqAdQABMAAsaHU/hdRGb8j5S9j0KkpJNO0+aa6nli9oOJPTVjy3LF0rxj+xqVK27CyGPLDNDfjkpR7okaQWAEcmWGGG/JJQj3YDclFNtpJeLfQ8/rdT+K1EpryrlH2O2v4i9TePHccXXvL9ikZtU7AQ0ZUMEAgAaEMAEdMODJnltxq+76I0cHDcWNXk/qS9fAsiMyGOeV1CEpP0RZhwvPPnLbBerv7Gqqiqikl2XIGy4MaWn1Wkk5RU41+aDJx4tq48nOMv1RRq2RkoyfOMX7oYMyXFtXLkpxj+mJzWHU6qW6W+X+034GqlFeWMV7ILGDNnw7NHy7Z+zOE4TxupxcfdGxYOpKmk12YwY3UDQy6LHPnD5Jf8KWXDPDKpr2fRmbFQYhsQDZ00+B6jJt8EubfZHNmjoofDwp9Zc2WC1jjHFBRgkkiW457hbjSOjYtxDcR3AT3CbIWwsCdisjfqKwJWOyFhdjRKxTUckXGStMVismihmxPDPb4ro+5yL2qjvxN9Y8ykZCZqxe2KXZUZZo2WDpYrshY7KJWK+ZFsVsCVhZGwsCVibI2AErHfIhY7Ad2FkbCwG+aa7meXygSj/9k=';
 
   var root = null, els = {}, cv = null, ctx2 = null, raf = null, parts = [];
   var seqTimers = [];
@@ -215,14 +207,24 @@
     };
   }
 
+  // 读本地保存的用户头像（注册/登录时存 localStorage.game_avatar）
+  function myAvatar() {
+    try {
+      var a = localStorage.getItem('game_avatar');
+      return (a && a.indexOf('data:image/') === 0) ? a : null;
+    } catch (e) { return null; }
+  }
+
   function render(d) {
     els.game.textContent = d.game;
     els.title.textContent = d.title;
     els.sub.textContent = d.sub;
     els.trophy.textContent = d.meRank === 1 ? '🏆' : '🥈';
 
-    // 我的成绩
-    els.ava.innerHTML = avatarHTML(d.me.avatar);
+    var saved = myAvatar();
+
+    // 我的成绩（优先显式 avatar，其次本地用户头像）
+    els.ava.innerHTML = avatarHTML(d.me.avatar || saved);
     els.meName.textContent = d.me.name;
     els.meRank.textContent = (MEDAL[d.meRank] || '🎖') + ' 第 ' + d.meRank + ' 名 · ' + (RANK_CN[d.meRank] || '第 ' + d.meRank + ' 名');
     els.meTag.textContent = d.me.tag || '';
@@ -242,9 +244,10 @@
       if (!p) continue;
       var rank = idx + 1;
       var isMe = rank === d.meRank;
+      var pAv = p.avatar || (isMe ? saved : null);
       html += '<div class="ro-col ro-r' + rank + (isMe ? ' me' : '') + '">' +
         (isMe ? '<div class="ro-flag">我</div>' : '') +
-        '<div class="ro-pava">' + avatarHTML(p.avatar) + '</div>' +
+        '<div class="ro-pava">' + avatarHTML(pAv) + '</div>' +
         '<div class="ro-pillar">' +
           '<div class="ro-pn">' + p.name + (isMe ? '（我）' : '') + '</div>' +
           '<div class="ro-ps">' + p.score + ' 分</div>' +

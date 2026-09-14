@@ -75,25 +75,32 @@
     .login-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(34,211,238,0.35); }
     .login-submit:disabled { opacity: 0.5; cursor: wait; transform: none; }
 
-    /* 头像选择器（注册时显示） */
+    /* 头像上传（注册时显示） */
     .login-avatar { display: none; }
     .login-avatar.show { display: block; }
-    .login-avatar .avatar-grid {
-      display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 6px;
+    .avatar-upload {
+      display: flex; align-items: center; gap: 14px; margin-top: 8px;
     }
-    .avatar-pick {
-      aspect-ratio: 1; border-radius: 50%; cursor: pointer;
-      border: 2px solid rgba(255,255,255,0.12);
-      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 70%);
-      font-size: 22px; display: flex; align-items: center; justify-content: center;
-      transition: all .15s; user-select: none;
+    .avatar-preview {
+      width: 64px; height: 64px; border-radius: 50%; flex: none;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12), rgba(255,255,255,0.03) 70%);
+      border: 2px dashed rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--dim, #8a94b8); text-align: center;
+      overflow: hidden; line-height: 1.3;
     }
-    .avatar-pick:hover { border-color: rgba(34,211,238,0.5); transform: translateY(-2px); }
-    .avatar-pick.on {
-      border-color: var(--cyan, #22d3ee);
-      box-shadow: 0 0 0 3px rgba(34,211,238,0.18); transform: scale(1.06);
+    .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-preview.has { border-style: solid; }
+    .avatar-upload-label {
+      display: inline-block; cursor: pointer;
+      border: 1px solid rgba(140,160,255,0.3); border-radius: 10px;
+      padding: 8px 16px; font-size: 13px; font-weight: 700;
+      background: rgba(255,255,255,0.05); color: var(--text-hi, #eef1ff);
+      transition: all .15s;
     }
-    @media (max-width: 420px) { .login-avatar .avatar-grid { grid-template-columns: repeat(4, 1fr); } }
+    .avatar-upload-label:hover { border-color: rgba(34,211,238,0.6); background: rgba(34,211,238,0.10); }
+    .avatar-upload .avatar-meta { font-size: 11px; color: var(--dim, #8a94b8); line-height: 1.5; }
+    #avatarFile { display: none; }
     .login-msg {
       min-height: 22px; margin-top: 12px; text-align: center;
       font-size: 13px; font-family: var(--mono);
@@ -128,8 +135,15 @@
         <input class="login-input" id="password" name="password" type="password" maxlength="64" placeholder="6-64 位" autocomplete="current-password" data-page-node-id="awLJDeLlFU3tJGdy6idtww" />
       </div>
       <div class="login-field login-avatar" id="avatarField">
-        <label>选择头像</label>
-        <div class="avatar-grid" id="avatarGrid"></div>
+        <label>自定义头像 <span style="opacity:.6;margin-left:6px">可不选，自动用默认头像</span></label>
+        <div class="avatar-upload">
+          <div class="avatar-preview" id="avatarPreview">默认头像</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <label class="avatar-upload-label" for="avatarFile">选择图片</label>
+            <input type="file" id="avatarFile" accept="image/*" />
+            <span class="avatar-meta" id="avatarMeta">支持 JPG/PNG/WebP，自动压缩至 25KB 内</span>
+          </div>
+        </div>
       </div>
       <button class="login-submit" id="btnSubmit" type="submit" data-page-node-id="w0CSRrVMh8M02PHJT4bSR8">登 录</button>
       <div class="login-msg" id="loginMsg" data-page-node-id="9PfUhqn8JGllWLe7I3BXR6"></div>
@@ -155,25 +169,61 @@
     if (localStorage.getItem('game_token')) { location.replace(returnTo); return; }
   } catch (e) {}
 
-  // 头像：注册时可选（内置 emoji 头像库；后续可扩展为上传图片）
-  var AVATARS = ['🐑', '🐐', '🐏', '🦊', '🐼', '🐧', '🐸', '🦄', '🐨', '🐯', '🐺', '🐰'];
-  var selectedAvatar = AVATARS[0];
-  (function buildAvatarPicker() {
-    var grid = $('avatarGrid');
-    if (!grid) return;
+  // 头像：注册时可自定义上传图片，自动压缩至 25KB 内；不上传则用默认头像
+  var AVATAR_LIMIT = 25 * 1024;                  // 25KB
+  var selectedAvatar = null;                     // dataURI；null = 使用默认头像
+  (function buildAvatarUploader() {
+    var file = $('avatarFile'), prev = $('avatarPreview');
+    if (!file) return;
     var saved = null;
     try { saved = localStorage.getItem('game_avatar'); } catch (e) {}
-    if (saved && AVATARS.indexOf(saved) >= 0) selectedAvatar = saved;
-    grid.innerHTML = AVATARS.map(function (a) {
-      return '<div class="avatar-pick' + (a === selectedAvatar ? ' on' : '') + '" data-av="' + a + '">' + a + '</div>';
-    }).join('');
-    grid.addEventListener('click', function (e) {
-      var el = e.target.closest('.avatar-pick');
-      if (!el) return;
-      selectedAvatar = el.getAttribute('data-av');
-      Array.prototype.forEach.call(grid.children, function (x) { x.classList.toggle('on', x === el); });
+    if (saved && saved.indexOf('data:image/') === 0) { selectedAvatar = saved; renderPreview(saved); }
+    file.addEventListener('change', function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      var img = new Image();
+      img.onload = function () {
+        var dataUri = compressImage(img, f.type || 'image/jpeg');
+        if (!dataUri) return;
+        selectedAvatar = dataUri;
+        renderPreview(dataUri);
+        var meta = $('avatarMeta');
+        if (meta) meta.textContent = '已压缩至 ' + Math.ceil(dataUri.length / 1024) + 'KB（上限 25KB）';
+      };
+      img.onerror = function () { $('avatarMeta').textContent = '图片读取失败，请换一张'; };
+      img.src = URL.createObjectURL(f);
     });
+    function renderPreview(uri) {
+      prev.classList.add('has');
+      prev.innerHTML = '';
+      var im = document.createElement('img');
+      im.src = uri; im.alt = '';
+      prev.appendChild(im);
+    }
   })();
+
+  /* 图片压缩：缩到 256px 边长 + 逐档降质，直到 ≤25KB */
+  function compressImage(img, mime) {
+    var N = 256;
+    var canvas = document.createElement('canvas');
+    canvas.width = N; canvas.height = N;
+    var ctx = canvas.getContext('2d');
+    var min = Math.min(img.width, img.height);
+    ctx.drawImage(img,
+      (img.width - min) / 2, (img.height - min) / 2, min, min,   // 居中裁方
+      0, 0, N, N);
+    var quals = [0.82, 0.7, 0.6, 0.5, 0.4, 0.3];
+    var type = (mime && mime.indexOf('png') >= 0) ? 'image/jpeg' : (mime || 'image/jpeg');
+    // 优先尝试原始类型（webp/png）；太大则转 jpeg 降质
+    var tries = [mime && mime !== 'image/gif' ? mime : 'image/jpeg', 'image/jpeg'];
+    for (var t = 0; t < tries.length; t++) {
+      for (var i = 0; i < quals.length; i++) {
+        var uri = canvas.toDataURL(tries[t], quals[i]);
+        if (uri.length <= AVATAR_LIMIT + 1000) return uri;    // base64 略膨胀，留余量
+      }
+    }
+    return canvas.toDataURL('image/jpeg', 0.25);
+  }
 
   function setMode(m) {
     mode = m;
@@ -207,7 +257,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(mode === 'register'
-        ? { username: username, password: password, avatar: selectedAvatar }
+        ? { username: username, password: password, avatar: selectedAvatar || undefined }
         : { username: username, password: password }),
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
