@@ -705,6 +705,46 @@ var app = {
     if (window.Notify) window.Notify.show('🏆 仅剩 1 人，游戏结束', 'win', { ttl: 4000 });
     els.endLeaveBtn.hidden = app.mode !== 'online';
     els.end.hidden = false;
+    showResultOverlay(winner);
+  }
+
+  /* 统一结算覆盖层（ResultOverlay）：冠军 + 出局顺序排位 */
+  function showResultOverlay(winner) {
+    if (!window.ResultOverlay) return;
+    var ps = (app.view && app.view.players) || [];
+    if (!ps.length) return;
+    var me = ps.find(function (p) { return p.id === app.youId; });
+    var meName = me ? me.name : myName();
+    var won = !!(winner && winner.id === app.youId);
+    // 排位：冠军第一，其余存活者在前、已淘汰按原序
+    var ordered = ps.slice().sort(function (a, b) {
+      var aw = (a.id === (winner && winner.id)) ? 0 : 1;
+      var bw = (b.id === (winner && winner.id)) ? 0 : 1;
+      if (aw !== bw) return aw - bw;
+      var aa = a.alive === false ? 1 : 0, ba = b.alive === false ? 1 : 0;
+      return aa - ba;
+    });
+    var total = ordered.length;
+    var players = ordered.map(function (p, i) {
+      return {
+        name: p.name + (p.id === app.youId ? '（我）' : ''),
+        score: String(total - i),                 // 名次分：冠军=人数
+        tag: (p.id === (winner && winner.id)) ? '冠军 · 活到最后' : (p.alive === false ? '已出局' : '存活')
+      };
+    });
+    var meIdx = 0;
+    for (var k = 0; k < ordered.length; k++) if (ordered[k].id === app.youId) meIdx = k;
+    var round = (app.view && app.view.roundNo != null) ? app.view.roundNo : '';
+    var stats = [['酒客', total + ' 人'], ['轮次', round ? round + ' 轮' : '—'], ['冠军', winner ? winner.name : '无人']];
+    ResultOverlay.show({
+      game: '骗子酒馆',
+      title: won ? '🏆 你成为冠军！' : '🏆 ' + (winner ? winner.name : '无人') + ' 夺冠',
+      sub: won ? '三名酒客都倒下了，只有你站着' : '酒馆最后的赢家是 ' + (winner ? winner.name : '无人'),
+      meRank: meIdx + 1,
+      me: { name: meName, score: String(total - meIdx), tag: won ? '冠军 · 活到最后' : (me && me.alive === false ? '已出局' : '存活') },
+      players: players,
+      stats: stats
+    });
   }
 
   /* ---------- 联机（复用 CF Worker 房间） ---------- */

@@ -340,6 +340,56 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
     }
     showBanner(txt, true, true);
     syncUI();
+    showResultOverlay(winner, res);
+  }
+
+  /* 统一结算覆盖层（ResultOverlay）：winner 1=黑胜 2=白胜 0=和棋；res.score1/2 = 黑白目数 */
+  function showResultOverlay(winner, res) {
+    if (!window.ResultOverlay) return;
+    res = res || (state && state.score) || null;
+    var meName = myName();
+    var blackName, whiteName;
+    if (onlineMode) {
+      var meIsBlack = (myColor() === 1);
+      blackName = meIsBlack ? meName : '对手';
+      whiteName = meIsBlack ? '对手' : meName;
+    } else if (vsAI) {
+      blackName = humanColor === 1 ? meName : '电脑';
+      whiteName = humanColor === 1 ? '电脑' : meName;
+    } else {
+      blackName = (L2P_BLACK === 0) ? L2P1 : L2P2;
+      whiteName = (L2P_BLACK === 0) ? L2P2 : L2P1;
+    }
+    var bS = res ? res.score1 : 0, wS = res ? res.score2 : 0;
+    var moves = (state && state.history) ? state.history.length : 0;
+    var komi = (res && res.komi != null) ? res.komi : 7.5;
+    var stats = [['目数', bS + ' : ' + wS], ['贴目', String(komi)], ['手数', moves + ' 手']];
+    if (winner === 0) {                            // 和棋
+      ResultOverlay.show({
+        game: '围棋', title: '🤝 平局', sub: '黑 ' + bS + ' · 白 ' + wS + ' · 平分秋色',
+        meRank: 1,
+        me: { name: meName, score: String(bS), tag: '和棋' },
+        players: [{ name: blackName, score: String(bS), tag: '黑 · 含贴目前' }, { name: whiteName, score: String(wS), tag: '白 · 含贴目' }],
+        stats: stats
+      });
+      return;
+    }
+    var meIsBlackSide = (blackName === meName);
+    var meWon = (winner === 1 && meIsBlackSide) || (winner === 2 && !meIsBlackSide);
+    var myPts = meIsBlackSide ? bS : wS;
+    var foePts = meIsBlackSide ? wS : bS;
+    var foeName = meIsBlackSide ? whiteName : blackName;
+    ResultOverlay.show({
+      game: '围棋',
+      title: meWon ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : (winner === 1 ? blackName : whiteName) + ' 获胜')),
+      sub: (winner === 1 ? '黑' : '白') + (winner === 1 || winner === 2 ? '中盘胜' : '') + ' · 领先 ' + Math.abs(myPts - foePts).toFixed(1) + ' 目',
+      meRank: meWon ? 1 : 2,
+      me: { name: meName, score: String(myPts), tag: (meIsBlackSide ? '黑' : '白') + ' · 目数 ' + myPts },
+      players: meWon
+        ? [{ name: meName, score: String(myPts), tag: (meIsBlackSide ? '黑' : '白') + ' · 胜' }, { name: foeName, score: String(foePts), tag: '负' }]
+        : [{ name: foeName, score: String(foePts), tag: '胜' }, { name: meName, score: String(myPts), tag: '负' }],
+      stats: stats
+    });
   }
 
   /* ---------- 联机事件 ---------- */

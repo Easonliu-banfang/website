@@ -183,6 +183,39 @@
     else $('resultTitle').textContent = win ? '🎉 你赢了！' : '😵 你输了';
     $('resultDesc').textContent = '对手血量被打到 0' + (win ? '，羊群冲垮了对方基地！' : '，下次多铺几条赛道吧。');
     $('ytResult').hidden = false;
+    showResultOverlay(win, mySlot);
+  }
+
+  /* 统一结算覆盖层（ResultOverlay）：剩余血量作为得分 */
+  function showResultOverlay(win, mySlot) {
+    if (!window.ResultOverlay) return;
+    var nameOf = function (s) { return (names && names[s]) ? names[s] : ('玩家 ' + (s + 1)); };
+    var hp = (view && view.hp) ? view.hp : [100, 100];
+    var winnerSlot = view.winner;
+    var loserSlot = 1 - winnerSlot;
+    var meName = nameOf(me);
+    var meHp = hp[me] == null ? 0 : Math.max(0, Math.round(hp[me]));
+    var foeSlot = 1 - me;
+    var foeHp = hp[foeSlot] == null ? 0 : Math.max(0, Math.round(hp[foeSlot]));
+    var meWon = (winnerSlot === me);
+    // 数据：双方剩余血量 + 是否 100 满血（未掉血 = 碾压）
+    var stats = [
+      ['我方剩余', meHp + ' 血'],
+      ['对方剩余', foeHp + ' 血'],
+      ['结果', meWon ? '羊群冲垮对方基地' : '我方基地失守'],
+      ['赛道', (view && view.lanes ? view.lanes : 5) + ' 条']
+    ];
+    ResultOverlay.show({
+      game: '顶哪个羊',
+      title: meWon ? '🎉 你赢了！' : '😵 惜败',
+      sub: '对方血量被打到 0 · ' + (meHp === 100 ? '我方满血碾压' : '我方剩余 ' + meHp + ' 血'),
+      meRank: meWon ? 1 : 2,
+      me: { name: meName, score: String(meHp), tag: '剩余血量 ' + meHp },
+      players: meWon
+        ? [{ name: meName, score: String(meHp), tag: '剩余血量 ' + meHp }, { name: nameOf(foeSlot), score: '0', tag: '血量归零' }]
+        : [{ name: nameOf(foeSlot), score: String(foeHp), tag: '剩余血量 ' + foeHp }, { name: meName, score: '0', tag: '血量归零' }],
+      stats: stats
+    });
   }
 
   /* ---------- 交互：选羊 + 投放 ---------- */

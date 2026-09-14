@@ -314,11 +314,65 @@
     }
     return w === me ? '🎉 恭喜你胜利了！' : ('😔 ' + ((names && names[w]) ? names[w] : ('玩家 ' + (w + 1))) + ' 获胜');
   }
+  /* 统一结算覆盖层（ResultOverlay）：支持单人混战（2-4 人）与 2v2 组队 */
+  function showResultOverlay() {
+    if (!window.ResultOverlay) return;
+    var w = state.winner;
+    var cnt = state.counts || [];
+    var nameOf = function (s) { return (names && names[s]) ? names[s] : ('玩家 ' + (s + 1)); };
+    if (mode === '2v2') {                         // ===== 组队（2v2） =====
+      var myTeam = teamOfMe();
+      var myWon = (w === myTeam);
+      var mine = [], foe = [];
+      for (var s = 0; s < cnt.length; s++) {
+        var tag = (state.teams && state.teams[s] === myWon ? '' : '');
+        (state.teams && state.teams[s] === myTeam ? mine : foe).push({ s: s, c: cnt[s] });
+      }
+      var mineSum = mine.reduce(function (a, o) { return a + o.c; }, 0);
+      var foeSum = foe.reduce(function (a, o) { return a + o.c; }, 0);
+      var myName = nameOf(me);
+      var foeName = foe.length ? nameOf(foe[0].s) : '对方';
+      ResultOverlay.show({
+        game: '优诺', title: myWon ? '🎉 你的队伍获胜！' : '😔 对方队伍获胜',
+        sub: '2v2 组队 · 我方剩 ' + mineSum + ' 张 · 对方剩 ' + foeSum + ' 张',
+        meRank: myWon ? 1 : 2,
+        me: { name: myName + ' 队', score: String(mineSum), tag: '队伍剩余手牌' },
+        players: [
+          { name: (myWon ? myName : foeName) + ' 队', score: String(myWon ? mineSum : foeSum), tag: '胜' },
+          { name: (myWon ? foeName : myName) + ' 队', score: String(myWon ? foeSum : mineSum), tag: '负' }
+        ],
+        stats: [['模式', '2v2 组队'], ['我方手牌', mineSum + ' 张'], ['对方手牌', foeSum + ' 张']]
+      });
+      return;
+    }
+    // ===== 单人混战（2-4 人）：按剩余手牌排名，冠军置顶 =====
+    var seats = [];
+    for (var i = 0; i < cnt.length; i++) seats.push({ seat: i, cnt: cnt[i] });
+    seats.sort(function (a, b) { return a.cnt - b.cnt; });
+    seats.sort(function (a, b) { return (b.seat === w ? 1 : 0) - (a.seat === w ? 1 : 0); });
+    var players = seats.map(function (o, idx) {
+      return { name: nameOf(o.seat) + (o.seat === me ? '（我）' : ''), score: String(o.cnt), tag: idx === 0 ? '先出完 · 胜' : '剩 ' + o.cnt + ' 张' };
+    });
+    var meIdx = 0;
+    for (var k = 0; k < seats.length; k++) if (seats[k].seat === me) meIdx = k;
+    var meWin = (seats[0].seat === me);
+    ResultOverlay.show({
+      game: '优诺',
+      title: meWin ? '🎉 你赢了！' : '😔 ' + nameOf(w) + ' 获胜',
+      sub: '率先出完手牌' + (cnt.length ? ' · 剩 ' + cnt[me] + ' 张' : ''),
+      meRank: meIdx + 1,
+      me: { name: nameOf(me), score: String(cnt[me] == null ? 0 : cnt[me]), tag: meWin ? '先出完手牌' : '剩 ' + (cnt[me] == null ? 0 : cnt[me]) + ' 张' },
+      players: players,
+      stats: [['人数', cnt.length + ' 人'], ['我的手牌', (cnt[me] == null ? 0 : cnt[me]) + ' 张'], ['冠军', nameOf(w)]]
+    });
+  }
+
   function showResult() {
     var r = el.resultBanner;
     r.textContent = winnerText();
     r.className = 'uo-result show' + ((mode !== '2v2' && state.winner === me) ? ' big' : '');
     r.hidden = false;
+    showResultOverlay();
     if (window.Notify) {
       window.Notify.show(winnerText(), state.winner === (mode === '2v2' ? teamOfMe() : me) ? 'win' : 'lose', { sticky: true });
     }

@@ -180,9 +180,43 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
       } else {
         showWinBanner((state.winner === 0 ? L2P1 : L2P2) + ' 获胜', false);
       }
+      showResultOverlay();
       return;
     }
     maybeAI();
+  }
+
+  /* 统一结算覆盖层（ResultOverlay）：state.winner 0=玩家0/我方 1=对手 */
+  function showResultOverlay() {
+    if (!window.ResultOverlay) return;
+    var w = state.winner;
+    var meName = myName();
+    var p1Name, p2Name;                      // slot0 / slot1
+    if (onlineMode) {
+      p1Name = (myPlayer === 0) ? meName : '对手';
+      p2Name = (myPlayer === 0) ? '对手' : meName;
+    } else if (vsAI) {
+      p1Name = meName; p2Name = '电脑';
+    } else {
+      p1Name = L2P1; p2Name = L2P2;
+    }
+    var winnerName = w === 0 ? p1Name : p2Name;
+    var loserName = w === 0 ? p2Name : p1Name;
+    var meWin = (winnerName === meName);
+    // 数据：总步数 / 双方剩余墙数
+    var moves = (state && state.history) ? Math.ceil(state.history.length / 2) : 0;
+    var w1 = (state && state.players && state.players[0]) ? state.players[0].walls : 0;
+    var w2 = (state && state.players && state.players[1]) ? state.players[1].walls : 0;
+    var stats = [['步数', moves + ' 步'], ['剩余墙', w1 + ' : ' + w2], ['先手', (state && state.history && state.history.length && state.history[0] && state.history[0].slot === 0) ? p1Name : p2Name]];
+    ResultOverlay.show({
+      game: '步步为营',
+      title: meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜')),
+      sub: winnerName + ' 抵达对岸' + (moves ? ' · 用时 ' + moves + ' 步' : ''),
+      meRank: meWin ? 1 : 2,
+      me: { name: meName, score: meWin ? '1' : '0', tag: meWin ? '率先抵达对岸' : '被抢先抵达' },
+      players: [{ name: winnerName, score: '1', tag: '胜 · 到岸' }, { name: loserName, score: '0', tag: '负' }],
+      stats: stats
+    });
   }
 
   /* ---------- AI（Web Worker 后台搜索，不阻塞主线程动画） ---------- */

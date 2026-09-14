@@ -239,6 +239,48 @@
     $('gdInterp').hidden = false;
   }
 
+  /* 统一结算覆盖层（ResultOverlay）：掼蛋 4 人排位（头游/二游/三游/末游）+ 级分 */
+  function showResultOverlay(res, myWin, up) {
+    if (!window.ResultOverlay) return;
+    var myTeam = me % 2;                       // 座位奇偶同队
+    // placements = [头游座位, 二游, 三游, 末游]
+    var players = res.placements.map(function (s, i) {
+      var isMeSeat = (s % 2) === myTeam;
+      return {
+        name: seatName(s) + (isMeSeat ? '（我方）' : '（对方）'),
+        score: (i === 0 ? 'A' : String(4 - i)),   // 头游记 A，其余按序（示例分）
+        tag: PLACE_LABEL[i]
+      };
+    });
+    var myPlaceIdx = 0;
+    for (var k = 0; k < res.placements.length; k++) {
+      if ((res.placements[k] % 2) === myTeam && myPlaceIdx === 0) { myPlaceIdx = k; break; }
+    }
+    var lv0 = res.levels ? res.levels[0] : '2', lv1 = res.levels ? res.levels[1] : '2';
+    var myLv = res.levels ? res.levels[myTeam] : '2';
+    var foeLv = res.levels ? res.levels[1 - myTeam] : '2';
+    var matchOver = (state.phase === 'matchOver');
+    var stats = [
+      ['我方级分', codeLabel(myLv)],
+      ['对方级分', codeLabel(foeLv)],
+      ['本局', PLACE_LABEL[res.placements.indexOf(res.placements[myPlaceIdx])] || '—'],
+      ['赛制', matchOver ? '整场结束' : '第 ' + (state.gameNo || 1) + ' 局']
+    ];
+    ResultOverlay.show({
+      game: '掼蛋',
+      title: matchOver
+        ? (myWin ? '🏆 我方通关 A 级，整场获胜！' : '😔 对方率先通关 A 级')
+        : (myWin ? '🎉 我方获胜！' : '😔 对方获胜'),
+      sub: matchOver ? '通关 A 级 · 整场获胜' : ('升到 ' + up + ' 级 · 头游 ' + seatName(res.placements[0])),
+      meRank: myWin ? 1 : 2,
+      me: { name: seatName(me) + ' 队', score: codeLabel(myLv), tag: '我方级分 · 升到 ' + up + ' 级' },
+      players: myWin ? players : players.slice().sort(function (a, b) {
+        return (a.tag === '头游' ? -1 : 0) - (b.tag === '头游' ? -1 : 0);
+      }),
+      stats: stats
+    });
+  }
+
   function showResult() {
     var r = $('gdResult'), dlg = $('resultDialog');
     var res = state.lastResult;
@@ -252,6 +294,7 @@
       ? (myWin ? '🏆 我方通关 A 级，整场获胜！' : '整场结束，对方率先通关 A 级')
       : (myWin ? '🎉 我方获胜' : '对方获胜');
     var up = res.levels[myWin ? (me % 2) : (1 - me % 2)];
+    showResultOverlay(res, myWin, up);
     dlg.innerHTML = '<h3>' + title + '</h3><div class="result-placements">' + placeName + '</div>' +
       '<div class="hint">升到 ' + up + ' 级</div>' +
       ((isHost || mode === 'ai') && state.phase !== 'matchOver' ? '<button class="btn primary" id="btnNext2">下一局</button>' : '<button class="btn" id="btnBack2">返回大厅</button>');

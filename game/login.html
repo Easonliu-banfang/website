@@ -75,6 +75,25 @@
     .login-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(34,211,238,0.35); }
     .login-submit:disabled { opacity: 0.5; cursor: wait; transform: none; }
 
+    /* 头像选择器（注册时显示） */
+    .login-avatar { display: none; }
+    .login-avatar.show { display: block; }
+    .login-avatar .avatar-grid {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 6px;
+    }
+    .avatar-pick {
+      aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+      border: 2px solid rgba(255,255,255,0.12);
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 70%);
+      font-size: 22px; display: flex; align-items: center; justify-content: center;
+      transition: all .15s; user-select: none;
+    }
+    .avatar-pick:hover { border-color: rgba(34,211,238,0.5); transform: translateY(-2px); }
+    .avatar-pick.on {
+      border-color: var(--cyan, #22d3ee);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.18); transform: scale(1.06);
+    }
+    @media (max-width: 420px) { .login-avatar .avatar-grid { grid-template-columns: repeat(4, 1fr); } }
     .login-msg {
       min-height: 22px; margin-top: 12px; text-align: center;
       font-size: 13px; font-family: var(--mono);
@@ -108,6 +127,10 @@
         <label for="password" data-page-node-id="ZSdo0kbXGJwPLTH6LNYlPE">密码</label>
         <input class="login-input" id="password" name="password" type="password" maxlength="64" placeholder="6-64 位" autocomplete="current-password" data-page-node-id="awLJDeLlFU3tJGdy6idtww" />
       </div>
+      <div class="login-field login-avatar" id="avatarField">
+        <label>选择头像</label>
+        <div class="avatar-grid" id="avatarGrid"></div>
+      </div>
       <button class="login-submit" id="btnSubmit" type="submit" data-page-node-id="w0CSRrVMh8M02PHJT4bSR8">登 录</button>
       <div class="login-msg" id="loginMsg" data-page-node-id="9PfUhqn8JGllWLe7I3BXR6"></div>
     </form>
@@ -132,12 +155,32 @@
     if (localStorage.getItem('game_token')) { location.replace(returnTo); return; }
   } catch (e) {}
 
+  // 头像：注册时可选（内置 emoji 头像库；后续可扩展为上传图片）
+  var AVATARS = ['🐑', '🐐', '🐏', '🦊', '🐼', '🐧', '🐸', '🦄', '🐨', '🐯', '🐺', '🐰'];
+  var selectedAvatar = AVATARS[0];
+  (function buildAvatarPicker() {
+    var grid = $('avatarGrid');
+    if (!grid) return;
+    var saved = null;
+    try { saved = localStorage.getItem('game_avatar'); } catch (e) {}
+    if (saved && AVATARS.indexOf(saved) >= 0) selectedAvatar = saved;
+    grid.innerHTML = AVATARS.map(function (a) {
+      return '<div class="avatar-pick' + (a === selectedAvatar ? ' on' : '') + '" data-av="' + a + '">' + a + '</div>';
+    }).join('');
+    grid.addEventListener('click', function (e) {
+      var el = e.target.closest('.avatar-pick');
+      if (!el) return;
+      selectedAvatar = el.getAttribute('data-av');
+      Array.prototype.forEach.call(grid.children, function (x) { x.classList.toggle('on', x === el); });
+    });
+  })();
+
   function setMode(m) {
     mode = m;
     $('tabLogin').classList.toggle('on', m === 'login');
     $('tabRegister').classList.toggle('on', m === 'register');
     $('btnSubmit').textContent = m === 'login' ? '登 录' : '注 册';
-    
+    if ($('avatarField')) $('avatarField').classList.toggle('show', m === 'register');
     $('loginMsg').textContent = '';
     $('loginMsg').className = 'login-msg';
     if (savedUser && m === 'login' && !$('username').value) $('username').value = savedUser;
@@ -163,7 +206,9 @@
     fetch(WORKER + '/api/auth/' + (mode === 'login' ? 'login' : 'register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username, password: password }),
+      body: JSON.stringify(mode === 'register'
+        ? { username: username, password: password, avatar: selectedAvatar }
+        : { username: username, password: password }),
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
       .then(function (res) {
@@ -173,6 +218,7 @@
           try {
             localStorage.setItem('game_token', res.d.token);
             localStorage.setItem('game_username', res.d.username);
+            if (res.d.avatar || selectedAvatar) localStorage.setItem('game_avatar', res.d.avatar || selectedAvatar);
             localStorage.removeItem('game_skip_auth');
           } catch (err) {}
           enter();
