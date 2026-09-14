@@ -264,6 +264,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
   function showResultOverlay(winner) {
     if (!window.ResultOverlay) return;
     var meName = myName();
+    var isLocal = !onlineMode && !vsAI;      // 双人同屏
     var p1Name, p2Name;                      // slot0 / slot1
     if (onlineMode) {
       p1Name = (myPlayer === 0) ? meName : '对手';
@@ -275,17 +276,20 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     }
     var winnerName = winner === 0 ? p1Name : p2Name;
     var loserName = winner === 0 ? p2Name : p1Name;
-    var meWin = (winnerName === meName);
+    var meWin = (winnerName === (isLocal ? L2P1 : meName));
     var placeRounds = (typeof placeTurn === 'number' && phase === 'place') ? '布阵阶段' : '已开战';
     var stats = [['对战', p1Name + ' vs ' + p2Name], ['结果', winnerName + ' 全歼对方舰队'], ['阶段', placeRounds]];
     ResultOverlay.show({
       game: '海战棋',
-      title: meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜')),
+      title: isLocal
+        ? winnerName + ' 获胜'
+        : (meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜'))),
       sub: winnerName + ' 击沉对手全部战舰',
       meRank: meWin ? 1 : 2,
       me: { name: meName, score: meWin ? '1' : '0', tag: meWin ? '全歼敌方舰队' : '舰队被歼' },
       players: [{ name: winnerName, score: '1', tag: '胜 · 全歼' }, { name: loserName, score: '0', tag: '负' }],
-      stats: stats
+      stats: stats,
+      local2p: isLocal
     });
   }
 

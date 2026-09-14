@@ -363,6 +363,7 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
     var bS = res ? res.score1 : 0, wS = res ? res.score2 : 0;
     var moves = (state && state.history) ? state.history.length : 0;
     var komi = (res && res.komi != null) ? res.komi : 7.5;
+    var isLocal = !onlineMode && !vsAI;             // 双人同屏
     var stats = [['目数', bS + ' : ' + wS], ['贴目', String(komi)], ['手数', moves + ' 手']];
     if (winner === 0) {                            // 和棋
       ResultOverlay.show({
@@ -370,7 +371,8 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
         meRank: 1,
         me: { name: meName, score: String(bS), tag: '和棋' },
         players: [{ name: blackName, score: String(bS), tag: '黑 · 含贴目前' }, { name: whiteName, score: String(wS), tag: '白 · 含贴目' }],
-        stats: stats
+        stats: stats,
+        local2p: isLocal
       });
       return;
     }
@@ -381,14 +383,17 @@ var confirmModeGo = false;        // 触屏确认模式（手机/平板）
     var foeName = meIsBlackSide ? whiteName : blackName;
     ResultOverlay.show({
       game: '围棋',
-      title: meWon ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : (winner === 1 ? blackName : whiteName) + ' 获胜')),
+      title: isLocal
+        ? ((winner === 1 ? blackName : whiteName) + ' 获胜')
+        : (meWon ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : (winner === 1 ? blackName : whiteName) + ' 获胜'))),
       sub: (winner === 1 ? '黑' : '白') + (winner === 1 || winner === 2 ? '中盘胜' : '') + ' · 领先 ' + Math.abs(myPts - foePts).toFixed(1) + ' 目',
       meRank: meWon ? 1 : 2,
       me: { name: meName, score: String(myPts), tag: (meIsBlackSide ? '黑' : '白') + ' · 目数 ' + myPts },
       players: meWon
         ? [{ name: meName, score: String(myPts), tag: (meIsBlackSide ? '黑' : '白') + ' · 胜' }, { name: foeName, score: String(foePts), tag: '负' }]
         : [{ name: foeName, score: String(foePts), tag: '胜' }, { name: meName, score: String(myPts), tag: '负' }],
-      stats: stats
+      stats: stats,
+      local2p: isLocal
     });
   }
 

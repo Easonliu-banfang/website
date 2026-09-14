@@ -193,6 +193,7 @@
     var hp = (view && view.hp) ? view.hp : [100, 100];
     var winnerSlot = view.winner;
     var loserSlot = 1 - winnerSlot;
+    var isLocal = (mode === 'local');               // 面对面双人同屏
     var meName = nameOf(me);
     var meHp = hp[me] == null ? 0 : Math.max(0, Math.round(hp[me]));
     var foeSlot = 1 - me;
@@ -207,14 +208,17 @@
     ];
     ResultOverlay.show({
       game: '顶哪个羊',
-      title: meWon ? '🎉 你赢了！' : '😵 惜败',
+      title: isLocal
+        ? (nameOf(winnerSlot) + ' 获胜')
+        : (meWon ? '🎉 你赢了！' : '😵 惜败'),
       sub: '对方血量被打到 0 · ' + (meHp === 100 ? '我方满血碾压' : '我方剩余 ' + meHp + ' 血'),
       meRank: meWon ? 1 : 2,
       me: { name: meName, score: String(meHp), tag: '剩余血量 ' + meHp },
       players: meWon
         ? [{ name: meName, score: String(meHp), tag: '剩余血量 ' + meHp }, { name: nameOf(foeSlot), score: '0', tag: '血量归零' }]
         : [{ name: nameOf(foeSlot), score: String(foeHp), tag: '剩余血量 ' + foeHp }, { name: meName, score: '0', tag: '血量归零' }],
-      stats: stats
+      stats: stats,
+      local2p: isLocal
     });
   }
 

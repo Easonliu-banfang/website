@@ -170,7 +170,8 @@
     clearTimers();
     if (raf) cancelAnimationFrame(raf);
     var loseFlag = current && current.meRank !== 1;
-    root.className = 'ro-overlay show' + (loseFlag ? ' lose' : '');
+    var l2pFlag = current && current.local2p;
+    root.className = 'ro-overlay show' + (loseFlag ? ' lose' : '') + (l2pFlag ? ' local2p' : '');
     void root.offsetWidth;
     root.classList.add('s1');
     seqTimers.push(setTimeout(function () {
@@ -203,7 +204,8 @@
       me: me,
       players: players,
       stats: o.stats || [],
-      onClose: o.onClose || null
+      onClose: o.onClose || null,
+      local2p: !!o.local2p          // 双人同屏：只显示排行榜，不显示成绩卡/不标「我」
     };
   }
 
@@ -223,8 +225,9 @@
 
     var saved = myAvatar();
 
-    // 我的成绩（优先显式 avatar，其次本地用户头像）
+    // 我的成绩（优先显式 avatar，其次本地用户头像）；双人同屏不显示成绩卡
     els.ava.innerHTML = avatarHTML(d.me.avatar || saved);
+    if (root) root.classList.toggle('local2p', !!d.local2p);
     els.meName.textContent = d.me.name;
     els.meRank.textContent = (MEDAL[d.meRank] || '🎖') + ' 第 ' + d.meRank + ' 名 · ' + (RANK_CN[d.meRank] || '第 ' + d.meRank + ' 名');
     els.meTag.textContent = d.me.tag || '';
@@ -243,8 +246,8 @@
       var p = players[idx];
       if (!p) continue;
       var rank = idx + 1;
-      var isMe = rank === d.meRank;
-      var pAv = p.avatar || (isMe ? saved : null);
+      var isMe = !d.local2p && rank === d.meRank;
+      var pAv = (d.local2p ? null : (p.avatar || (isMe ? saved : null)));
       html += '<div class="ro-col ro-r' + rank + (isMe ? ' me' : '') + '">' +
         (isMe ? '<div class="ro-flag">我</div>' : '') +
         '<div class="ro-pava">' + avatarHTML(pAv) + '</div>' +

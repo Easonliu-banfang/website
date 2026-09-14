@@ -186,34 +186,35 @@ var L2P_BLACK = 0;   // 抛硬币结果：0=玩家一执红/黑, 1=玩家二执�
       redName = (L2P_BLACK === 0) ? L2P1 : L2P2;
       blueName = (L2P_BLACK === 0) ? L2P2 : L2P1;
     }
-    var p1 = (L2P_BLACK === 0) ? L2P1 : L2P2;      // 先手方名
-    var p2 = (L2P_BLACK === 0) ? L2P2 : L2P1;
     var moves = (state && state.history) ? state.history.length : 0;
-    var stats = [['对局手数', String(moves)], ['棋盘', '7 × 6'], ['先手', (L2P_BLACK === 0 ? p1 : p2)]];
+    var isLocal = !onlineMode && !vsAI;             // 双人同屏
+    var stats = [['对局手数', String(moves)], ['棋盘', '7 × 6'], ['先手', redName]];
     if (winner === 0) {                            // 平局：双方并列
       ResultOverlay.show({
         game: '四子棋', title: '🤝 平局', sub: '满盘无四连 · 平分秋色',
         meRank: 1,
         me: { name: meName, score: '1', tag: '平局' },
         players: [{ name: redName, score: '1', tag: '平 · 红方' }, { name: blueName, score: '1', tag: '平 · 蓝方' }],
-        stats: stats
+        stats: stats,
+        local2p: isLocal
       });
       return;
     }
     var winnerName = winner === 1 ? redName : blueName;
     var loserName = winner === 1 ? blueName : redName;
-    var meWin = (winnerName === meName);
+    var meWin = (winnerName === (isLocal ? L2P1 : meName));   // 双人同屏：以玩家1为视角
     var myScore = meWin ? 1 : 0;
     ResultOverlay.show({
       game: '四子棋',
-      title: meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜')),
+      title: isLocal
+        ? winnerName + ' 获胜'
+        : (meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜'))),
       sub: (winner === 1 ? '红方' : '蓝方') + '四连 · 第 ' + moves + ' 手制胜',
       meRank: meWin ? 1 : 2,
       me: { name: meName, score: String(myScore), tag: meWin ? '四连制胜' : '负' },
-      players: meWin
-        ? [{ name: winnerName, score: '1', tag: '胜' }, { name: loserName, score: '0', tag: '负' }]
-        : [{ name: winnerName, score: '1', tag: '胜' }, { name: loserName, score: '0', tag: '负' }],
-      stats: stats
+      players: [{ name: winnerName, score: '1', tag: '胜' }, { name: loserName, score: '0', tag: '负' }],
+      stats: stats,
+      local2p: isLocal
     });
   }
 

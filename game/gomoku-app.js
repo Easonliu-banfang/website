@@ -287,28 +287,33 @@ var confirmMode = false;          // 触屏确认模式（手机/平板）
       whiteName = (L2P_BLACK === 0) ? L2P2 : L2P1;
     }
     var moves = (state && state.history) ? state.history.length : 0;
-    var stats = [['落子', moves + ' 手'], ['棋盘', '15 × 15'], ['先手', (L2P_BLACK === 0) ? L2P1 : L2P2]];
+    var isLocal = !onlineMode && !vsAI;             // 双人同屏
+    var stats = [['落子', moves + ' 手'], ['棋盘', '15 × 15'], ['先手', blackName]];
     if (winner === 0) {
       ResultOverlay.show({
         game: '五子棋', title: '🤝 平局', sub: '满盘无五连 · 平分秋色',
         meRank: 1,
         me: { name: meName, score: '1', tag: '平局' },
         players: [{ name: blackName, score: '1', tag: '平 · 黑' }, { name: whiteName, score: '1', tag: '平 · 白' }],
-        stats: stats
+        stats: stats,
+        local2p: isLocal
       });
       return;
     }
     var winnerName = winner === 1 ? blackName : whiteName;
     var loserName = winner === 1 ? whiteName : blackName;
-    var meWin = (winnerName === meName);
+    var meWin = (winnerName === (isLocal ? L2P1 : meName));
     ResultOverlay.show({
       game: '五子棋',
-      title: meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜')),
+      title: isLocal
+        ? winnerName + ' 获胜'
+        : (meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜'))),
       sub: (winner === 1 ? '黑棋' : '白棋') + '五连 · 第 ' + moves + ' 手制胜',
       meRank: meWin ? 1 : 2,
       me: { name: meName, score: meWin ? '1' : '0', tag: meWin ? '五连制胜' : '负' },
       players: [{ name: winnerName, score: '1', tag: '胜' }, { name: loserName, score: '0', tag: '负' }],
-      stats: stats
+      stats: stats,
+      local2p: isLocal
     });
   }
 

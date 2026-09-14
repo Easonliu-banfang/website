@@ -191,6 +191,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     if (!window.ResultOverlay) return;
     var w = state.winner;
     var meName = myName();
+    var isLocal = !onlineMode && !vsAI;      // 双人同屏
     var p1Name, p2Name;                      // slot0 / slot1
     if (onlineMode) {
       p1Name = (myPlayer === 0) ? meName : '对手';
@@ -202,7 +203,7 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     }
     var winnerName = w === 0 ? p1Name : p2Name;
     var loserName = w === 0 ? p2Name : p1Name;
-    var meWin = (winnerName === meName);
+    var meWin = (winnerName === (isLocal ? L2P1 : meName));
     // 数据：总步数 / 双方剩余墙数
     var moves = (state && state.history) ? Math.ceil(state.history.length / 2) : 0;
     var w1 = (state && state.players && state.players[0]) ? state.players[0].walls : 0;
@@ -210,12 +211,15 @@ var L2P2 = (window.Local2P ? window.Local2P.p2() : '玩家二');
     var stats = [['步数', moves + ' 步'], ['剩余墙', w1 + ' : ' + w2], ['先手', (state && state.history && state.history.length && state.history[0] && state.history[0].slot === 0) ? p1Name : p2Name]];
     ResultOverlay.show({
       game: '步步为营',
-      title: meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜')),
+      title: isLocal
+        ? winnerName + ' 获胜'
+        : (meWin ? '🎉 你赢了！' : (onlineMode ? '😔 惜败' : (vsAI ? '😔 电脑获胜' : winnerName + ' 获胜'))),
       sub: winnerName + ' 抵达对岸' + (moves ? ' · 用时 ' + moves + ' 步' : ''),
       meRank: meWin ? 1 : 2,
       me: { name: meName, score: meWin ? '1' : '0', tag: meWin ? '率先抵达对岸' : '被抢先抵达' },
       players: [{ name: winnerName, score: '1', tag: '胜 · 到岸' }, { name: loserName, score: '0', tag: '负' }],
-      stats: stats
+      stats: stats,
+      local2p: isLocal
     });
   }
 
