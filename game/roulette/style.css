@@ -1,0 +1,145 @@
+/* 恶魔轮盘 · 3D —— 暗黑俱乐部主题 */
+:root {
+  --bg: #0a0a0f;
+  --fg: #e8e6ef;
+  --dim: #8b8798;
+  --red: #ff3b5c;
+  --amber: #ffc98a;
+  --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --sans: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+.roulette-body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app { position: fixed; inset: 0; }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ============ 入场屏 ============ */
+.intro-screen {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(70% 60% at 50% 40%, rgba(26, 12, 20, 0.92), rgba(10, 10, 15, 0.98));
+  transition: opacity 0.7s ease;
+}
+.intro-screen.fade { opacity: 0; pointer-events: none; }
+.intro-card {
+  text-align: center; padding: 40px 48px;
+  border: 1px solid rgba(255, 59, 92, 0.28);
+  border-radius: 18px;
+  background: rgba(16, 12, 20, 0.72);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.intro-title {
+  font-size: 34px; font-weight: 900; letter-spacing: 2px;
+}
+.intro-title span {
+  background: linear-gradient(100deg, #fff, #ff5c78 50%, #ff3b5c);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.intro-sub { margin-top: 10px; font-size: 14px; color: var(--dim); letter-spacing: 1px; }
+.btn-main {
+  margin-top: 26px; padding: 14px 54px; font-size: 17px; font-weight: 800; letter-spacing: 6px;
+  color: #fff; border: none; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(100deg, #ff3b5c, #c2224a);
+  box-shadow: 0 10px 30px rgba(255, 59, 92, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.12s, filter 0.2s;
+  font-family: var(--sans);
+}
+.btn-main:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.btn-main:active { transform: translateY(1px) scale(0.98); }
+.intro-note { margin-top: 14px; font-size: 12px; color: var(--dim); opacity: 0.7; font-family: var(--mono); }
+
+/* ============ HUD（游戏内） ============ */
+.hud { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.hud-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 18px 22px; gap: 14px;
+}
+.hud-player {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(12, 10, 18, 0.62); border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px; padding: 10px 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.hud-player.foe { flex-direction: row-reverse; }
+.hud-name { font-size: 13px; font-weight: 800; letter-spacing: 1px; }
+.hud-player.me .hud-name { color: #ffc98a; }
+.hud-player.foe .hud-name { color: #ff5c78; }
+.hud-lives { display: flex; gap: 6px; }
+.life-cell {
+  width: 15px; height: 26px; border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.life-cell.on {
+  background: linear-gradient(180deg, #ff5c78, #c2224a);
+  border-color: rgba(255, 92, 120, 0.5);
+  box-shadow: 0 0 10px rgba(255, 59, 92, 0.4);
+}
+.life-cell.empty { opacity: 0.28; }
+
+.hud-gun {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(12, 10, 18, 0.62); border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px; padding: 10px 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.hud-shells {
+  font-family: var(--mono); font-size: 13px; font-weight: 800; color: var(--amber);
+  letter-spacing: 1px;
+}
+.hud-actions {
+  position: absolute; left: 0; right: 0; bottom: 26px;
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;
+  padding: 0 16px; pointer-events: auto;
+}
+.action-btn {
+  border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(16, 12, 20, 0.78);
+  color: var(--fg); border-radius: 12px; padding: 12px 22px;
+  font-size: 14px; font-weight: 800; cursor: pointer; letter-spacing: 1px;
+  transition: all 0.15s; backdrop-filter: blur(8px);
+  font-family: var(--sans);
+}
+.action-btn:hover { border-color: var(--red); color: #ff8ba0; transform: translateY(-2px); }
+.action-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.action-btn.primary { background: linear-gradient(100deg, #ff3b5c, #c2224a); border-color: transparent; color: #fff; }
+.action-btn.primary:hover { filter: brightness(1.12); }
+
+.hidden { display: none !important; }
+/* 操作提示 / toast / 道具按钮 */
+.waiting {
+  padding: 12px 24px; font-size: 14px; color: var(--dim);
+  background: rgba(12,10,18,0.7); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; letter-spacing: 1px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.action-btn.item {
+  border-color: rgba(255, 200, 120, 0.35);
+  color: #ffd9a0;
+}
+.action-btn.item:hover { border-color: var(--amber); background: rgba(255, 200, 120, 0.12); }
+.toast {
+  position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%);
+  z-index: 120; padding: 12px 22px; border-radius: 12px;
+  background: rgba(18, 14, 22, 0.92); border: 1px solid rgba(255, 200, 120, 0.3);
+  color: #ffd9a0; font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6); pointer-events: none;
+  animation: toastIn 0.3s ease;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
