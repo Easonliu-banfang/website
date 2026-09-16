@@ -168,12 +168,8 @@
 .uc-center { width: 108px; box-shadow: 0 14px 40px rgba(20, 60, 30, 0.45); animation: uoCardPop 0.28s cubic-bezier(0.2, 1.6, 0.4, 1); border-radius: 9px; }
 
 /* 当前颜色 */
-.uo-colorzone {
-  position: absolute; left: 50%; top: 63%;
-  transform: translateX(-50%); z-index: 6; text-align: center;
-  display: flex; flex-direction: column; gap: 4px; align-items: center;
-}
-.uo-colortag { font-size: 11px; color: rgba(255, 255, 255, 0.85); font-family: var(--mono); font-weight: 700; text-shadow: 0 1px 3px rgba(0,60,20,0.5); }
+
+
 .uo-color-dot {
   display: inline-flex; align-items: center; justify-content: center;
   width: 42px; height: 42px; border-radius: 50%;

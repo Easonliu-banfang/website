@@ -242,16 +242,6 @@
     } else {
       el.topCardImg.style.display = 'none';
     }
-    var dot = el.colorDot;
-    if (state.topColor && COLOR_NAMES[state.topColor]) {
-      dot.style.background = colorCss(state.topColor);
-      dot.style.boxShadow = '0 0 18px ' + colorCss(state.topColor) + 'aa';
-      dot.textContent = colorLabel(state.topColor);
-    } else {
-      dot.textContent = '';
-      dot.style.background = 'transparent';
-      dot.style.boxShadow = 'none';
-    }
     renderBanner();
     var myDraw = canDrawNow();
     el.btnDraw.disabled = !myDraw;
@@ -289,10 +279,11 @@
       msg = '等待 ' + ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 选色';
       cls = ' warn';
     } else if (me === state.turn) {
-      msg = '轮到你出牌' + (state.justDrew ? '（摸牌后可出刚摸的牌或点「过」）' : '');
-      cls = ' mine';
+      // 自己的回合不弹横幅（减少遮挡），仅轮到对手时提示
+      msg = '';
+      cls = '';
     } else {
-      msg = '轮到玩家 ' + (state.turn + 1) + (state.dir < 0 ? '（逆向）' : '');
+      msg = '轮到 ' + ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 出牌' + (state.dir < 0 ? '（逆向）' : '');
       cls = '';
     }
     b.textContent = msg;
@@ -745,7 +736,7 @@
   /* ---------- 启动 ---------- */
   function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
-     'topCardImg', 'colorDot', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
+     'topCardImg', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
      'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
      'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle', 'btnChallenge',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
