@@ -506,8 +506,9 @@ button { -webkit-tap-highlight-color: transparent; }
  * 窗口比例与图片不符时，露出的部分由模糊层无缝接续
  */
 .uno-bg {
-  /* 背景垫底：负 z-index 保证在游戏 UI（auto）之下 */
-  position: fixed; inset: 0; z-index: -1;
+  /* 背景层：z-index 0 在 body 内容之上（负 z 会被 body 背景盖住），
+     其余游戏元素用 z-index/DOM 顺序自然在它之上 */
+  position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
 }
 .uno-bg::before {
