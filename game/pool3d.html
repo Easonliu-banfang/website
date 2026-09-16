@@ -111,9 +111,31 @@
     <link rel="stylesheet" type="text/css" href="billiards3d/css/lobby.css" />
     <link rel="stylesheet" type="text/css" href="billiards3d/css/menu.css" />
     <link rel="stylesheet" type="text/css" href="billiards3d/css/wood.css" />
-  </head>
+  <style>
+/* PS: 全屏加载遮罩（与 UNO 同款 UI） */
+.pool-loading{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,14,24,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .5s ease}
+.pool-loading.done{opacity:0;pointer-events:none}
+.pool-loading .pl-orb{width:46px;height:46px;border-radius:50%;margin-bottom:22px;border:4px solid rgba(255,255,255,0.12);border-top-color:#2cb464;animation:plSpin .9s linear infinite}
+@keyframes plSpin{to{transform:rotate(360deg)}}
+.pool-loading .pl-title{font-size:17px;font-weight:700;color:rgba(240,246,255,0.95);letter-spacing:2px}
+.pool-loading .pl-sub{font-size:13px;color:rgba(200,210,228,0.55);margin-top:6px;letter-spacing:1px}
+.pool-loading .pl-bar{width:min(300px,62vw);height:7px;margin-top:26px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden}
+.pool-loading .pl-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#2cb464,#7edcae);border-radius:99px;transition:width .25s ease}
+.pool-loading .pl-pct{margin-top:10px;font-size:13px;font-weight:700;color:rgba(240,246,255,0.9);font-variant-numeric:tabular-nums}
+.pool-loading .pl-file{margin-top:6px;font-size:11px;color:rgba(200,210,228,0.5);max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,Menlo,monospace}
+</style>
+</head>
 
   <body>
+    <!-- 全屏加载遮罩（与 UNO 同款）：素材下载中 -->
+    <div id="loadingOverlay" class="pool-loading">
+      <div class="pl-orb"></div>
+      <div class="pl-title">正在加载台球素材…</div>
+      <div class="pl-sub">请耐心等待</div>
+      <div class="pl-bar"><div class="pl-bar-fill" id="plBar"></div></div>
+      <div class="pl-pct" id="plPct">0%</div>
+      <div class="pl-file" id="plFile">准备中…</div>
+    </div>
     <h1 hidden>3D 八球台球 · 免费在线对战</h1>
     <main>
       <div id="viewP1" class="view3d">
@@ -401,7 +423,70 @@
     <script defer src="billiards3d/three_module.js"></script>
     <script defer src="billiards3d/three_examples.js"></script>
     <script defer src="billiards3d/messaging.js"></script>
-    <script defer src="billiards3d/index.js?v=p29"></script>
+    <script defer src="billiards3d/index.js?v=p30"></script>
     <script defer src="billiards3d/no-keyboard.js?v=nk2"></script>
+
+  <script>
+    /* 台球素材预加载：字节比例进度 + 就绪检测（模型加载完 __poolReady=1） */
+    (function () {
+      var ASSETS = [
+        'billiards3d/models/p8.min.gltf',
+        'billiards3d/models/p8.min.bin',
+        'billiards3d/models/background.gltf',
+        'billiards3d/models/background.bin'
+      ];
+      var ov = document.getElementById('loadingOverlay');
+      if (!ov) return;
+      var finished = false;
+      function finish() {
+        if (finished) return;
+        finished = true;
+        var f = document.getElementById('plFile'), b = document.getElementById('plBar'), p = document.getElementById('plPct');
+        if (f) f.textContent = '加载完成';
+        if (b) b.style.width = '100%';
+        if (p) p.textContent = '100%';
+        setTimeout(function () {
+          ov.classList.add('done');
+          setTimeout(function () { ov.style.display = 'none'; }, 500);
+        }, 200);
+      }
+      // 兜底：10 秒强制进（即使模型未就绪——首帧渲染或超时都放行）
+      var safety = setTimeout(finish, 10000);
+      // 轮询就绪标志 + 兜底：模型真正加载完成即关遮罩
+      var tries = 0;
+      (function poll() {
+        if (window.__poolReady) { clearTimeout(safety); finish(); return; }
+        if (tries++ > 120) { clearTimeout(safety); finish(); return; }
+        setTimeout(poll, 100);
+      })();
+      // 字节进度下载
+      function fmt(b) {
+        if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
+        return Math.max(1, Math.round(b / 1024)) + ' KB';
+      }
+      var total = 0, done = 0, idx = 0;
+      function next() {
+        var bar = document.getElementById('plBar'), pct = document.getElementById('plPct'), f = document.getElementById('plFile');
+        if (idx >= ASSETS.length) { if (f) f.textContent = '场景初始化…'; return; }
+        var a = ASSETS[idx];
+        if (f) f.textContent = '正在下载 ' + a + '  (' + fmt(done) + ' / ' + fmt(total || 0) + ')';
+        var pctv = total > 0 ? Math.round(done / total * 100) : Math.round(idx / ASSETS.length * 100);
+        if (bar) bar.style.width = pctv + '%';
+        if (pct) pct.textContent = pctv + '%';
+        var k = idx;
+        fetch(a).then(function (r) {
+          if (!r.ok) throw new Error('fail');
+          var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
+          if (cl > 0) total += cl;
+          return r.blob();
+        }).then(function (blob) {
+          done += blob.size;
+          idx++;
+          next();
+        }).catch(function () { idx++; next(); });
+      }
+      next();
+    })();
+  </script>
   </body>
 </html>
