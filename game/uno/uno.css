@@ -275,23 +275,18 @@
 /* ⑦ 右下角 UNO 大按钮（亮色高对比） */
 .uo-uno-big {
   position: absolute; right: 26px; bottom: 150px; z-index: 16;
-  width: 96px; height: 96px; border-radius: 50%;
-  color: #fff;
-  font-family: 'Arial Black', var(--mono), sans-serif;
-  font-size: 26px; font-weight: 900; letter-spacing: 3px; cursor: pointer;
+  width: 150px; height: 145px;   /* 按原图比例 1001x968 ≈ 1.034:1 */
+  color: transparent;
+  font-size: 0;
+  cursor: pointer;
   border: none;
-  background: radial-gradient(circle at 50% 28%, #c33a3a 0%, #a51f1f 55%, #7f1212 100%);
-  box-shadow:
-    0 12px 26px rgba(140, 20, 20, 0.5),
-    0 6px 0 #611010,
-    inset 0 3px 0 rgba(255,255,255,0.28),
-    inset 0 8px 16px rgba(255,255,255,0.14),
-    inset 0 -8px 12px rgba(50, 4, 4, 0.5);
-  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  padding: 0;
+  background: url('assets/uno-button.png') center / 100% 100% no-repeat;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
 }
-.uo-uno-big:hover { transform: scale(1.08); }
-.uo-uno-big:active { transform: scale(0.94); }
+.uo-uno-big:hover { transform: scale(1.06); }
+.uo-uno-big:active { transform: scale(0.95); }
 
 /* ---------- 卡牌通用 + 牌背（亮色） ---------- */
 .uc {
@@ -322,14 +317,8 @@
   .uo-me-avatar { width: 50px; height: 50px; font-size: 25px; }
   .uo-me-zone { bottom: 104px; }
   .uo-quickbar { right: 16px; bottom: auto; top: 38%; }
-  .uo-uno-big { width: 84px; height: 84px; border-radius: 50%; font-size: 23px; letter-spacing: 2px; right: 18px; bottom: 118px; }
-  .uo-uno-big .base { width: 122px; height: 122px; }
-  .uo-uno-big .base::before { inset: 10px; }
-  .uo-p-avatar { width: 42px; height: 42px; font-size: 22px; }
-  .uo-p-name { max-width: 84px; font-size: 11px; }
-  .uo-p-top .uo-p-hand .uo-back { width: 28px; height: 40px; margin-left: -16px; }
-  .uo-p-left .uo-p-hand .uo-back, .uo-p-right .uo-p-hand .uo-back { width: 26px; height: 38px; margin-left: -15px; }
-}
+  .uo-uno-big { width: 120px; height: 116px; right: 18px; bottom: 118px; }
+  
 
 /* ---------- 竖屏遮罩（亮色） ---------- */
 #landscapeOverlay {
@@ -450,66 +439,32 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 
 /* ---- UNO 大按钮（2.5D 立体圆钮） ---- */
-.uo-uno-big {
-  transform-style: preserve-3d;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
-}
+
 /* 常态：常驻显示；非激活置灰半透明（不弹提示） */
-.uo-uno-big:not(.on) { filter: none; opacity: 0.55; box-shadow: 0 5px 0 #611010, 0 10px 20px rgba(0,0,0,0.3); animation: none; }
-.uo-uno-big:not(.on):hover { transform: scale(1.03); opacity: 0.75; }
+.uo-uno-big:not(.on) { opacity: 0.45; filter: grayscale(0.6) brightness(0.75); }
+.uo-uno-big:not(.on):hover { transform: scale(1.04); opacity: 0.7; }
 /* 激活（剩 1 张）：全彩 + 呼吸光 + 立体抬升 */
 .uo-uno-big.on {
+  opacity: 1;
   filter: none;
-  box-shadow: 0 14px 30px rgba(225,36,42,0.5), 0 5px 0 #931017, inset 0 3px 8px rgba(255,255,255,0.4), inset 0 -8px 14px rgba(120,0,6,0.45);
+  box-shadow: 0 12px 28px rgba(210, 20, 50, 0.5);
 }
-.uo-uno-big.on:hover { transform: translateY(-3px) scale(1.06); box-shadow: 0 20px 40px rgba(158,28,28,0.6), 0 8px 0 #611010, inset 0 3px 0 rgba(255,255,255,0.32), inset 0 8px 16px rgba(255,255,255,0.18); }
-.uo-uno-big.on:active { transform: translateY(2px) scale(0.94); box-shadow: 0 6px 12px rgba(158,28,28,0.4), 0 2px 0 #611010; }
+.uo-uno-big.on:hover { transform: translateY(-3px) scale(1.05); box-shadow: 0 18px 36px rgba(210, 20, 50, 0.55); }
+.uo-uno-big.on:active { transform: translateY(2px) scale(0.96); box-shadow: 0 4px 10px rgba(210, 20, 50, 0.4); }
 /* 2.5D 底厚（圆钮底边高光） */
-.uo-uno-big::after {
-  content: "";
-  position: absolute; inset: 5px -4px -10px;
-  border-radius: 50%;
-  background: rgba(97, 16, 16, 0.6);
-  filter: blur(3px);
-  z-index: -1;
-}
+
 /* 灰白色小底座（按钮正下方居中的椭圆） */
 /* 高级底座：同心圆托盘（按钮嵌在凹槽里）——
  * 外圈亮环 + 内凹座槽 + 底部厚边投影；按钮抬起时托盘留原地 */
-.uo-uno-big .base {
-  content: "";
-  position: absolute; left: 50%; top: 50%;
-  transform: translate(-50%, -50%);
-  width: 140px; height: 140px; border-radius: 50%;
-  z-index: -2; pointer-events: none;
-  background: radial-gradient(circle at 50% 36%,
-    rgba(255,255,255,0.55), rgba(216,222,232,0.4) 46%,
-    rgba(182,190,204,0.62) 72%, rgba(150,158,174,0.8));
-  box-shadow:
-    0 14px 30px rgba(0,0,0,0.35),
-    0 4px 0 rgba(120,128,144,0.5),
-    inset 0 0 0 6px rgba(255,255,255,0.22),
-    inset 0 12px 24px rgba(90,98,112,0.45);
-}
-/* 座槽内衬：比按钮略大的凹陷圆，制造「嵌入」感 */
-.uo-uno-big .base::before {
-  content: "";
-  position: absolute; inset: 12px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 38%,
-    rgba(255,255,255,0.3), rgba(206,212,224,0.5) 58%,
-    rgba(168,176,190,0.68));
-  box-shadow:
-    inset 0 8px 16px rgba(88,96,112,0.5),
-    0 2px 4px rgba(255,255,255,0.5);
-}
+
+/* 座槽内衬：比按钮略大的凹陷，制造「嵌入」感 */
+
 /* hover 按钮抬起 3px → 底座反向平移 3px 抵消，托盘钉在原地 */
-.uo-uno-big:hover .base { transform: translate(-50%, calc(-50% + 3px)); }
+
 /* active 按下 2px → 底座跟随下沉 2px，保持贴合 */
-.uo-uno-big:active .base { transform: translate(-50%, calc(-50% - 2px)); }
-.uo-uno-big:hover .base::before,
-.uo-uno-big:active .base::before { box-shadow: inset 0 5px 12px rgba(88,96,112,0.42); }
-.uo-uno-big > span:first-child { position: relative; z-index: 2; }
+
+
+
 
 /* ---- 跳过按钮（牌上方，2.5D 胶囊） ---- */
 .uo-pass-line { height: 30px; display: flex; align-items: flex-end; justify-content: center; }
