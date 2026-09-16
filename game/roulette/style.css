@@ -143,3 +143,50 @@ html, body { height: 100%; }
   from { opacity: 0; transform: translate(-50%, 12px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+
+/* 除颤仪电击复活（掉命表现） */
+.defib { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+.defib-flash {
+  position: absolute; inset: 0;
+  background: #fff;
+  opacity: 0.12;
+  animation: defibFlash 0.9s ease-out;
+}
+.defib-pad {
+  position: absolute; top: 44%; width: 84px; height: 120px;
+  background: rgba(180, 210, 255, 0.35);
+  border: 2px solid rgba(160, 200, 255, 0.7);
+  border-radius: 20px;
+  box-shadow: 0 0 40px rgba(120, 180, 255, 0.6);
+  animation: defibPad 0.9s ease-in-out;
+}
+.defib-pad-l { left: 12%; }
+.defib-pad-r { right: 12%; }
+.defib-text {
+  position: absolute; left: 50%; bottom: 30%;
+  transform: translateX(-50%);
+  font-size: 18px; font-weight: 900; letter-spacing: 2px;
+  color: #cfe8ff; text-shadow: 0 0 20px rgba(120, 180, 255, 0.9);
+  background: rgba(8, 12, 24, 0.7); padding: 10px 26px; border-radius: 14px;
+  border: 1px solid rgba(140, 200, 255, 0.4);
+  animation: defibText 0.9s ease-out;
+}
+@keyframes defibFlash {
+  0% { opacity: 0.55; }
+  60% { opacity: 0.05; }
+  100% { opacity: 0; }
+}
+@keyframes defibPad {
+  0% { transform: scale(1); opacity: 0.9; }
+  45% { transform: scale(1.18); opacity: 0.4; }
+  60% { transform: scale(1); opacity: 0.9; }
+  100% { opacity: 0; }
+}
+@keyframes defibText {
+  0% { opacity: 0; transform: translate(-50%, 10px); }
+  30% { opacity: 1; transform: translate(-50%, 0); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+.action-btn.item.used { opacity: 0.4; cursor: not-allowed; }
+.waiting.small { font-size: 12px; padding: 6px 12px; opacity: 0.75; }

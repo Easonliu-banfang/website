@@ -10,7 +10,7 @@ import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js';
 import { createDemon } from './demon.js';
 import * as SFX from './sfx.js';
 import {
-  createGame, shoot, useItem, view, decide, peek, LIVES, ROUNDS,
+  createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
 } from './roulette-engine.js';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
@@ -80,7 +80,6 @@ function renderItems(v) {
 /* ---------- 游戏状态 ---------- */
 let g = createGame();
 let busy = false;          // 动画/AI 进行中，锁输入
-let lastRound = 1;
 
 /* ---------- HUD ---------- */
 function renderLives(container, n, max, who) {
@@ -88,7 +87,6 @@ function renderLives(container, n, max, who) {
   for (let i = 0; i < max; i++) {
     const d = document.createElement('div');
     d.className = 'life-cell ' + (i < n ? 'on' : 'empty');
-    if (who === 'foe' && g.round === ROUNDS && n <= 1) d.style.opacity = '0.4';  // 绝命终局隐藏真实血量提示
     container.appendChild(d);
   }
 }
@@ -98,7 +96,7 @@ function renderHUD() {
   renderLives($('foeLives'), v.lives.foe, v.maxLives, 'foe');
   const live = v.shell.filter(Boolean).length;
   const blank = v.shell.length - live;
-  $('shellStatus').textContent = `第 ${v.round} 轮 · 弹仓 ${v.shell.length} 发（实 ${live} / 空 ${blank}）`;
+  $('shellStatus').textContent = '弹仓 ' + v.shell.length + ' 发（实 ' + live + ' / 空 ' + blank + '）';
   renderShells(v);
   renderItems(v);
   renderActions(v);
@@ -110,7 +108,7 @@ function renderActions(v) {
     bar.innerHTML = '<div class="waiting">恶魔正在抉择…</div>';
     return;
   }
-  // 射击按钮
+  // 射击按钮（每回合打完一发即换手/保留，始终可射）
   const bSelf = document.createElement('button');
   bSelf.className = 'action-btn';
   bSelf.textContent = '🔫 射自己';
@@ -123,15 +121,50 @@ function renderActions(v) {
   bFoe.onclick = () => playerShoot('foe');
   bar.appendChild(bFoe);
 
-  // 道具按钮
-  v.items.me.forEach((type, i) => {
+  // 道具按钮：每回合最多 1 个（已用则禁用）
+  v.items.me.forEach((type) => {
     const b = document.createElement('button');
-    b.className = 'action-btn item';
+    b.className = 'action-btn item' + (v.itemUsedThisTurn ? ' used' : '');
     b.textContent = ITEM_CN[type] || type;
     b.title = ITEM_DESC[type] || '';
-    b.onclick = () => playerItem(type, i);
+    if (v.itemUsedThisTurn) {
+      b.disabled = true;
+      b.textContent = (ITEM_CN[type] || type) + ' ✓';
+    }
+    b.onclick = () => playerItem(type);
     bar.appendChild(b);
   });
+  if (v.itemUsedThisTurn) {
+    const tip = document.createElement('span');
+    tip.className = 'waiting small';
+    tip.textContent = '本回合已用道具 · 请射击';
+    bar.appendChild(tip);
+  }
+}
+
+/* ---------- 除颤仪电击复活（掉命表现） ---------- */
+let defibBusy = false;
+function defibRevive(who) {
+  if (defibBusy) return;
+  defibBusy = true;
+  const overlay = document.createElement('div');
+  overlay.className = 'defib';
+  // 两片贴片（屏幕两侧） + 电击白光 + "噗通"
+  overlay.innerHTML =
+    '<div class="defib-pad defib-pad-l"></div>' +
+    '<div class="defib-pad defib-pad-r"></div>' +
+    '<div class="defib-flash"></div>' +
+    '<div class="defib-text">⚡ 除颤仪电击 · ' + (who === 'me' ? '你被救回来了' : '恶魔被救回来了') + '</div>';
+  document.body.appendChild(overlay);
+  SFX.hit();
+  setTimeout(() => SFX.fireShot(), 260);   // 电击声
+  setTimeout(() => {
+    overlay.classList.add('go');
+  }, 420);
+  setTimeout(() => {
+    overlay.remove();
+    defibBusy = false;
+  }, 1500);
 }
 
 /* ---------- 玩家操作 ---------- */
@@ -150,6 +183,8 @@ function playerShoot(target) {
       if (target === 'foe') demon.userData.hit();
       else flashScreen();
       SFX.hit();                   // 命中闷响
+      // 掉命但未死 → 除颤仪电击复活
+      if (!r.over) defibRevive(target === 'self' ? 'me' : 'foe');
     } else {
       SFX.blank();                 // 空弹咔嗒
     }
@@ -164,12 +199,12 @@ function playerShoot(target) {
 }
 function playerItem(type) {
   if (busy || g.over) return;
-  SFX.item();
   const r = useItem(g, 'me', type);
-  if (!r.ok) return;
+  if (!r.ok) { toast(r.effect); return; }
+  SFX.item();
   toast(r.effect);
   renderHUD();
-  // 道具不结束回合（除手铐外（手铐只设置跳过标记（不切换回合 → 玩家可继续射击/用道具
+  // 道具不结束回合：用完仍可射击（但本回合不能再用了）
 }
 function flashScreen() {
   // 自射中弹：屏幕红闪（简易：给 canvas 加一层红色覆盖
@@ -187,17 +222,10 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2200);
 }
 
-/* ---------- 动作后：轮次/AI ---------- */
+/* ---------- 动作后：切换回合/AI ---------- */
 function afterAction(r) {
   renderHUD();
   if (r && r.over) { endGame(); return; }
-  if (r && r.roundOver) {
-    toast(`第 ${g.round} 轮开始！命数 ${LIVES[g.round - 1]}`);
-    lastRound = g.round;
-    busy = false;
-    renderHUD();
-    return;
-  }
   // 轮到 AI？
   if (g.turn === 'foe' && !g.over) {
     setTimeout(aiTurn, 900);
@@ -209,17 +237,17 @@ function afterAction(r) {
 }
 function aiTurn() {
   if (g.over) { busy = false; return; }
-  const d = decide(g, 'foe');
+  const d = aiDecide(g);
   demon.userData.talk();
   SFX.uiClick();
   gunTarget.copy(GUN_DEMON);      // 恶魔拿枪（枪移到它手中，指着你）
   setTimeout(() => {
     if (d.action === 'item') {
       const r = useItem(g, 'foe', d.item);
-      if (r.ok) toast('恶魔使用了 ' + (ITEM_CN[d.item] || d.item));
+      if (r.ok) toast('恶魔使用了 ' + (ITEM_CN[d.item] || d.item) + '：' + r.effect);
       SFX.item();
       renderHUD();
-      setTimeout(aiTurn, 800);     // 用完道具继续决策（可能接着射击
+      setTimeout(aiTurn, 800);     // 用完道具继续决策（本回合最多 1 个，之后必射击
       return;
     }
     // 射击
@@ -233,6 +261,8 @@ function aiTurn() {
         if (target === 'foe') flashScreen();   // 玩家中弹
         else demon.userData.hit();
         SFX.hit();
+        // 掉命但未死 → 除颤仪电击复活
+        if (!r.over) defibRevive(target === 'self' ? 'foe' : 'me');
       } else if (r) {
         SFX.blank();
       }
@@ -254,9 +284,9 @@ function endGame() {
   const title = won ? '🎉 你赢了！' : '💀 你输了';
   const sub = won ? '恶魔倒下了，你带着钱离开' : '你被永远留在这里';
   const stats = [
-    ['最终轮次', `${v.round} / ${ROUNDS}`],
     ['你的剩余命数', String(v.lives.me)],
     ['恶魔剩余命数', String(v.lives.foe)],
+    ['对局记录', v.log.join('；') || '—'],
   ];
   if (window.ResultOverlay) {
     ResultOverlay.show({
@@ -294,6 +324,7 @@ app.start((tSec) => {
   const now = performance.now();
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+  try {
 
   if (!started) {
     // 待命：环视房间
@@ -317,6 +348,10 @@ app.start((tSec) => {
   });
 
   renderer.render(scene, camera);
+  } catch (e) {
+    // 渲染异常不阻断流程
+    console.warn('render:', e && e.message);
+  }
 });
 
 /* ---------- 入局 ---------- */
@@ -327,7 +362,7 @@ $('btnStart').addEventListener('click', () => {
   $('introScreen').classList.add('fade');
   setTimeout(() => ($('introScreen').style.display = 'none'), 700);
   renderHUD();
-  toast('第 1 轮：玩家先手 —— 选择射自己或射恶魔');
+  toast('对局开始：你 3 条命 · 恶魔 3 条命 —— 选择射自己或射恶魔');
 });
 
 /* 调试：暴露游戏状态 */

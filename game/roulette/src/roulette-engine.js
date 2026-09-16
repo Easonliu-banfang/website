@@ -1,17 +1,20 @@
-/* 恶魔轮盘 · 规则引擎 —— 纯逻辑（ESM，无 DOM 依赖，可 node 单测）
+/* 恶魔轮盘 · 规则引擎 v2 —— 纯逻辑（ESM，无 DOM 依赖，可 node 单测）
  *
- * 规则（多来源核对：Wikipedia / 百度百科 / 多个评测）：
- *   - 3 轮；第 1/2/3 轮双方命数 1/3/4（除颤仪充能格）
- *   - 每轮装弹：随机 2~8 发；实弹(红)/空弹(蓝灰) 至少各 1
- *   - 玩家先手
- *   - 射自己：空弹 → 保留回合继续；实弹 → 自己扣 1 命
- *   - 射对手：空弹 → 回合结束换对手；实弹 → 对手扣 1 命（手锯 → 2）
- *   - 弹仓空 → 重新装弹 + 发道具（第 2 轮起）
- *   - 道具（第 2 轮起随机发放；第 2 轮 2 个 / 第 3 轮 4 个，上限 8）
+ * 规则（按用户确认 + 网络核对）：
+ *   - 单局制：双方各 3 条命（除颤仪充能格），打光即死，无第二局
+ *   - 开局装弹：随机 2~8 发；实弹(红)/空弹(蓝) 至少各 1；数量公开、顺序隐藏
+ *   - 每局开局：双方各发 4 个道具（放到桌上 4 格）
+ *   - 每回合：可先选用 1 个道具（最多 1 个），再选择射自己 or 射恶魔，打 1 发
+ *   - 打中自己：空弹 → 保留回合继续；实弹 → 自己掉 1 命，换对手
+ *   - 打中恶魔：空弹 → 换对手；实弹 → 恶魔掉 1 命，换对手
+ *   - 掉命有除颤仪电击复活（UI 表现）；3 命全失 → 死
+ *   - 弹仓打空 → 重新装弹 + 双方补发道具
+ *   - 道具：magnifier 放大镜 / cigarette 香烟 / handcuff 手铐 / handsaw 手锯
+ *          beer 啤酒 / adrenaline 肾上腺素(偷来立即用) / inverter 逆变器 / phone 手机
  */
 
-export const ROUNDS = 3;
-export const LIVES = [1, 3, 4];
+export const MAX_LIVES = 3;          // 双方各 3 条命
+export const START_ITEMS = 4;        // 开局各发 4 个道具
 export const ITEM_POOL = [
   'magnifier', 'cigarette', 'handcuff', 'handsaw',
   'beer', 'adrenaline', 'inverter', 'phone',
@@ -28,23 +31,25 @@ function makeRng(seed) {
   };
 }
 
-/** 建新游戏（自动装第一轮弹） */
+/** 建新游戏（自动装弹 + 开局发 4 道具） */
 export function createGame(seed) {
   const g = {
     rng: makeRng(seed || (Date.now() & 0xffff)),
-    round: 1,
-    lives: { me: LIVES[0], foe: LIVES[0] },
+    lives: { me: MAX_LIVES, foe: MAX_LIVES },
     shell: [],
     idx: 0,
     turn: 'me',
     items: { me: [], foe: [] },
+    itemUsedThisTurn: false,   // 本回合是否已用道具（每回合限 1 个）
     saw: false,
     cuff: { me: 0, foe: 0 },
     over: false,
     winner: null,
     log: [],
     _aiKnown: false,
+    _aiActed: false,           // AI 本回合是否已动作（道具/射击）
   };
+  dealItems(g);
   load(g);
   return g;
 }
@@ -75,12 +80,10 @@ function giveItems(g, who, n) {
   }
 }
 
-/** 发道具（第 2 轮起：第 2 轮 2 个 / 第 3 轮 4 个） */
+/** 发道具：开局各 4 个；弹仓重装时各补发 2 个 */
 export function dealItems(g) {
-  if (g.round < 2) return;
-  const n = g.round === 2 ? 2 : 4;
-  giveItems(g, 'me', n);
-  giveItems(g, 'foe', n);
+  giveItems(g, 'me', START_ITEMS);
+  giveItems(g, 'foe', START_ITEMS);
 }
 
 /** 当前膛内弹：true=实弹，false=空弹，null=弹仓空 */
@@ -101,20 +104,19 @@ export function liveRatio(g) {
 }
 
 /**
- * 射击
+ * 射击（每回合只能打一发）
  * @param g 游戏状态
  * @param who 开枪方 'me'|'foe'
  * @param target 'self'（射自己）| 'foe'（射对手）
- * @returns { live, dmg, dead, roundOver, over, winner }
+ * @returns { live, dmg, dead, over, winner }
  */
 export function shoot(g, who, target) {
   if (g.over) return null;
   let cur = peek(g);
-  if (cur === null) { load(g); cur = peek(g); }   // 空仓兜底：重装
+  if (cur === null) { load(g); giveItems(g, 'me', 2); giveItems(g, 'foe', 2); cur = peek(g); }
 
   const live = cur === true;
   const dmg = live ? (g.saw ? 2 : 1) : 0;
-  const shooter = who;
   const victim = target === 'self' ? who : (who === 'me' ? 'foe' : 'me');
 
   if (live) {
@@ -125,8 +127,8 @@ export function shoot(g, who, target) {
 
   // 回合流转：射自己 + 空弹 → 保留回合；其余 → 换手
   let next;
-  if (target === 'self' && !live) next = shooter;
-  else next = shooter === 'me' ? 'foe' : 'me';
+  if (target === 'self' && !live) next = who;
+  else next = who === 'me' ? 'foe' : 'me';
 
   // 手铐：被铐方跳过 → 再换回
   if (g.cuff[next] > 0) {
@@ -135,46 +137,42 @@ export function shoot(g, who, target) {
   }
   g.turn = next;
 
-  // 弹仓打空 → 重装 + 发道具
+  // 重置回合标记（每回合限 1 道具）
+  g.itemUsedThisTurn = false;
+  g._aiActed = false;
+  g._aiKnown = false;      // 下一回合重新用放大镜（信息不跨回合记忆）
+
+  // 弹仓打空 → 重装 + 补发道具
   if (g.idx >= g.shell.length) {
-    dealItems(g);
     load(g);
+    giveItems(g, 'me', 2);
+    giveItems(g, 'foe', 2);
   }
 
-  // 有人归零 → 轮次推进 or 游戏结束
+  // 有人归零 → 直接结束（无第二局）
   const dead = g.lives.me <= 0 || g.lives.foe <= 0;
   if (dead) {
     const loser = g.lives.me <= 0 ? 'me' : 'foe';
-    const winner = loser === 'me' ? 'foe' : 'me';
-    g.log.push('第 ' + g.round + ' 轮：' + loser + ' 败');
-    if (g.round < ROUNDS) {
-      g.round++;
-      g.lives = { me: LIVES[g.round - 1], foe: LIVES[g.round - 1] };
-      g.items = { me: [], foe: [] };
-      g.saw = false;
-      g.cuff = { me: 0, foe: 0 };
-      dealItems(g);
-      load(g);
-      g.turn = 'me';        // 每轮玩家先手
-      return { live, dmg, dead, roundOver: true, over: false, winner: null };
-    }
     g.over = true;
-    g.winner = winner;
-    g.log.push('第 ' + g.round + ' 轮：' + loser + ' 败 —— ' + winner + ' 获胜');
-    return { live, dmg, dead, roundOver: true, over: true, winner };
+    g.winner = loser === 'me' ? 'foe' : 'me';
+    g.log.push(loser + ' 命尽 —— ' + g.winner + ' 获胜');
+    return { live, dmg, dead, over: true, winner: g.winner };
   }
-  return { live, dmg, dead, roundOver: false, over: false };
+  return { live, dmg, dead, over: false };
 }
 
 /**
- * 使用道具
+ * 使用道具（每回合最多 1 个；用了之后本回合不能再用，但可以射击）
  * @returns { ok, effect }
  */
 export function useItem(g, who, item) {
   const arr = g.items[who];
   const i = arr.indexOf(item);
-  if (g.over || i < 0) return { ok: false, effect: '道具不可用' };
+  if (g.over) return { ok: false, effect: '游戏已结束' };
+  if (g.itemUsedThisTurn && g.turn === who) return { ok: false, effect: '本回合已用道具，最多 1 个' };
+  if (i < 0) return { ok: false, effect: '道具不可用' };
   arr.splice(i, 1);
+  g.itemUsedThisTurn = true;   // 本回合已用
   return { ok: true, effect: applyEffect(g, who, item) };
 }
 
@@ -183,28 +181,28 @@ function applyEffect(g, who, item) {
   const foe = who === 'me' ? 'foe' : 'me';
   switch (item) {
     case 'cigarette': {
-      if (g.round === 3) return '第 3 轮绝命终局，香烟无效';
-      const cap = LIVES[g.round - 1];
+      const cap = MAX_LIVES;
+      if (g.lives[who] >= cap) return '命数已满，无法恢复';
       g.lives[who] = Math.min(cap, g.lives[who] + 1);
-      return '恢复 1 命';
+      return '恢复 1 条命';
     }
     case 'handcuff':
       g.cuff[foe] = (g.cuff[foe] || 0) + 1;
       return '对手跳过 1 回合';
     case 'handsaw':
       g.saw = true;
-      return '下次伤害翻倍（本枪 2 命）';
+      return '下次伤害翻倍（2 命）';
     case 'beer': {
       const c = peek(g);
       if (c === null) return '弹仓空，无法退弹';
       g.idx++;
-      if (g.idx >= g.shell.length) { dealItems(g); load(g); }
+      if (g.idx >= g.shell.length) { load(g); giveItems(g, 'me', 2); giveItems(g, 'foe', 2); }
       return '退出 1 发（' + (c ? '实弹' : '空弹') + '）';
     }
     case 'magnifier': {
       const c = peek(g);
       if (c === null) return '弹仓空';
-      return '当前弹：' + (c ? '实弹' : '空弹');
+      return '当前膛内是' + (c ? '实弹' : '空弹');
     }
     case 'inverter': {
       const c = peek(g);
@@ -222,8 +220,8 @@ function applyEffect(g, who, item) {
       const fa = g.items[foe];
       if (!fa || !fa.length) return '对手无道具可偷';
       const stole = fa.pop();
-      const sub = applyEffect(g, who, stole);   // 偷来即用
-      return '偷到 ' + stole + ' 并立即使用 → ' + sub;
+      const sub = applyEffect(g, who, stole);   // 偷来立即使用
+      return '偷到' + stole + '并立即使用 → ' + sub;
     }
     default:
       return '未知道具';
@@ -231,50 +229,60 @@ function applyEffect(g, who, item) {
 }
 
 /**
- * 通用决策（对任意一方 who='me'|'foe'）——自动/AI 都用它
- * 策略（威胁评估）：
- *   1. 残血且有烟（非绝命轮）→ 回血
- *   2. 未知当前弹且有放大镜 → 先查看
- *   3. 已知实弹 → 有锯先锯（翻倍），否则射对手
- *   4. 已知空弹 → 自射（保留回合）
- * @returns { action:'shoot'|'item', target?, item?, reason }
+ * AI（恶魔）决策（foe）：每回合最多 1 道具，然后射击
+ * @returns { action:'item'|'shoot', item?, target?, reason }
  */
-export function decide(g, who) {
+export function aiDecide(g) {
+  const who = 'foe';
   const items = g.items[who] || [];
   const has = (n) => items.indexOf(n) >= 0;
   const cur = peek(g);
+  const ratio = liveRatio(g);
 
-  if (g.round !== 3 && g.lives[who] <= 1 && has('cigarette')) {
-    return { action: 'item', item: 'cigarette', reason: '残血回命' };
+  // 回合内已用道具 → 直接射击
+  if (g.itemUsedThisTurn) {
+    if (cur === true) return { action: 'shoot', target: 'foe', reason: '已用道具+实弹→射玩家' };
+    return { action: 'shoot', target: 'self', reason: '已用道具+空弹→自射' };
   }
-  if (cur === null) return { action: 'shoot', target: 'self', reason: '空仓兜底' };
 
+  // 残血且有烟 → 回命（3 命制可无脑回血）
+  if (g.lives[who] < MAX_LIVES && has('cigarette')) {
+    return { action: 'item', item: 'cigarette', reason: '回命' };
+  }
+
+  // 手铐：有就优先用（跳过玩家回合）
+  if (has('handcuff') && g.cuff.me === 0) {
+    return { action: 'item', item: 'handcuff', reason: '铐住玩家' };
+  }
+
+  // 没看过当前弹且有放大镜 → 先看
   if (!g._aiKnown && has('magnifier')) {
     g._aiKnown = true;
     return { action: 'item', item: 'magnifier', reason: '查看当前弹' };
   }
 
-  if (cur === true) {
-    if (has('handsaw')) return { action: 'item', item: 'handsaw', reason: '实弹 + 锯 → 翻倍伤害' };
-    return { action: 'shoot', target: 'foe', reason: '实弹射对手' };
-  }
-  return { action: 'shoot', target: 'self', reason: '空弹自射续命' };
-}
+  // 弹仓空兜底
+  if (cur === null) return { action: 'shoot', target: 'self', reason: '空仓兜底' };
 
-/** AI（恶魔 = foe）决策：decide 的专用别名 */
-export function aiDecide(g) {
-  return decide(g, 'foe');
+  // 已知当前弹
+  if (cur === true) {
+    if (has('handsaw') && !g.saw) return { action: 'item', item: 'handsaw', reason: '实弹+锯→翻倍' };
+    return { action: 'shoot', target: 'foe', reason: '实弹射玩家' };
+  }
+  // 空弹：实弹占比高时赌一把射玩家，否则自射续命
+  if (ratio >= 0.5) return { action: 'shoot', target: 'foe', reason: '空弹但高实弹率→赌射玩家' };
+  return { action: 'shoot', target: 'self', reason: '空弹自射续命' };
 }
 
 /** 公开状态（给 UI 渲染） */
 export function view(g) {
   return {
-    round: g.round,
-    maxLives: LIVES[g.round - 1],
+    maxLives: MAX_LIVES,
     lives: { me: g.lives.me, foe: g.lives.foe },
     shell: g.shell.slice(g.idx),
     turn: g.turn,
     items: { me: g.items.me.slice(), foe: g.items.foe.slice() },
+    itemUsedThisTurn: g.itemUsedThisTurn,
     saw: g.saw,
     cuff: { me: g.cuff.me, foe: g.cuff.foe },
     over: g.over,

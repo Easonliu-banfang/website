@@ -14,9 +14,15 @@ function ac() {
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
-    ctx = new AC();
+    try {
+      ctx = new AC();
+    } catch (e) {
+      return null;
+    }
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx && ctx.state === 'suspended') {
+    try { ctx.resume(); } catch (e) { return null; }
+  }
   return ctx;
 }
 
