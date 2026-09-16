@@ -128,6 +128,16 @@
 
   /* ---------- 规则辅助（本地预检，服务端仍权威） ---------- */
   function kindOf(c) { if (c === 'w' || c === 'w4') return 'w'; return c.charAt(0); }
+  // 符号类型（与引擎 kindOf 同语义）：'w'|'w4'|'s'|'r'(反转)|'d'(+2)|'n'(数字)
+  function symOf(c) {
+    if (c === 'w') return 'w';
+    if (c === 'w4') return 'w4';
+    var k = c.charAt(1);
+    if (k === 's') return 's';
+    if (k === 'r') return 'r';
+    if (k === 'd') return 'd';
+    return 'n';
+  }
   function kindOk(c, top, color) {
     if (kindOf(c) === 'w') return true;
     if (kindOf(top) === 'w') return c.charAt(0) === color;
@@ -142,12 +152,12 @@
     if (!state || state.awaitColor || me !== state.turn || state.winner >= 0) return [];
     var out = [];
     var h = state.hand || [];
-    // 被 +2/+4 罚时：只能出 +2 / 万色+4 叠加
+    // 被 +2/+4 罚时：+2 叠 +2 罚（不限颜色）；w4 可叠任何罚
     if (state.nextDraw > 0) {
       for (var m = 0; m < h.length; m++) {
         var mc = h[m];
-        var mk = kindOf(mc);
-        if (mk === 'd' && kindOk(mc, state.top, state.topColor)) out.push(mc);
+        var mk = symOf(mc);
+        if (mk === 'd' && state.drawKind === 'd') out.push(mc);
         else if (mk === 'w4') out.push(mc);
       }
       return out;
@@ -525,7 +535,7 @@
     if (state.awaitColor) return;
     var hand = state.hand || [];
     if (hand.indexOf(card) < 0) return;
-    var k = kindOf(card);
+    var k = symOf(card);
     if (state.nextDraw > 0) {
       // 叠加：+2 叠 +2 罚（不限颜色）；+4 可叠任何罚
       if (k !== 'd' && k !== 'w4') return;
@@ -556,7 +566,7 @@
   function toLocalView(s) {
     return {
       you: me, mode: 'ai', capacity: s.capacity, top: s.top, topColor: s.topColor,
-      turn: s.turn, dir: s.dir, nextDraw: s.nextDraw, awaitColor: s.awaitColor,
+      turn: s.turn, dir: s.dir, nextDraw: s.nextDraw, drawKind: s.drawKind ?? 0, awaitColor: s.awaitColor,
       justDrew: s.justDrew, lastDrawn: s.lastDrawn, uno: s.uno, winner: s.winner,
       hand: s.hands[me].slice(), counts: s.hands.map(function (h) { return h.length; }),
       teams: s.teams, mate: null, mateHand: null, challenge: false
