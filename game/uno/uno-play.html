@@ -8,10 +8,10 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u24">
+  <link rel="stylesheet" href="uno.css?v=u25">
 </head>
 <body class="uno-play-body">
-
+<div class="uno-bg" aria-hidden="true"></div>
 <!-- 全局通知栏 -->
 <div id="notifyBar" class="notify-bar" hidden></div>
 
@@ -64,11 +64,6 @@
         </button>
       </div>
 
-      <!-- C. 中央方向/回合提示环（轨道自转；箭头独立不随轨道转） -->
-      <div class="uo-dir-wrap">
-        <div class="uo-dir-ring"></div>
-        <span class="uo-dir-arrow" id="dirArrow">➤</span>
-      </div>
 
       <!-- A2. 质疑 +4 按钮（被加人回合出现） -->
       <button class="uo-challenge-btn" id="btnChallenge" type="button" hidden>🤔 质疑 +4</button>
@@ -183,7 +178,7 @@
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u5"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u27"></script>
+<script src="uno-app.js?v=u28"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>

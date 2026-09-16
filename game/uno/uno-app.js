@@ -56,9 +56,7 @@
     }
     if (window.Notify) window.Notify.show('⏱ 出牌超时，已自动出牌', 'warn');
   }
-  function renderDir() {
-    if (el.dirArrow) el.dirArrow.classList.toggle('rev', !!(state && state.dir < 0));
-  }
+  
 
   var el = {};
   function $(id) { return document.getElementById(id); }
@@ -637,7 +635,7 @@
     if (topChanged && s.top && prevTurn >= 0 && prevTurn !== me) oppFlyIn(prevTurn);
     // 回合切换 → 重置 10 秒出牌计时（仅自己回合倒计时）
     if (s.turn !== lastTurn) { lastTurn = s.turn; timerLeft = (me === s.turn) ? TURN_SECONDS : 0; renderTimer(); }
-    renderDir();
+    ;
     if (s.winner >= 0) showResult();
     else if (el.resultBanner) el.resultBanner.hidden = true;
     el.gameRoot.hidden = false;
@@ -711,7 +709,7 @@
   /* ---------- 启动 ---------- */
   function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
-     'topCardImg', 'btnDraw', 'deckInner', 'dirRing', 'dirArrow', 'turnTimer',
+     'topCardImg', 'btnDraw', 'deckInner', 'turnTimer',
      'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
      'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle', 'btnChallenge',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });

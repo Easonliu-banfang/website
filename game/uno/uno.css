@@ -22,7 +22,7 @@
 /* ---------- 对局页：亮色画布 ---------- */
 .uno-play-body {
   height: 100dvh; overflow: hidden;
-  background: linear-gradient(160deg, #e8f4ff 0%, #f6f9ff 40%, #fffbef 100%);
+  background: #0d1b2a;
 }
 .uno-head { padding: 12px 22px 8px; }
 .uno-head h1 { color: #0f2440; }
@@ -117,31 +117,6 @@
 @keyframes uoGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0.45); } 50% { box-shadow: 0 0 24px 8px rgba(255, 157, 0, 0.28); } }
 
 /* C. 中央方向/回合提示环（彩色流光轨道；箭头独立不随轨道自转） */
-.uo-dir-wrap {
-  position: absolute; left: 50%; top: 43%;
-  transform: translate(-50%, -50%);
-  width: 240px; height: 240px; z-index: 3; pointer-events: none;
-}
-.uo-dir-ring {
-  position: absolute; inset: 0;
-  border-radius: 50%;
-  border: 3px dashed rgba(255, 255, 255, 0.55);
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.25);
-  animation: uoSpin 18s linear infinite;
-}
-.uo-dir-arrow {
-  position: absolute;
-  top: -8px; left: 50%;
-  margin-left: -14px;
-  width: 28px; height: 28px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; color: #fff;
-  text-shadow: 0 2px 6px rgba(20, 80, 40, 0.5);
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
-  transition: transform 0.4s ease;
-  will-change: transform;
-}
-.uo-dir-arrow.rev { transform: rotate(180deg); }
 
 /* A2. 质疑 +4 按钮 */
 .uo-challenge-btn {
@@ -169,7 +144,6 @@
 
 /* 当前颜色 */
 
-
 .uo-color-dot {
   display: inline-flex; align-items: center; justify-content: center;
   width: 42px; height: 42px; border-radius: 50%;
@@ -182,11 +156,8 @@
 .uo-banner { display: none !important; }  /* 横幅整体移除（不再显示） */
 @keyframes uoBannerIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
-
-
-
 @keyframes uoShake { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(calc(-50% - 6px)); } 75% { transform: translateX(calc(-50% + 6px)); } }
-@keyframes uoSpin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+ to { transform: translate(-50%, -50%) rotate(360deg); } }
 @keyframes uoCardPop { 0% { transform: scale(0.4) rotate(-6deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
 /* ③ 四周玩家：白卡 + 阴影 */
@@ -334,7 +305,6 @@
 .uo-uno-big:hover { transform: scale(1.08); }
 .uo-uno-big:active { transform: scale(0.94); }
 
-
 /* ---------- 卡牌通用 + 牌背（亮色） ---------- */
 .uc {
   display: block; width: 62px; aspect-ratio: 5 / 7;
@@ -357,7 +327,7 @@
   .uo-timer-icon { width: 34px; height: 34px; }
   .uo-table-disc { width: min(88vw, 640px); height: min(42vh, 320px); border-width: 8px; }
   .uc-center { width: 84px; }
-  .uo-dir-ring { width: 172px; height: 172px; }
+  
   .uo-deck-disc { min-width: 76px; padding: 10px 12px; }
   .uo-hand .uc-wrap { margin-left: -16px; }
   .uc-hand { width: 46px; }
@@ -438,7 +408,6 @@
   .cp { width: 76px; }
 }
 
-
 /* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现 ============ */
 /* rotate 90°：竖屏画面横过来，用户将手机转 90° 即可正着看。
    旋转后 vw/vh 仍按真实视口（竖屏 390 宽）计算会错位 → 关键布局用 %（相对旋转后逻辑视口） */
@@ -458,8 +427,6 @@ body.portrait .uo-table-disc {
   width: min(72%, 860px);
   height: min(46%, 420px);
 }
-
-
 
 /* ========== 2.5D 按钮 ================================================
  * 给所有按钮加立体感：顶部受光面 + 底部厚度(伪元素) + 按下下沉
@@ -589,3 +556,27 @@ button { -webkit-tap-highlight-color: transparent; }
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .uo-close-btn:active, .uo-btn:active, .btn:active { transform: translateY(2px); }
+
+/* ========== 背景：双层模糊填充（图片完整显示 + 周围虚化填充） ==========
+ * 底层：图片 cover + 高斯模糊铺满整个窗口（边缘自然延展）
+ * 顶层：图片 contain 完整显示（不拉伸，居中）
+ * 窗口比例与图片不符时，露出的部分由模糊层无缝接续
+ */
+.uno-bg {
+  /* 背景垫底：负 z-index 保证在游戏 UI（auto）之下 */
+  position: fixed; inset: 0; z-index: -1;
+  pointer-events: none;
+}
+.uno-bg::before {
+  content: "";
+  position: absolute; inset: -40px;
+  background: url('assets/uno-bg.jpg') center / cover no-repeat;
+  filter: blur(28px) saturate(1.15);
+  transform: scale(1.02);
+}
+.uno-bg::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: url('assets/uno-bg.jpg') center / contain no-repeat;
+  box-shadow: inset 0 0 60px rgba(8, 16, 28, 0.35);
+}
