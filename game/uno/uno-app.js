@@ -105,6 +105,17 @@
   }
 
 
+  /* ---------- 我的显示名：优先登录账号昵称，未登录兜底「你」 ---------- */
+  function myName() {
+    try {
+      var u = (window.Auth && window.Auth.user && String(window.Auth.user).trim());
+      if (u) return u.slice(0, 10);
+      var lu = localStorage.getItem('game_username');
+      if (lu && String(lu).trim()) return String(lu).trim().slice(0, 10);
+    } catch (e) {}
+    return '你';
+  }
+
   /* ---------- 头像：用户自定义（localStorage.game_avatar）优先，缺省用默认图 ---------- */
   var DEFAULT_AVATAR = '../assets/default-avatar.jpg';
   function avatarSrc() {
@@ -520,8 +531,9 @@
       if (mode === 'ai') localStep(function (s) { Uno.pass(s, me); });
       else if (o) o.sendPass();
     });
-    // 我的头像（用户自定义优先，无则默认）
-    el.meAvatar.innerHTML = avatarImg('', '你');
+    // 我的头像（用户自定义优先，无则默认）+ 显示名（真人用户名，未登录才「你」）
+    el.meAvatar.innerHTML = avatarImg('', myName());
+    el.meLabel.textContent = myName();
 
     el.btnUno.addEventListener('click', function () {
       if (!el.btnUno.classList.contains('on')) return;   // 非激活（未剩 1 张）不响应
@@ -595,7 +607,7 @@
     localState = Uno.createState('3');
     Uno.deal(localState);
     me = 0;
-    names = ['你', 'AI·2', 'AI·3'];
+    names = [myName(), 'AI·2', 'AI·3'];
     roomStarted = true;
     isHost = false;
     if (el.unoGameTitle) el.unoGameTitle.style.display = 'none';
