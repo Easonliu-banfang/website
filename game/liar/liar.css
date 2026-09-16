@@ -569,3 +569,10 @@ body.portrait .liar-shell { height: 100vw; }
 body.portrait .liar-stage { overflow: hidden; }
 body.portrait .liar-chat { bottom: 12px; }
 
+
+/* 真人自定义头像（dataURI 图片）自适应圆形裁切 */
+.liar-avatar-img {
+  width: 100%; height: 100%;
+  object-fit: cover; border-radius: 50%;
+  display: block;
+}

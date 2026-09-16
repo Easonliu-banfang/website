@@ -70,6 +70,12 @@ var app = {
   };
 
   /* ---------- 工具 ---------- */
+  // avatar 渲染：dataURI 图片 → <img>；花色字符 → 原文本
+  function avatarHtml(av) {
+    var s = String(av || '');
+    if (s.indexOf('data:image/') === 0) return '<img class="liar-avatar-img" src="' + s + '" alt="">';
+    return escapeHtml(s);
+  }
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -128,7 +134,7 @@ var app = {
         : player.handCount ? (player.handCount + ' 张牌 · 弹巢 ' + player.shots + '/6')
         : ('手牌已出尽 · 弹巢 ' + player.shots + '/6');
       return '<article class="liar-opp ' + (!player.alive ? 'dead' : '') + ' ' + (view.current === player.id && view.phase === 'playing' ? 'active' : '') + '" data-seat="' + (index + 1) + '" data-total="' + opponents.length + '">' +
-        '<div class="liar-avatar-ring"><div class="liar-avatar">' + escapeHtml(player.avatar) + '</div><i class="liar-turn-dot"></i></div>' +
+        '<div class="liar-avatar-ring"><div class="liar-avatar">' + avatarHtml(player.avatar) + '</div><i class="liar-turn-dot"></i></div>' +
         '<div class="liar-name">' + escapeHtml(player.name) + '</div>' +
         '<div class="liar-status">' + status + '</div>' +
         '<div class="liar-mini-cards">' + cards + '</div>' +
