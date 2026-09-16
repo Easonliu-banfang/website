@@ -23,7 +23,7 @@
 
   /* ---------- 回合倒计时（10 秒时限） + 整局 4 分钟 ---------- */
   var TURN_SECONDS = 10;               // 每位玩家出牌时限
-  var GAME_SECONDS = 240;              // 每局总时长 4 分钟
+  var GAME_SECONDS = 180;              // 每局总时长 3 分钟
   var timerLeft = TURN_SECONDS;
   var lastTurn = -1;
   var gameSeconds = GAME_SECONDS;
@@ -247,7 +247,12 @@
       msg = winnerText();
       cls = ' win';
     } else if (state.nextDraw > 0) {
-      msg = ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 需摸 ' + state.nextDraw + ' 张';
+      if (me === state.turn) {
+        var stk = playableCards();
+        msg = '你被罚摸 ' + state.nextDraw + ' 张' + (stk.length ? ' — 可打 +2/+4 叠牌反击！' : '');
+      } else {
+        msg = ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 需摸 ' + state.nextDraw + ' 张';
+      }
       cls = ' warn';
     } else if (state.awaitColor) {
       msg = '等待 ' + ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 选色';
@@ -292,8 +297,12 @@
       el.mateRow.hidden = true;
     }
 
-    el.btnUno.hidden = !(h.length === 1 && state.winner < 0);
-    var meTurn = me === state.turn && state.awaitColor === false && state.nextDraw === 0 && state.winner < 0;
+    // UNO 按钮常驻：剩 1 张且未出完时激活（不弹隐藏）；播放中且轮到我全会弹出提示
+    var unoActive = (h.length === 1 && state.winner < 0);
+    el.btnUno.classList.toggle('on', unoActive);
+    if (state.winner >= 0) el.btnUno.classList.add('off'); else el.btnUno.classList.remove('off');
+    var meTurn = me === state.turn && state.awaitColor === false && state.winner < 0;
+    if (meTurn && state.nextDraw > 0) meTurn = playable.length > 0;   // 被罚：有叠牌才可交互
     el.myHand.classList.toggle('act', meTurn);
   }
   function cardAlt(c) {
@@ -492,9 +501,10 @@
       else if (o) o.sendPass();
     });
     el.btnUno.addEventListener('click', function () {
+      if (!el.btnUno.classList.contains('on')) return;   // 非激活（未剩 1 张）不响应
       if (mode === 'ai') { Uno.callUno(localState, me); renderMe(); }
       else if (o) o.sendCallUno();
-      el.btnUno.hidden = true;
+      el.btnUno.classList.remove('on');
     });
     el.colorModal.addEventListener('click', function (e) {
       var b = e.target.closest('.cp');
@@ -518,9 +528,9 @@
     if (hand.indexOf(card) < 0) return;
     var k = kindOf(card);
     if (state.nextDraw > 0) {
-      // 叠加：只允许出 +2（需可打）或 万色+4
+      // 叠加：+2 叠 +2 罚（不限颜色）；+4 可叠任何罚
       if (k !== 'd' && k !== 'w4') return;
-      if (k === 'd' && !kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
+      if (k === 'd' && state.drawKind !== 'd') { flash('+2 只能叠在 +2 上'); return; }
     } else {
       if (!kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
     }

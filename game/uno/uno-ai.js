@@ -54,9 +54,21 @@
     if (state.turn !== s) return null;
     // 刚出万能牌 → 选色（回合不推进，等出牌者选）
     if (state.awaitColor) return { type: 'setColor', color: bestColor(hand), as: s };
-    // 被 +2/+4 罚时：本引擎不支持「叠牌」（nextDraw>0 时 play 被拒，只能 draw），
-    // 按引擎规则直接接受惩罚摸牌（摸完自动过）
+    // 被 +2/+4 罚时：支持叠牌——手里有 +4 直接反击（可叠任何）；
+    // 有 +2 且罚来自 +2 一并叠上（+2 只能叠 +2）；没牌可叠才接受惩罚
     if (state.nextDraw > 0) {
+      var drawKind = state.drawKind || 0;
+      var w4 = null, d2 = null;
+      for (var si = 0; si < hand.length; si++) {
+        var sc = hand[si];
+        if (sc === 'w4') w4 = sc;
+        else if (sc.charAt(1) === 'd' && w4 == null && d2 == null && drawKind === 'd') d2 = sc;
+      }
+      var stk = w4 || d2;
+      if (stk) {
+        var acts = [{ type: 'play', card: stk, as: s }];
+        return acts;
+      }
       return { type: 'draw', as: s };
     }
     var playable = hand.filter(function (c) { return isPlayable(state, c); });

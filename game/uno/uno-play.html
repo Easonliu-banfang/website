@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u14">
+  <link rel="stylesheet" href="uno.css?v=u15">
 </head>
 <body class="uno-play-body">
 
@@ -108,16 +108,18 @@
 
     <!-- ⑥ 自己手牌（底部中央，大尺寸重叠排列） -->
     <div class="uo-hand-zone">
-      <div class="uo-hand" id="myHand"></div>
+      <div class="uo-pass-line">
+        <button class="uo-pass-btn" id="btnPass" type="button" hidden>过</button>
+      </div>
       <div class="uo-mate" id="mateRow" hidden>
         <span class="uo-mate-label" id="mateLabel">队友</span>
         <div class="uo-hand uo-hand--mate" id="mateHand"></div>
       </div>
-      <button class="uo-pass-btn" id="btnPass" type="button" hidden>过</button>
+      <div class="uo-hand" id="myHand"></div>
     </div>
 
     <!-- ⑦ 右下角 UNO 大按钮 -->
-    <button class="uo-uno-big" id="btnUno" type="button" hidden><span>UNO</span></button>
+    <button class="uo-uno-big" id="btnUno" type="button" aria-label="喊 UNO"><span>UNO</span></button>
 
   </section>
 </div>
@@ -182,13 +184,13 @@
 <!-- 结果横幅 -->
 <div class="uo-result" id="resultBanner" hidden></div>
 
-<script src="uno-engine.js?v=u6"></script>
+<script src="uno-engine.js?v=u7"></script>
 <script src="uno-online.js?v=u7"></script>
 <script src="../lobby.js?v=l15"></script>
 <script src="../notify.js?v=n3"></script>
-<script src="uno-ai.js?v=u4"></script>
+<script src="uno-ai.js?v=u5"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u20"></script>
+<script src="uno-app.js?v=u21"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>

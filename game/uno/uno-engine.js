@@ -77,7 +77,7 @@
       deck: [], hands: [[], [], [], []],
       top: null, topColor: null,
       turn: 0, dir: 1,
-      nextDraw: 0, awaitColor: false, justDrew: false,
+      nextDraw: 0, drawKind: 0, awaitColor: false, justDrew: false,   // drawKind: 0=无罚 / 'd'=罚来自+2 / 'w4'=罚来自+4
       uno: [false, false, false, false],
       winner: -1, started: false
     };
@@ -98,7 +98,7 @@
     state.topColor = colorOf(top);
     state.started = true;
     var k = kindOf(top), n = nextSlot(state, state.turn);
-    if (k === 'd' || k === 'w4') { state.nextDraw = (k === 'd') ? 2 : 4; state.turn = n; }
+    if (k === 'd' || k === 'w4') { state.nextDraw = (k === 'd') ? 2 : 4; state.drawKind = k; state.turn = n; }
     else if (k === 's') state.turn = n;
     else if (k === 'r') { if (cap === 2) state.turn = n; else state.dir = -1; }
     return state;
@@ -108,7 +108,14 @@
   function nextSlot(state, s) { return (s + state.dir + state.capacity) % state.capacity; }
 
   function playable(state, s, cardId) {
-    if (!validIdx(state, s) || s !== state.turn || state.nextDraw > 0 || state.awaitColor) return false;
+    if (!validIdx(state, s) || s !== state.turn || state.awaitColor) return false;
+    if (state.nextDraw > 0) {
+      // 叠牌：+4 可叠加任何罚；+2 只能叠在 +2 罚上
+      var kk = kindOf(cardId);
+      if (kk === 'w4') return true;
+      if (kk === 'd' && state.drawKind === 'd') return true;
+      return false;
+    }
     if ((state.hands[s] || []).indexOf(cardId) < 0) return false;
     var k = kindOf(cardId);
     if (k === 'w' || k === 'w4') return true;
@@ -137,14 +144,14 @@
   function play(state, s, id) {
     if (state.winner >= 0) return { ok: false, err: 'game over' };
     if (!validIdx(state, s) || s !== state.turn) return { ok: false, err: 'not your turn' };
-    if (state.nextDraw > 0) return { ok: false, err: 'must draw first' };
     if (state.awaitColor) return { ok: false, err: 'choose color first' };
+    var stacking = state.nextDraw > 0;   // 被罚时出叠牌
     var i = state.hands[s].indexOf(id);
     if (i < 0) return { ok: false, err: 'no such card' };
     if (!playable(state, s, id)) return { ok: false, err: 'illegal play' };
 
-    // 严格：万色+4 只能在没有同色牌可出时使用
-    if (kindOf(id) === 'w4') {
+    // 严格：万色+4 只能在没有同色牌可出时使用（叠牌场景豁免）
+    if (kindOf(id) === 'w4' && !stacking) {
       // 官方：仅当手里没有任何「与当前颜色匹配」的牌时才可出万色+4（同数字不同色不算）
       var hasMatchColor = (state.hands[s] || []).some(function (c) {
         var kk = kindOf(c);
@@ -181,7 +188,8 @@
       if (state.capacity === 2) state.turn = s;   // 2 人局反转 = 跳过 → 自己再出
       else { state.dir = -state.dir; state.turn = nextSlot(state, s); }
     } else if (k === 'd') {
-      state.nextDraw = 2;
+      state.nextDraw += 2;
+      state.drawKind = 'd';
       state.turn = nextSlot(state, s);
     } else {
       state.turn = nextSlot(state, s);
@@ -197,7 +205,7 @@
     state.topColor = color;
     state.awaitColor = false;
     var isW4 = kindOf(state.top) === 'w4';
-    if (isW4) { state.nextDraw = 4; state.turn = nextSlot(state, s); }
+    if (isW4) { state.nextDraw += 4; state.drawKind = 'w4'; state.turn = nextSlot(state, s); }
     else state.turn = nextSlot(state, s);
     return { ok: true };
   }
@@ -209,6 +217,7 @@
     if (state.nextDraw > 0) {
       var n = state.nextDraw;
       state.nextDraw = 0;
+      state.drawKind = 0;
       drawCards(state, s, n);
       state.turn = nextSlot(state, s);        // 被动结算完自动过
       state.justDrew = false;
