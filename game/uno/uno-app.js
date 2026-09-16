@@ -735,12 +735,12 @@ function preloadAssets(onLoaded) {
   if (!ov) { if (onLoaded) onLoaded(); return; }
 
   var list = PRELOAD_ASSETS.slice();
-  var sizesNo2 = new Array(list.length).fill(0);
-  var downloadStarted = false;
-  var totalBytes = 0, doneBytes = 0, idx = 0, finished = false;
+  var totalBytes = 0, doneBytes = 0, idx = 0;
+  var finished = false, started = false;
 
   function setPct() {
-    var p = totalBytes > 0 ? Math.round(doneBytes / totalBytes * 100)
+    // 字节比例：下载响应带真实 Content-Length 时用字节；否则按文件数兜底
+    var p = totalBytes > 0 ? Math.max(0, Math.min(99, Math.round(doneBytes / totalBytes * 100)))
                            : (list.length ? Math.round(idx / list.length * 100) : 0);
     if (bar) bar.style.width = p + '%';
     if (pct) pct.textContent = p + '%';
@@ -752,83 +752,62 @@ function preloadAssets(onLoaded) {
   function finish() {
     if (finished) return;
     finished = true;
+    clearTimeout(globalTimer);
     if (fileEl) fileEl.textContent = '加载完成';
-    setPct();
+    if (bar) bar.style.width = '100%';
+    if (pct) pct.textContent = '100%';
     setTimeout(function () {
       ov.classList.add('done');
       setTimeout(function () { ov.style.display = 'none'; }, 550);
       if (onLoaded) onLoaded();
     }, 200);
   }
-  // 兜底保险：最多等 30 秒，无论网络什么情况都放行进游戏（不卡死）
-  var globalTimer = setTimeout(finish, 30000);
+  // 全局保险：20 秒内无论如何放行进游戏（绝不可卡在加载页）
+  var globalTimer = setTimeout(finish, 20000);
 
-  // ---- 阶段一：并行探测所有资源大小（HEAD 失败不阻塞，直接跳过）----
-  // 每个探测 4 秒超时；全部 settle 后进入下载
-  var settled = 0, started = false, probed = new Array(list.length).fill(false);
-  function probeDone(k) {
-    if (k != null && probed[k]) return;   // 幂等：超时+失败可能双触发，只计一次
-    if (k != null) probed[k] = true;
-    settled++;
-    if (settled >= list.length && !started) { started = true; startDownload(); }
-  }
-  if (!list.length) { startDownload(); return; }
-  list.forEach(function (f, k) {
-    var ctrl = null;
-    try { ctrl = new AbortController(); } catch (e) {}
-    var timer = setTimeout(function () { try { ctrl && ctrl.abort(); } catch (e) {} sizesNo2[k] = 0; probeDone(k); },
-      ctrl ? 4000 : 0);
-    if (!ctrl) { sizesNo2[k] = 0; probeDone(k); return; }
-    fetch(f, { method: 'HEAD', signal: ctrl.signal }).then(function (r) {
-      clearTimeout(timer);
-      var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
-      sizesNo2[k] = (isNaN(cl) || cl <= 0) ? 0 : cl;
-      totalBytes += sizesNo2[k];
-      probeDone(k);
-    }).catch(function () {
-      clearTimeout(timer);
-      // abort 超时已经 probeDone(k) 过 → 这里幂等忽略
-      if (!probed[k]) { sizesNo2[k] = 0; probeDone(k); }
-    });
-  });
-
-  // ---- 阶段二：串行下载（每个 12 秒超时），实时累加字节 ----
-  function startDownload() {
-    if (downloadStarted) return;   // 防重入
-    downloadStarted = true;
-    // 全部探测失败 → 按个数兜底
-    if (totalBytes <= 0 && list.length) totalBytes = list.length;
-    next();
-  }
+  // ---- 单循环下载：每个资源只发 1 次请求，尺寸取自响应头，无独立探测 ----
   function next() {
-    if (idx >= list.length) { clearTimeout(globalTimer); finish(); return; }
+    if (idx >= list.length) { finish(); return; }
     var f = list[idx], k = idx;
     if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes || 0) + ')';
     setPct();
     var ctrl = null;
     try { ctrl = new AbortController(); } catch (e) {}
-    var t = setTimeout(function () { try { ctrl && ctrl.abort(); } catch (e) {} }, 12000);
-    if (!ctrl) { doneBytes += (sizesNo2[k] || 0); idx++; next(); return; }
+    var t = setTimeout(function () { try { ctrl && ctrl.abort(); } catch (e) {} }, 10000);
+    if (!ctrl) { idx++; next(); return; }
     fetch(f, { signal: ctrl.signal })
-      .then(function (r) { if (!r.ok) throw new Error('fail'); return r.blob(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('fail');
+        // 响应头里的真实大小（一次请求同时拿到尺寸+内容）
+        var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
+        var sz = (isNaN(cl) || cl <= 0) ? 0 : cl;
+        if (sz > 0) totalBytes += sz;
+        return r.blob();
+      })
       .then(function (blob) {
         clearTimeout(t);
         var url = URL.createObjectURL(blob);
         var im = new Image();
         im.onload = im.onerror = function () {
           try { URL.revokeObjectURL(url); } catch (e) {}
-          doneBytes += (sizesNo2[k] > 0 ? sizesNo2[k] : blob.size);
-          if (!(idx >= list.length)) { if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes || 0) + ')'; setPct(); }
-          idx++; next();
+          doneBytes += blob.size;
+          idx++;
+          if (fileEl && idx < list.length) fileEl.textContent = '正在下载 ' + list[idx] + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes || 0) + ')';
+          setPct();
+          next();
         };
         im.src = url;
       })
       .catch(function () {
         clearTimeout(t);
-        doneBytes += sizesNo2[k] > 0 ? sizesNo2[k] : 0;
-        idx++; next();
+        // 失败也继续（不卡死），尺寸按 0 跳过
+        idx++;
+        next();
       });
   }
+
+  if (!list.length) { finish(); return; }
+  next();
 }
 function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
