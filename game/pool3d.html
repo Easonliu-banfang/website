@@ -427,7 +427,7 @@
     <script defer src="billiards3d/no-keyboard.js?v=nk2"></script>
 
   <script>
-    /* 台球素材预加载：字节比例进度 + 就绪检测（模型加载完 __poolReady=1） */
+    /* 台球素材预加载：先探测固定 total，再并发下载（进度单调 0-100%） */
     (function () {
       var ASSETS = [
         'billiards3d/models/p8.min.gltf',
@@ -438,54 +438,126 @@
       var ov = document.getElementById('loadingOverlay');
       if (!ov) return;
       var finished = false;
+      var bar = document.getElementById('plBar');
+      var pct = document.getElementById('plPct');
+      var fileEl = document.getElementById('plFile');
+
+      function setPct(p) {
+        p = Math.max(0, Math.min(99, p));
+        if (bar) bar.style.width = p + '%';
+        if (pct) pct.textContent = p + '%';
+      }
+      function fmt(b) {
+        if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
+        return Math.max(1, Math.round(b / 1024)) + ' KB';
+      }
       function finish() {
         if (finished) return;
         finished = true;
-        var f = document.getElementById('plFile'), b = document.getElementById('plBar'), p = document.getElementById('plPct');
-        if (f) f.textContent = '加载完成';
-        if (b) b.style.width = '100%';
-        if (p) p.textContent = '100%';
+        if (fileEl) fileEl.textContent = '加载完成';
+        if (bar) bar.style.width = '100%';
+        if (pct) pct.textContent = '100%';
         setTimeout(function () {
           ov.classList.add('done');
           setTimeout(function () { ov.style.display = 'none'; }, 500);
         }, 200);
       }
-      // 兜底：10 秒强制进（即使模型未就绪——首帧渲染或超时都放行）
       var safety = setTimeout(finish, 10000);
-      // 轮询就绪标志 + 兜底：模型真正加载完成即关遮罩
       var tries = 0;
       (function poll() {
         if (window.__poolReady) { clearTimeout(safety); finish(); return; }
-        if (tries++ > 120) { clearTimeout(safety); finish(); return; }
+        if (tries++ > 200) { clearTimeout(safety); finish(); return; }
         setTimeout(poll, 100);
       })();
-      // 字节进度下载
-      function fmt(b) {
-        if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
-        return Math.max(1, Math.round(b / 1024)) + ' KB';
+
+      // 阶段一：并行探测总大小（固定 total，之后进度单调）
+      var sizes = new Array(ASSETS.length).fill(0);
+      var totalBytes = 0, probeDone = 0;
+      function probeAll(cb) {
+        if (!ASSETS.length) { cb(); return; }
+        var pi = 0, flight = 0;
+        function pump() {
+          while (flight < 4 && pi < ASSETS.length) {
+            var k = pi;
+            pi++;
+            flight++;
+            var ctrl = null;
+            try { ctrl = new AbortController(); } catch (e) {}
+            var t = setTimeout(function () {
+              try { ctrl && ctrl.abort(); } catch (e) {}
+              sizes[k] = 0;
+              flight--;
+              probeDone++;
+              if (probeDone >= ASSETS.length) cb(); else pump();
+            }, ctrl ? 1500 : 0);
+            (function (kk, tt) {
+              fetch(ASSETS[kk], { method: 'HEAD', signal: ctrl.signal })
+                .then(function (r) {
+                  clearTimeout(tt);
+                  var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
+                  sizes[kk] = (isNaN(cl) || cl <= 0) ? 0 : cl;
+                  totalBytes += sizes[kk];
+                  flight--;
+                  probeDone++;
+                  if (probeDone >= ASSETS.length) cb(); else pump();
+                })
+                .catch(function () {
+                  clearTimeout(tt);
+                  sizes[kk] = 0;
+                  flight--;
+                  probeDone++;
+                  if (probeDone >= ASSETS.length) cb(); else pump();
+                });
+            })(k, t);
+          }
+        }
+        pump();
       }
-      var total = 0, done = 0, idx = 0;
-      function next() {
-        var bar = document.getElementById('plBar'), pct = document.getElementById('plPct'), f = document.getElementById('plFile');
-        if (idx >= ASSETS.length) { if (f) f.textContent = '场景初始化…'; return; }
-        var a = ASSETS[idx];
-        if (f) f.textContent = '正在下载 ' + a + '  (' + fmt(done) + ' / ' + fmt(total || 0) + ')';
-        var pctv = total > 0 ? Math.round(done / total * 100) : Math.round(idx / ASSETS.length * 100);
-        if (bar) bar.style.width = pctv + '%';
-        if (pct) pct.textContent = pctv + '%';
-        var k = idx;
-        fetch(a).then(function (r) {
-          if (!r.ok) throw new Error('fail');
-          var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
-          if (cl > 0) total += cl;
-          return r.blob();
-        }).then(function (blob) {
-          done += blob.size;
+
+      // 阶段二：并发下载（4 槽），done/total 固定 → 单调到 99%
+      var doneBytes = 0, idx = 0, inflight = 0;
+      function downOne(k) {
+        var f = ASSETS[k];
+        var ctrl = null;
+        try { ctrl = new AbortController(); } catch (e) {}
+        var t = setTimeout(function () { try { ctrl && ctrl.abort(); } catch (e) {} }, 10000);
+        fetch(f, { signal: ctrl.signal })
+          .then(function (r) { if (!r.ok) throw new Error('fail'); return r.blob(); })
+          .then(function (blob) {
+            clearTimeout(t);
+            var url = URL.createObjectURL(blob);
+            var im = new Image();
+            im.onload = im.onerror = function () {
+              try { URL.revokeObjectURL(url); } catch (e) {}
+              doneBytes += (sizes[k] > 0 ? sizes[k] : blob.size);
+              inflight--;
+              if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes) + ')';
+              setPct(Math.round(doneBytes / totalBytes * 100));
+              pump();
+            };
+            im.src = url;
+          })
+          .catch(function () {
+            clearTimeout(t);
+            inflight--;
+            pump();
+          });
+      }
+      function pump() {
+        while (inflight < 4 && idx < ASSETS.length) {
+          inflight++;
+          downOne(idx);
           idx++;
-          next();
-        }).catch(function () { idx++; next(); });
+        }
+        if (inflight === 0 && idx >= ASSETS.length) { finish(); }
       }
-      next();
+
+      if (fileEl) fileEl.textContent = '正在探测资源…';
+      probeAll(function () {
+        if (totalBytes <= 0 && ASSETS.length) totalBytes = ASSETS.length;
+        if (fileEl) fileEl.textContent = '开始下载…';
+        pump();
+      });
     })();
   </script>
   </body>
