@@ -14,6 +14,7 @@
   var o = null;                    // UnoOnline
   var me = -1;
   var names = null;   // 联机房间各槽位昵称（lobby.names）                     // 我的座次
+  var avatars = null;  // 联机房间各槽位自定义头像（lobby.avatars，dataURI）
   var isHost = false;
   var state = null;                // 最近一次裁剪视图
   var roomStarted = false;
@@ -198,10 +199,13 @@
     var n = Math.min(cnt, 12);
     for (var i = 0; i < n; i++) backs += '<div class="uo-back"></div>';
     var cntBadge = cnt > 12 ? '<span class="uo-p-cnt">' + cnt + '</span>' : '';
-    // AI 对手（名字带 AI· 前缀）恒用默认头像；真人对手用本机自定义头像
-    var oppAvatar = ((names && names[s] && names[s].indexOf('AI') >= 0) || mode === 'ai')
-      ? DEFAULT_AVATAR
-      : avatarSrc();
+    // 对手头像优先级：联机对手真实头像 > 本机自定义 > 默认图；
+    // AI 对手（名字带 AI· 前缀或 AI 模式）恒用默认图
+    var oppAvatar = DEFAULT_AVATAR;
+    if (!((names && names[s] && names[s].indexOf('AI') >= 0) || mode === 'ai')) {
+      if (avatars && avatars[s] && avatars[s].indexOf('data:image/') === 0) oppAvatar = avatars[s];
+      else oppAvatar = avatarSrc();
+    }
     return '<div class="uo-p-card' + (isTurn ? ' turn' : '') + '">' +
       '<div class="uo-p-avatar">' + '<img src="' + oppAvatar + '" alt="">' + '</div>' +
       '<div class="uo-p-name' + teamCls + '">' + name + (uno ? '<span class="uo-p-uno">UNO!</span>' : '') + '</div>' +
@@ -683,6 +687,7 @@
     online.on('lobby', function (d) {
       me = d.you;
       names = (d.names && d.names.length) ? d.names : null;   // 各槽位昵称（胜负横幅/摸牌提示用）
+      avatars = (d.avatars && d.avatars.length) ? d.avatars : null; // 各槽位自定义头像
       var fromGame = roomStarted;
       roomStarted = !!d.started;
       if (lobby) {

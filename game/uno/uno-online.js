@@ -70,7 +70,17 @@
       var settled = false;
       ws.onopen = function () {
         self._reconnectAttempts = 0;
-        ws.send(JSON.stringify({ type: 'hello', player: self.preferred, name: (window.Auth && window.Auth.user) || '' }));
+        ws.send(JSON.stringify({
+          type: 'hello',
+          player: self.preferred,
+          name: (window.Auth && window.Auth.user) || '',
+          avatar: (function () {
+            try {
+              var a = localStorage.getItem('game_avatar');
+              return (a && a.indexOf('data:image/') === 0 && a.length < 40000) ? a : '';
+            } catch (e) { return ''; }
+          })()
+        }));
         self._startHeartbeat();
         self._status('connected');
       };
