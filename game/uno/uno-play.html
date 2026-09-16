@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u15">
+  <link rel="stylesheet" href="uno.css?v=u16">
 </head>
 <body class="uno-play-body">
 
@@ -95,15 +95,13 @@
 
     <!-- ④ 自己（底部偏左，黄色发光框标记） -->
     <div class="uo-me-zone">
-      <div class="uo-me-avatar" id="meAvatar">👤</div>
+      <div class="uo-me-avatar" id="meAvatar"><img src="../assets/default-avatar.jpg" alt="你"></div>
       <div class="uo-me-name" id="meLabel">你</div>
     </div>
 
-    <!-- ⑤ 左下快捷功能区 -->
+    <!-- ⑤ 快捷功能区（对话，左侧中间偏上） -->
     <div class="uo-quickbar">
-      <button class="uq-btn" type="button" id="btnEmoji" title="快捷表情"><span class="uq-ico">😊</span><span class="uq-txt">表情</span></button>
       <button class="uq-btn" type="button" id="btnChat" title="对话"><span class="uq-ico">💬</span><span class="uq-txt">对话</span></button>
-      <button class="uq-btn" type="button" id="btnVoice" title="语音控制"><span class="uq-ico">🎤</span><span class="uq-txt">语音</span></button>
     </div>
 
     <!-- ⑥ 自己手牌（底部中央，大尺寸重叠排列） -->
@@ -119,7 +117,7 @@
     </div>
 
     <!-- ⑦ 右下角 UNO 大按钮 -->
-    <button class="uo-uno-big" id="btnUno" type="button" aria-label="喊 UNO"><span>UNO</span></button>
+    <button class="uo-uno-big" id="btnUno" type="button" aria-label="喊 UNO"><span>UNO</span><span class="base"></span></button>
 
   </section>
 </div>
@@ -190,7 +188,7 @@
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u5"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u21"></script>
+<script src="uno-app.js?v=u22"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>

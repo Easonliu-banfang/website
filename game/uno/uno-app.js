@@ -187,7 +187,7 @@
     for (var i = 0; i < n; i++) backs += '<div class="uo-back"></div>';
     var cntBadge = cnt > 12 ? '<span class="uo-p-cnt">' + cnt + '</span>' : '';
     return '<div class="uo-p-card' + (isTurn ? ' turn' : '') + '">' +
-      '<div class="uo-p-avatar">👤</div>' +
+      '<div class="uo-p-avatar"><img src="../assets/default-avatar.jpg" alt=""></div>' +
       '<div class="uo-p-name' + teamCls + '">' + name + (uno ? '<span class="uo-p-uno">UNO!</span>' : '') + '</div>' +
       (isTurn ? '<span class="uo-p-turn-tag">◆ 出牌中</span>' : '') +
       '<div class="uo-p-hand">' + backs + cntBadge + '</div>' +
