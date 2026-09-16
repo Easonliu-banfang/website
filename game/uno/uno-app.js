@@ -104,6 +104,18 @@
   }
 
 
+  /* ---------- 头像：用户自定义（localStorage.game_avatar）优先，缺省用默认图 ---------- */
+  var DEFAULT_AVATAR = '../assets/default-avatar.jpg';
+  function avatarSrc() {
+    try {
+      var a = localStorage.getItem('game_avatar');
+      return (a && a.indexOf('data:image/') === 0) ? a : DEFAULT_AVATAR;
+    } catch (e) { return DEFAULT_AVATAR; }
+  }
+  function avatarImg(cls, alt) {
+    return '<img class="' + (cls || '') + '" src="' + avatarSrc() + '" alt="' + (alt || '') + '">';
+  }
+
   /* ---------- 规则辅助（本地预检，服务端仍权威） ---------- */
   function kindOf(c) { if (c === 'w' || c === 'w4') return 'w'; return c.charAt(0); }
   function kindOk(c, top, color) {
@@ -186,8 +198,12 @@
     var n = Math.min(cnt, 12);
     for (var i = 0; i < n; i++) backs += '<div class="uo-back"></div>';
     var cntBadge = cnt > 12 ? '<span class="uo-p-cnt">' + cnt + '</span>' : '';
+    // AI 对手（名字带 AI· 前缀）恒用默认头像；真人对手用本机自定义头像
+    var oppAvatar = ((names && names[s] && names[s].indexOf('AI') >= 0) || mode === 'ai')
+      ? DEFAULT_AVATAR
+      : avatarSrc();
     return '<div class="uo-p-card' + (isTurn ? ' turn' : '') + '">' +
-      '<div class="uo-p-avatar"><img src="../assets/default-avatar.jpg" alt=""></div>' +
+      '<div class="uo-p-avatar">' + '<img src="' + oppAvatar + '" alt="">' + '</div>' +
       '<div class="uo-p-name' + teamCls + '">' + name + (uno ? '<span class="uo-p-uno">UNO!</span>' : '') + '</div>' +
       (isTurn ? '<span class="uo-p-turn-tag">◆ 出牌中</span>' : '') +
       '<div class="uo-p-hand">' + backs + cntBadge + '</div>' +
@@ -500,6 +516,9 @@
       if (mode === 'ai') localStep(function (s) { Uno.pass(s, me); });
       else if (o) o.sendPass();
     });
+    // 我的头像（用户自定义优先，无则默认）
+    el.meAvatar.innerHTML = avatarImg('', '你');
+
     el.btnUno.addEventListener('click', function () {
       if (!el.btnUno.classList.contains('on')) return;   // 非激活（未剩 1 张）不响应
       if (mode === 'ai') { Uno.callUno(localState, me); renderMe(); }

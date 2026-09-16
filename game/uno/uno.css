@@ -286,7 +286,7 @@
 }
 
 /* ⑤ 左下快捷功能区（白底圆钮） */
-.uo-quickbar { position: absolute; left: 16px; top: 38%; z-index: 14; display: flex; flex-direction: column; gap: 12px; }
+.uo-quickbar { position: absolute; right: 16px; top: 38%; z-index: 14; display: flex; flex-direction: column; gap: 12px; }
 .uq-btn {
   width: 56px; background: rgba(255, 255, 255, 0.95);
   border: 2px solid #dbe7fb; border-radius: 16px;
@@ -376,7 +376,7 @@
   .uc-hand { width: 46px; }
   .uo-me-avatar { width: 50px; height: 50px; font-size: 25px; }
   .uo-me-zone { bottom: 104px; }
-  .uo-quickbar { bottom: 118px; }
+  .uo-quickbar { right: 16px; bottom: auto; top: 38%; }
   .uo-uno-big { width: 84px; height: 84px; font-size: 24px; right: 18px; bottom: 118px; }
   .uo-p-avatar { width: 42px; height: 42px; font-size: 22px; }
   .uo-p-name { max-width: 84px; font-size: 11px; }
@@ -511,8 +511,8 @@ button { -webkit-tap-highlight-color: transparent; }
   transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
 }
 /* 常态：常驻显示；非激活置灰半透明（不弹提示） */
-.uo-uno-big:not(.on) { filter: grayscale(0.55) brightness(0.62) saturate(0.5); box-shadow: 0 8px 18px rgba(0,0,0,0.25); animation: none; }
-.uo-uno-big:not(.on):hover { transform: scale(1.03); }
+.uo-uno-big:not(.on) { filter: none; opacity: 0.55; box-shadow: 0 5px 0 #a13a34, 0 12px 24px rgba(0,0,0,0.3); animation: none; }
+.uo-uno-big:not(.on):hover { transform: scale(1.03); opacity: 0.75; }
 /* 激活（剩 1 张）：全彩 + 呼吸光 + 立体抬升 */
 .uo-uno-big.on {
   filter: none;
