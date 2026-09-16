@@ -291,7 +291,7 @@
     if (h.length === 0) el.myHand.innerHTML = '<div class="uo-empty">已出完</div>';
 
     if (state.mate != null && state.mateHand) {
-      el.mateLabel.textContent = '队友（玩家 ' + (state.mate + 1) + '）';
+      
       var mh = '';
       for (var j = 0; j < state.mateHand.length; j++) {
         mh += '<img class="uc uc-hand ucmate" src="' + cardImg(state.mateHand[j]) + '" alt="' + cardAlt(state.mateHand[j]) + '">';

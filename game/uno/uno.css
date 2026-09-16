@@ -268,7 +268,7 @@
 }
 .uo-pass-btn:hover { color: #0ea5e9; border-color: #0ea5e9; transform: translateY(-1px); }
 .uo-mate { display: flex; align-items: center; gap: 8px; max-width: 100%; }
-.uo-mate-label { font-size: 11px; color: #64748b; white-space: nowrap; font-weight: 700; }
+.uo-mate-label { display: none; }  /* 队友灰色字体已删除 */
 .uo-hand--mate { flex-wrap: nowrap; overflow-x: auto; max-width: 92%; padding: 2px; min-height: 0; }
 .uo-hand--mate::-webkit-scrollbar { height: 3px; }
 
