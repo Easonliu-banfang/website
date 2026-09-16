@@ -193,15 +193,11 @@
 .uo-player { position: absolute; z-index: 12; }
 .uo-p-card {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  background: rgba(16, 24, 38, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px; padding: 8px 10px;
-  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+  background: none; border: none; border-radius: 0; padding: 0;
+  box-shadow: none; transition: transform 0.2s;
 }
 .uo-p-card.turn {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 24px rgba(14, 165, 233, 0.45), 0 10px 26px rgba(31, 68, 130, 0.16);
-  transform: scale(1.04);
+  transform: scale(1.06);
 }
 .uo-p-avatar {
   width: 52px; height: 52px; border-radius: 50%;
@@ -211,9 +207,10 @@
 }
 .uo-p-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .uo-p-name {
-  font-size: 12px; color: rgba(235, 242, 252, 0.92); font-weight: 700;
-  background: rgba(10, 16, 26, 0.45); border-radius: 999px; padding: 3px 12px;
+  font-size: 12px; color: rgba(240, 246, 255, 0.95); font-weight: 700;
+  background: none; border-radius: 0; padding: 0 2px;
   white-space: nowrap; max-width: 118px; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 .uo-p-name.ta { background: #e3f9ea; color: #15934e; }
 .uo-p-name.tb { background: #e3f0ff; color: #1666d6; }
