@@ -734,15 +734,39 @@ function preloadAssets(onLoaded) {
   var fileEl = document.getElementById('ulFile');
   if (!ov || !PRELOAD_ASSETS.length) { if (onLoaded) onLoaded(); return; }
 
-  var total = PRELOAD_ASSETS.length, i = 0;
-  function update() {
-    if (bar) bar.style.width = Math.round(i / total * 100) + '%';
-    if (pct) pct.textContent = Math.round(i / total * 100) + '%';
+  // 字节比例进度：先 HEAD 探测每个资源的真实大小求总字节，
+  // 再逐个 fetch(blob) 累加已下载字节 → 进度 = 已下载/总（不按文件个数）
+  var totalBytes = 0, doneBytes = 0, i = 0;
+  var sizes = new Array(PRELOAD_ASSETS.length).fill(0);
+  function setPct() {
+    var p = totalBytes > 0 ? Math.round(doneBytes / totalBytes * 100) : Math.round(i / PRELOAD_ASSETS.length * 100);
+    if (bar) bar.style.width = p + '%';
+    if (pct) pct.textContent = p + '%';
+  }
+  function fmt(b) {
+    if (b >= 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB';
+    return Math.max(1, Math.round(b / 1024)) + ' KB';
+  }
+  // 阶段一：探测总大小（失败的资源按 0 计，用文件数兜底）
+  function probe(idx) {
+    if (idx >= PRELOAD_ASSETS.length) { startDownload(); return; }
+    var f = PRELOAD_ASSETS[idx];
+    fetch(f, { method: 'HEAD' }).then(function (r) {
+      var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
+      sizes[idx] = isNaN(cl) || cl <= 0 ? 0 : cl;
+      totalBytes += sizes[idx];
+      probe(idx + 1);
+    }).catch(function () { probe(idx + 1); });
+  }
+  // 阶段二：逐个下载，实时累加字节
+  function startDownload() {
+    if (totalBytes === 0 && PRELOAD_ASSETS.length) totalBytes = PRELOAD_ASSETS.length; // 全失败兜底按个数
+    next();
   }
   function next() {
-    if (i >= total) {
+    if (i >= PRELOAD_ASSETS.length) {
       if (fileEl) fileEl.textContent = '加载完成';
-      update();
+      setPct();
       setTimeout(function () {
         ov.classList.add('done');
         setTimeout(function () { ov.style.display = 'none'; }, 550);
@@ -751,13 +775,33 @@ function preloadAssets(onLoaded) {
       return;
     }
     var f = PRELOAD_ASSETS[i];
-    if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + i + ' / ' + total + ')';
-    update();
-    var im = new Image();
-    im.onload = im.onerror = function () { i++; next(); };
-    im.src = f;
+    if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes || 0) + ')';
+    setPct();
+    var myIdx = i;
+    fetch(f)
+      .then(function (r) {
+        if (!r.ok) throw new Error('fail');
+        return r.blob();
+      })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var im = new Image();
+        im.onload = im.onerror = function () {
+          try { URL.revokeObjectURL(url); } catch (e) {}
+          doneBytes += (sizes[myIdx] > 0 ? sizes[myIdx] : blob.size);
+          if (fileEl && i < PRELOAD_ASSETS.length) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes || 0) + ')';
+          setPct();
+          i++; next();
+        };
+        im.src = url;
+      })
+      .catch(function () {
+        // HEAD 有但 fetch 失败：按探测大小计入（不卡死加载）
+        doneBytes += sizes[myIdx] > 0 ? sizes[myIdx] : 0;
+        i++; next();
+      });
   }
-  next();
+  probe(0);
 }
 
 function boot() {
