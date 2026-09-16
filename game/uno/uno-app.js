@@ -707,7 +707,60 @@
   }
 
   /* ---------- 启动 ---------- */
-  function boot() {
+  /* ========== 素材预加载器：全屏遮罩 + 实时进度 ==========
+ * 收集：背景图 + 全部卡牌（按引擎牌型全集生成 cards/*.png 路径）
+ * 进度：逐个 new Image 加载，onload/onerror 都推进；实时更新遮罩 UI
+ * 完成：遮罩淡出 → onLoaded()（AI 局开局 / 联机显示等待室）
+ */
+var PRELOAD_ASSETS = (function () {
+  var files = [];
+  // 背景图
+  files.push('assets/uno-bg.jpg');
+  // 全部卡牌：4 色 × (0-9 + S/R/A2) + WC + W4
+  ['R', 'B', 'G', 'Y'].forEach(function (c) {
+    files.push('cards/' + c + '0.png');
+    for (var n = 1; n <= 9; n++) files.push('cards/' + c + n + '.png');
+    files.push('cards/' + c + 'S.png', 'cards/' + c + 'R.png', 'cards/' + c + 'A2.png');
+  });
+  files.push('cards/WC.png', 'cards/W4.png');
+  files.push('cards/back.png');
+  return files;
+})();
+
+function preloadAssets(onLoaded) {
+  var ov = document.getElementById('loadingOverlay');
+  var bar = document.getElementById('ulBar');
+  var pct = document.getElementById('ulPct');
+  var fileEl = document.getElementById('ulFile');
+  if (!ov || !PRELOAD_ASSETS.length) { if (onLoaded) onLoaded(); return; }
+
+  var total = PRELOAD_ASSETS.length, i = 0;
+  function update() {
+    if (bar) bar.style.width = Math.round(i / total * 100) + '%';
+    if (pct) pct.textContent = Math.round(i / total * 100) + '%';
+  }
+  function next() {
+    if (i >= total) {
+      if (fileEl) fileEl.textContent = '加载完成';
+      update();
+      setTimeout(function () {
+        ov.classList.add('done');
+        setTimeout(function () { ov.style.display = 'none'; }, 550);
+        if (onLoaded) onLoaded();
+      }, 250);
+      return;
+    }
+    var f = PRELOAD_ASSETS[i];
+    if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + i + ' / ' + total + ')';
+    update();
+    var im = new Image();
+    im.onload = im.onerror = function () { i++; next(); };
+    im.src = f;
+  }
+  next();
+}
+
+function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
      'topCardImg', 'btnDraw', 'deckInner', 'turnTimer',
      'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
@@ -737,7 +790,8 @@
       }
     }, 1000);
 
-    if (q.mode === 'ai') { startLocalAI(); return; }
+        preloadAssets(function () {
+if (q.mode === 'ai') { startLocalAI(); return; }
     if (q.mode !== 'online' || !q.room) {
       // 非联机（本地/AI 暂未开放）→ 提示返回
       if (window.Notify) window.Notify.show('优诺UNO！目前仅支持互联网对战（双人/三人/四人/2v2）', 'error', { sticky: true });
@@ -773,6 +827,7 @@
     bindOnline(o);
     o.connect(q.role === 'host' ? 0 : 1).catch(function () {
       if (window.Notify) window.Notify.show('连接失败，正在重连…', 'warn', { sticky: true });
+    });
     });
   }
 

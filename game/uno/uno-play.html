@@ -8,10 +8,21 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u26">
+  <link rel="stylesheet" href="uno.css?v=u27">
 </head>
 <body class="uno-play-body">
 <div class="uno-bg" aria-hidden="true"></div>
+
+<!-- 全屏加载遮罩：素材下载中 -->
+<div id="loadingOverlay" class="uno-loading">
+  <div class="ul-orb"></div>
+  <div class="ul-title">正在加载素材…</div>
+  <div class="ul-sub">请耐心等待</div>
+  <div class="ul-bar"><div class="ul-bar-fill" id="ulBar"></div></div>
+  <div class="ul-pct" id="ulPct">0%</div>
+  <div class="ul-file" id="ulFile">准备中…</div>
+</div>
+
 <!-- 全局通知栏 -->
 <div id="notifyBar" class="notify-bar" hidden></div>
 
@@ -178,7 +189,7 @@
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u5"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u28"></script>
+<script src="uno-app.js?v=u29"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>
