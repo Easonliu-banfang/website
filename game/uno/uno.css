@@ -33,21 +33,20 @@
 /* ① 左上计时区（白卡） */
 .uo-timer {
   position: absolute; top: 14px; left: 14px; z-index: 30;
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 2px solid #d8e4f8;
-  border-radius: 18px; padding: 8px 14px 8px 8px;
-  box-shadow: 0 10px 30px rgba(31, 68, 130, 0.14);
-  backdrop-filter: blur(4px);
+  display: flex; align-items: center; gap: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
-.uo-timer-icon { width: 44px; height: 44px; flex: 0 0 auto; }
+.uo-timer-icon { width: 30px; height: 30px; flex: 0 0 auto; margin-right: 4px; }
 .uo-timer-icon svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 4px rgba(31,68,130,0.3)); }
 .uo-timer-time {
   font-family: 'Arial Black', var(--mono), sans-serif;
-  font-size: 34px; font-weight: 900; line-height: 1;
-  color: #14508c; letter-spacing: 1px;
-  font-variant-numeric: tabular-nums; min-width: 96px;
-  text-shadow: 0 1px 0 #fff;
+  font-size: 30px; font-weight: 900; line-height: 1;
+  color: #fff; letter-spacing: 1px;
+  font-variant-numeric: tabular-nums; min-width: 64px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 .uo-timer-time.low { color: #e1242a; animation: uoPulse 0.7s infinite; }
 
@@ -55,8 +54,9 @@
 .uo-timer { flex-wrap: wrap; }
 .uo-game-clock {
   flex: 0 0 100%;
-  font-size: 11px; color: #7d93b5; text-align: center;
+  font-size: 10px; color: rgba(255, 255, 255, 0.65); text-align: center;
   font-family: var(--mono); padding-top: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 .uo-game-clock b { color: #0ea5e9; font-weight: 800; font-variant-numeric: tabular-nums; }
 
@@ -306,8 +306,8 @@
 
 /* 小屏 / 横屏手机适配（只对真实横屏生效；竖屏旋转场景走下方 body.portrait 块） */
 @media (orientation: landscape) and (max-width: 760px) {
-  .uo-timer-time { font-size: 26px; min-width: 72px; }
-  .uo-timer-icon { width: 34px; height: 34px; }
+  .uo-timer-time { font-size: 24px; min-width: 60px; }
+  .uo-timer-icon { width: 26px; height: 26px; }
   .uo-table-disc { width: min(88vw, 640px); height: min(42vh, 320px); border-width: 8px; }
   .uc-center { width: 84px; }
   
