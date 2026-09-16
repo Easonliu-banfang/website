@@ -258,36 +258,11 @@
   function colorCss(c) { return { r: '#e5484d', b: '#3e8ef7', g: '#2ebd59', y: '#f5c542' }[c] || '#888'; }
   function colorLabel(c) { return { r: '红', b: '蓝', g: '绿', y: '黄' }[c] || ''; }
 
-  /* 横幅：谁出牌/效果/轮到谁 */
+  /* 横幅：已整体移除（不再显示任何横幅/空白容器），效果反馈改由 toast 承担 */
   function renderBanner() {
-    if (!state) return;
-    var b = el.banner;
-    var msg = '';
-    var cls = '';
-    if (state.winner >= 0) {
-      msg = winnerText();
-      cls = ' win';
-    } else if (state.nextDraw > 0) {
-      if (me === state.turn) {
-        var stk = playableCards();
-        msg = '你被罚摸 ' + state.nextDraw + ' 张' + (stk.length ? ' — 可打 +2/+4 叠牌反击！' : '');
-      } else {
-        msg = ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 需摸 ' + state.nextDraw + ' 张';
-      }
-      cls = ' warn';
-    } else if (state.awaitColor) {
-      msg = '等待 ' + ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 选色';
-      cls = ' warn';
-    } else if (me === state.turn) {
-      // 自己的回合不弹横幅（减少遮挡），仅轮到对手时提示
-      msg = '';
-      cls = '';
-    } else {
-      msg = '轮到 ' + ((names && names[state.turn]) ? names[state.turn] : ('玩家 ' + (state.turn + 1))) + ' 出牌' + (state.dir < 0 ? '（逆向）' : '');
-      cls = '';
-    }
-    b.textContent = msg;
-    b.className = 'uo-banner' + cls;
+    if (!el.banner) return;
+    el.banner.textContent = '';
+    el.banner.className = 'uo-banner';
   }
 
   /* ---------- 渲染：自己手牌 + 队友 ---------- */
