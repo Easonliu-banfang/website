@@ -735,9 +735,11 @@ function preloadAssets(onLoaded) {
   if (!ov) { if (onLoaded) onLoaded(); return; }
 
   var list = PRELOAD_ASSETS.slice();
+  var sizes = new Array(list.length).fill(0);
   var totalBytes = 0, doneBytes = 0, nextIdx = 0, inflight = 0;
   var finished = false;
-  var CONCURRENCY = 4;   // 同时下载 4 个，避免 52 个串行太慢
+  var DLOAD_CONC = 4;    // 下载并发
+  var PROBE_CONC = 8;    // 探测并发（快）
 
   function setPct() {
     var p = totalBytes > 0 ? Math.max(0, Math.min(99, Math.round(doneBytes / totalBytes * 100)))
@@ -762,9 +764,68 @@ function preloadAssets(onLoaded) {
       if (onLoaded) onLoaded();
     }, 200);
   }
-  // 全局保险：20 秒内无论如何放行进游戏
-  var globalTimer = setTimeout(finish, 20000);
+  // 全局保险 25s（探测 3s + 下载 20s）
+  var globalTimer = setTimeout(finish, 25000);
 
+  // ---------- 阶段一：快速并发探测尺寸（HEAD 并行、1.5s 超时、失败记 0） ----------
+  function probeAll(onDone) {
+    var doneCnt = 0, probeFlight = 0, pi = 0;
+    var settledOnce = new Array(list.length).fill(false);   // 每个资源只结算一次
+    function settle() {
+      doneCnt++;
+      if (doneCnt >= list.length) { onDone(); return; }
+      pumpProbe();
+    }
+    function pumpProbe() {
+      while (probeFlight < PROBE_CONC && pi < list.length) {
+        var k = pi;
+        pi++;
+        probeFlight++;
+        var ctrl = null;
+        try { ctrl = new AbortController(); } catch (e) {}
+        var t = setTimeout(function () {
+          // 超时：标记并结算（幂等）
+          if (!settledOnce[k]) {
+            settledOnce[k] = true;
+            sizes[k] = 0;
+            probeFlight--;
+            settle();
+          }
+        }, ctrl ? 1500 : 0);
+        if (!ctrl) { if (!settledOnce[k]) { settledOnce[k] = true; sizes[k] = 0; probeFlight--; settle(); } continue; }
+        (function (kk, tt) {
+          fetch(list[kk], { method: 'HEAD', signal: ctrl.signal })
+            .then(function (r) {
+              clearTimeout(tt);
+              if (settledOnce[kk]) return;
+              settledOnce[kk] = true;
+              var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
+              sizes[kk] = (isNaN(cl) || cl <= 0) ? 0 : cl;
+              probeFlight--;
+              settle();
+            })
+            .catch(function () {
+              clearTimeout(tt);
+              if (settledOnce[kk]) return;
+              settledOnce[kk] = true;
+              sizes[kk] = 0;
+              probeFlight--;
+              settle();
+            });
+        })(k, t);
+      }
+    }
+    if (!list.length) { onDone(); return; }
+    pumpProbe();
+  }// ---------- 阶段二：并发下载（totalBytes 固定，进度单调到 100%） ----------
+  function startDownload() {
+    for (var i = 0; i < list.length; i++) totalBytes += sizes[i];   // 一次性求和，总量固定
+    if (totalBytes <= 0 && list.length) totalBytes = list.length;   // 全部失败按个数兜底
+    if (fileEl) fileEl.textContent = '开始下载…';
+    setPct();
+    nextIdx = 0; inflight = 0;
+    pump();
+  }
   function downOne(k) {
     var f = list[k];
     var ctrl = null;
@@ -774,9 +835,6 @@ function preloadAssets(onLoaded) {
     fetch(f, { signal: ctrl.signal })
       .then(function (r) {
         if (!r.ok) throw new Error('fail');
-        var cl = parseInt(r.headers.get('Content-Length') || '0', 10);
-        var sz = (isNaN(cl) || cl <= 0) ? 0 : cl;
-        if (sz > 0) totalBytes += sz;
         return r.blob();
       })
       .then(function (blob) {
@@ -785,9 +843,9 @@ function preloadAssets(onLoaded) {
         var im = new Image();
         im.onload = im.onerror = function () {
           try { URL.revokeObjectURL(url); } catch (e) {}
-          doneBytes += blob.size;
+          doneBytes += (sizes[k] > 0 ? sizes[k] : blob.size);
           inflight--;
-          if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes || 0) + ')';
+          if (fileEl) fileEl.textContent = '正在下载 ' + f + '  (' + fmt(doneBytes) + ' / ' + fmt(totalBytes) + ')';
           setPct();
           pump();
         };
@@ -800,7 +858,7 @@ function preloadAssets(onLoaded) {
       });
   }
   function pump() {
-    while (inflight < CONCURRENCY && nextIdx < list.length) {
+    while (inflight < DLOAD_CONC && nextIdx < list.length) {
       inflight++;
       downOne(nextIdx);
       nextIdx++;
@@ -809,7 +867,9 @@ function preloadAssets(onLoaded) {
   }
 
   if (!list.length) { finish(); return; }
-  pump();
+  // 探测阶段文案
+  if (fileEl) fileEl.textContent = '正在探测资源…';
+  probeAll(startDownload);
 }
 function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
