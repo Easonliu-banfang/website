@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u38">
+  <link rel="stylesheet" href="uno.css?v=u39">
 <style>
 /* 全屏加载遮罩（内嵌，避免外部 CSS 缓存导致纯文字） */
 #loadingOverlay{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,14,24,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .5s ease}
@@ -54,6 +54,36 @@
 @keyframes unoCmRing{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.5);opacity:0}}
 #colorModal .uno-cm-chip.flood{transition:background .5s ease,box-shadow .5s ease,transform .5s ease}
 @media (max-width:680px){#colorModal .uno-cm-panel{padding:20px 22px 24px;border-radius:20px}#colorModal .uno-cm-chip{width:72px;height:72px}#colorModal .uno-cm-grid{gap:12px}}
+/* 抽牌后「打出/不出」按钮：黄色圆角大白字（内嵌，防外部 CSS 缓存） */
+#btnPlayDrawn,#btnPass{
+  border:none;background:linear-gradient(180deg,#ffd23f,#f0a500);color:#fff;
+  border-radius:16px;padding:9px 26px;font-size:15px;font-weight:900;letter-spacing:2px;
+  box-shadow:0 5px 0 #a86f00,0 10px 18px rgba(80,50,0,.3);text-shadow:0 2px 3px rgba(90,55,0,.5);
+  cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,opacity .12s ease,filter .12s ease;
+}
+#btnPlayDrawn:hover,#btnPass:hover{transform:translateY(-2px);filter:brightness(1.06)}
+#btnPlayDrawn:active,#btnPass:active{transform:translateY(1px) scale(.97);box-shadow:0 1px 0 #a86f00}
+#btnPlayDrawn.dim{
+  background:linear-gradient(180deg,#8a8f98,#5d6269);box-shadow:0 5px 0 #3c4046,0 8px 14px rgba(0,0,0,.25);
+  color:rgba(255,255,255,.75);text-shadow:none;cursor:not-allowed;
+}
+/* 牌堆按钮：双排大牌背无文字（内嵌，防缓存） */
+#btnDraw{background:transparent;border:none;border-radius:0;padding:6px;min-width:0}
+#btnDraw .uo-deck-inner{display:none}
+.uo-deck-stack{height:86px;margin:0}
+.uo-deck-back{width:54px;height:78px;margin-left:-27px;border-radius:9px;border:2px solid #fff;
+  box-shadow:0 4px 10px rgba(20,40,70,.4);background-image:url('cards/back.png');background-size:100% 100%}
+.uo-deck-back.under{top:8px}
+.uo-deck-back:nth-child(1){transform:translate(-10px,2px) rotate(-8deg)}
+.uo-deck-back:nth-child(2){transform:translate(10px,0px) rotate(8deg)}
+.uo-deck-back.under:nth-child(3){transform:translate(-6px,10px) rotate(-3deg);z-index:0}
+.uo-deck-back.under:nth-child(4){transform:translate(6px,12px) rotate(3deg);z-index:0}
+/* 刚摸的牌可打上移高亮 + 其余锁定（内嵌，防缓存） */
+.uc-wrap.drawn{transform:translateY(-26px)}
+.uc-wrap.drawn .uc-hand.drawn-glow{box-shadow:0 0 18px rgba(255,200,60,.9),0 6px 16px rgba(0,0,0,.35);filter:brightness(1.08)}
+.uc-wrap.locked{opacity:.45;filter:grayscale(.4);cursor:not-allowed}
+.uc-wrap.locked .uc-hand{pointer-events:none}
+.uo-pass-line{gap:14px;height:46px}
 </style>
 </head>
 <body class="uno-play-body">
@@ -242,7 +272,7 @@
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u7"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u53"></script>
+<script src="uno-app.js?v=u54"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>
