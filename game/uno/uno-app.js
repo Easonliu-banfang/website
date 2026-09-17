@@ -487,8 +487,12 @@
     if (slot === me) return;
     var holder = null;
     seatSpots().forEach(function (it) { if (it.seat === slot) holder = el['player' + (it.pos.charAt(0).toUpperCase() + it.pos.slice(1))]; });
-    if (!holder || !holder.firstChild || !state || !state.top) return;
-    flyFromRect(holder.firstChild.getBoundingClientRect(), state.top, null);
+    if (!holder || !state || !state.top) return;
+    // 起点：牌背堆（.uo-p-hand 的第一张牌背）——头像在 firstChild，牌背才是牌桌视觉起点
+    var handEl = holder.querySelector('.uo-p-hand');
+    var srcEl = (handEl && handEl.firstElementChild) || holder.firstChild;
+    if (!srcEl) return;
+    flyFromRect(srcEl.getBoundingClientRect(), state.top, null);
   }
   function bindUI() {
     el.myHand.addEventListener('pointerdown', onHandDown);
