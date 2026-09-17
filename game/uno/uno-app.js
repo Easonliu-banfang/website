@@ -941,7 +941,7 @@ if (q.mode === 'ai') { startLocalAI(); return; }
     });
     lobby.setCapacity(capacityOf());
     if (mode === 'ffa') lobby.setMinToStart(3);   // 单人混战：满 3 人开局（3/4 人局）
-    if (mode === '2v2') lobby.setSeatTags(['下排', '下排', '上排', '上排']);   // 2v2 必须满 4
+    if (mode === '2v2') lobby.setSeatTags(['1队', '2队', '1队', '2队']);   // 2v2 交叉坐：0/2 一队、1/3 一队
     lobby.show(currentRoom);
     lobby.setStatus('连接中…', 'connecting');
 

@@ -71,7 +71,7 @@
     }
     var cap = (mode === '2v2') ? 4 : mode;
     var teams = null;
-    if (mode === '2v2') teams = { 0: 0, 1: 0, 2: 1, 3: 1 };  // 下排0/1一队，上排2/3一队
+    if (mode === '2v2') teams = { 0: 0, 1: 1, 2: 0, 3: 1 };  // 交叉坐：0↔2 队友（对家），1↔3 队友
     return {
       mode: mode, capacity: cap, teams: teams,
       deck: [], hands: [[], [], [], []],
