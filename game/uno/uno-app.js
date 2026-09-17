@@ -377,7 +377,8 @@ function showResultOverlay() {
       var myWon = (w === myTeam);
       var scoreSums = (state && state.scores) || (state.hands ? state.hands.map(handScore) : []);
       var teamPts = [0, 0], teamCnt = [0, 0];
-      for (var s = 0; s < cnt.length; s++) {
+      var seatCap2 = (state && state.capacity) || cnt.length;
+      for (var s = 0; s < seatCap2; s++) {
         var t = (state.teams && state.teams[s] != null) ? state.teams[s] : 0;
         teamPts[t] += scoreSums[s] || 0;
         teamCnt[t] += 1;
@@ -389,7 +390,7 @@ function showResultOverlay() {
       var loseGain = -teamPts[loseTeam] + teamPts[winTeam] / Math.max(1, teamCnt[loseTeam]);  // 输队 = −自己 + 赢队分÷输队人数
       var myName = nameOf(me);
       var foeName = '';
-      for (var fi = 0; fi < cnt.length; fi++) if ((state.teams && state.teams[fi] === (1 - myTeam))) { foeName = nameOf(fi); break; }
+      for (var fi = 0; fi < seatCap2; fi++) if ((state.teams && state.teams[fi] === (1 - myTeam))) { foeName = nameOf(fi); break; }
       if (!foeName) foeName = '对方';
       // 累积局点
       var match = loadMatchScores();
@@ -424,8 +425,9 @@ function showResultOverlay() {
     //   输家             = −自己手牌分 + 赢家手牌分 ÷ 输家个数
     // 多局累积先到 MATCH_TARGET(500) 者整场胜利
     var scoreSums = (state && state.scores) || (state.hands ? state.hands.map(handScore) : []);
+    var seatCap = (state && state.capacity) || cnt.length;   // 3人局 hands 有4槽 → 按 capacity 过滤
     var seats = [];
-    for (var i = 0; i < cnt.length; i++) seats.push({ seat: i, cnt: cnt[i], pts: scoreSums[i] || 0 });
+    for (var i = 0; i < seatCap; i++) seats.push({ seat: i, cnt: cnt[i] || 0, pts: scoreSums[i] || 0 });
     // 排序：手牌分最小（0=出完）的赢，其余按分从低到高（菜鸟垫底）
     seats.sort(function (a, b) { return (a.pts - b.pts); });
     var winnerSeat = seats[0].seat;
