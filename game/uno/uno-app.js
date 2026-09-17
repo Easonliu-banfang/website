@@ -600,8 +600,12 @@
     maybeLocalAI();
   }
   function applyLocalView() {
+    // 与联机 applyState 同款：先记 prevTurn/topChanged 再更新 state，再播对手飞牌动画
+    var prevTurn = state ? state.turn : -1;
+    var topChanged = !state || state.top !== localState.top;
     state = toLocalView(localState);
     renderOpps(); renderBoard(); renderMe();
+    if (topChanged && state.top && prevTurn >= 0 && prevTurn !== me) oppFlyIn(prevTurn);
     if (localState.winner >= 0) showResult();
     else if (el.resultBanner) el.resultBanner.hidden = true;
   }
