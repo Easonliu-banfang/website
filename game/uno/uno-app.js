@@ -188,11 +188,16 @@
   /* ---------- 渲染：四周玩家（上 / 左 / 右，围桌） ---------- */
   function seatSpots() {
     var cap = state ? (state.capacity || capacityOf()) : capacityOf();
-    var spots = [];
-    for (var s = 0; s < Math.min(cap, 4); s++) if (s !== me) spots.push(s);
-    var posMap = ['top', 'left', 'right'];
+    cap = Math.min(cap, 4);
+    // 按「相对我的顺时针顺序」摆位（我恒在下方）：
+    //   4 人：me+1 左、me+2 对面（2v2 队友）、me+3 右
+    //   3 人：me+1 左、me+2 右
+    //   2 人：me+1 对面
+    var posMap = cap === 4 ? ['left', 'top', 'right'] : (cap === 3 ? ['left', 'right'] : ['top']);
     var out = [];
-    for (var i = 0; i < spots.length; i++) out.push({ seat: spots[i], pos: posMap[i % 3] });
+    for (var i = 1; i < cap; i++) {
+      out.push({ seat: ((me + i) % cap + cap) % cap, pos: posMap[i - 1] });
+    }
     return out;
   }
   function renderOpps() {
@@ -941,7 +946,17 @@ if (q.mode === 'ai') { startLocalAI(); return; }
     });
     lobby.setCapacity(capacityOf());
     if (mode === 'ffa') lobby.setMinToStart(3);   // 单人混战：满 3 人开局（3/4 人局）
-    if (mode === '2v2') lobby.setSeatTags(['1队', '2队', '1队', '2队']);   // 2v2 交叉坐：0/2 一队、1/3 一队
+    if (mode === '2v2') {
+      lobby.setSeatTags(['1队', '2队', '1队', '2队']);   // 2v2 交叉坐：0/2 一队、1/3 一队
+      // 等待室是 2×2 网格：重排视觉顺序为 [0,2,1,3] → 每行两个是队友
+      //   seat0(slot0,1队) seat2(slot2,1队)
+      //   seat1(slot1,2队) seat3(slot3,2队)
+      var ordMap = { seat0: 1, seat2: 2, seat1: 3, seat3: 4 };
+      Object.keys(ordMap).forEach(function (id) {
+        var el2 = document.getElementById(id);
+        if (el2) el2.style.order = String(ordMap[id]);
+      });
+    }
     lobby.show(currentRoom);
     lobby.setStatus('连接中…', 'connecting');
 
