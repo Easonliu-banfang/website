@@ -783,7 +783,21 @@ function showResultOverlay() {
   function maybeLocalAI() {
     if (!localState || localState.winner >= 0) return;
     if (localState.turn === me) return;
-    if (localState.challenge) return;   // 挑战窗口：AI 不自动操作（等玩家决策）
+    // 挑战窗口：AI 是受害者时智能决策（本地可见 hadMatch 真相）
+    if (localState.challenge) {
+      if (localAI_busy) return;
+      localAI_busy = true;
+      var victim = localState.turn;
+      var willChallenge = !!localState.challenge.hadMatch;   // 出牌者违规 → 质疑稳赢
+      setTimeout(function () {
+        localAI_busy = false;
+        if (!localState || localState.winner >= 0 || !localState.challenge) return;
+        if (willChallenge) localStep(function (s) { Uno.challengeW4(s, victim); });
+        else localStep(function (s) { Uno.draw(s, victim); });   // 接受：吃 4 张
+        maybeLocalAI();
+      }, 700);
+      return;
+    }
     if (localAI_busy) return;
     localAI_busy = true;
     setTimeout(function () {

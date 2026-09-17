@@ -112,6 +112,11 @@
       for (var s = 0; s < 4; s++) {
         if (!ctx.controls[s]) continue;
         if (state.turn !== s) continue;
+        // 挑战窗口：bot 被 +4 罚 → 保守接受（联机看不到出牌者手牌，
+        // 无法判断违规；接受最稳不额外多吃 4）
+        if (state.challenge && state.challenge.victim === s) {
+          return { type: 'draw' };
+        }
         var hand = (state.ai && state.ai[s]) ? state.ai[s] : null;
         if (!hand) return null;
         if (!W.UnoAI) return null;
