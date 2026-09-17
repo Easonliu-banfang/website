@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u36">
+  <link rel="stylesheet" href="uno.css?v=u37">
 <style>
 /* 全屏加载遮罩（内嵌，避免外部 CSS 缓存导致纯文字） */
 #loadingOverlay{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,14,24,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .5s ease}
@@ -26,6 +26,34 @@
 /* 背景层（内嵌，防外部 CSS 缓存） */
 .uno-bg{position:fixed;inset:0;z-index:0;pointer-events:none}
 .uno-bg::before{content:"";position:absolute;inset:0;background:url('assets/uno-bg-wide.jpg') center bottom/cover no-repeat}
+</style>
+<style>
+/* 选色弹窗（内嵌，防外部 CSS 缓存——与加载遮罩/背景同策略） */
+#colorModal{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center}
+#colorModal[hidden]{display:none}
+#colorModal .uno-cm-mask{position:absolute;inset:0;background:rgba(6,10,18,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:unoCmFade .22s ease both}
+#colorModal .uno-cm-panel{position:relative;z-index:1;background:linear-gradient(180deg,#17233a,#0f1830);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:26px 30px 30px;box-shadow:0 30px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12);animation:unoCmPop .28s cubic-bezier(.34,1.56,.64,1) both;transform-origin:center}
+#colorModal.out .uno-cm-panel{animation:unoCmShrink .26s ease both}
+@keyframes unoCmFade{from{opacity:0}to{opacity:1}}
+@keyframes unoCmPop{from{transform:scale(.72);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes unoCmShrink{from{transform:scale(1);opacity:1}to{transform:scale(.6);opacity:0}}
+#colorModal .uno-cm-title{margin:0 0 18px;text-align:center;font-size:17px;font-weight:800;letter-spacing:3px;color:rgba(240,246,255,.95);text-shadow:0 2px 6px rgba(0,0,0,.5)}
+#colorModal .uno-cm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#colorModal .uno-cm-chip{position:relative;width:92px;height:92px;border-radius:50%;border:none;cursor:pointer;padding:0;outline-offset:3px;background:radial-gradient(circle at 50% 26%,var(--clr-l) 0%,var(--clr) 46%,var(--clr-d) 100%);box-shadow:0 9px 0 var(--clr-d),0 16px 26px rgba(0,0,0,.45),inset 0 4px 8px rgba(255,255,255,.35),inset 0 -10px 16px rgba(0,0,0,.3);transition:transform .16s cubic-bezier(.34,1.56,.64,1),filter .16s ease;animation:unoCmIdle 2.6s ease-in-out infinite}
+#colorModal .uno-cm-chip:nth-child(2){animation-delay:.32s}
+#colorModal .uno-cm-chip:nth-child(3){animation-delay:.64s}
+#colorModal .uno-cm-chip:nth-child(4){animation-delay:.96s}
+@keyframes unoCmIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+#colorModal .uno-cm-chip::before{content:"";position:absolute;left:50%;top:16%;width:52%;height:26%;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(255,255,255,.65),rgba(255,255,255,0) 70%);border-radius:50%;pointer-events:none}
+#colorModal .uno-cm-chip .cm-ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:rgba(255,255,255,.92);text-shadow:0 2px 3px rgba(0,0,0,.4)}
+#colorModal .uno-cm-chip:hover{transform:translateY(-6px) scale(1.06);filter:brightness(1.08)}
+#colorModal .uno-cm-chip:active{transform:translateY(1px) scale(.96)}
+#colorModal .uno-cm-chip.picked{animation:unoCmPick .5s ease both;z-index:2}
+@keyframes unoCmPick{0%{transform:scale(1)}35%{transform:scale(1.16)}100%{transform:scale(1.02)}}
+#colorModal .uno-cm-chip.picked::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:3px solid var(--clr-l);animation:unoCmRing .6s ease-out both;pointer-events:none}
+@keyframes unoCmRing{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.5);opacity:0}}
+#colorModal .uno-cm-chip.flood{transition:background .5s ease,box-shadow .5s ease,transform .5s ease}
+@media (max-width:680px){#colorModal .uno-cm-panel{padding:20px 22px 24px;border-radius:20px}#colorModal .uno-cm-chip{width:72px;height:72px}#colorModal .uno-cm-grid{gap:12px}}
 </style>
 </head>
 <body class="uno-play-body">
