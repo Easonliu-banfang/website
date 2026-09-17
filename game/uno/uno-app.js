@@ -218,11 +218,28 @@
     var uno = state && state.uno && state.uno[s];
     var name = (names && names[s]) ? names[s] : ('玩家 ' + (s + 1));
     var teamCls = '';
-    if (mode === '2v2' && state && state.teams) teamCls = state.teams[s] === state.teams[me] ? ' ta' : ' tb';
+    var isMate = false;
+    if (mode === '2v2' && state && state.teams) {
+      teamCls = state.teams[s] === state.teams[me] ? ' ta' : ' tb';
+      isMate = state.teams[s] === state.teams[me];   // 队友 → 手牌正面朝上
+    }
     var backs = '';
-    var n = Math.min(cnt, 12);
-    for (var i = 0; i < n; i++) backs += '<div class="uo-back"></div>';
-    var cntBadge = cnt > 12 ? '<span class="uo-p-cnt">' + cnt + '</span>' : '';
+    // 队友：显示正面手牌（mateHand）；敌人：显示牌背
+    if (isMate && state && state.mateHand) {
+      // 队友只在 2v2 出现在对面（顶部）→ 牌翻转 180°（正面朝我）
+      var mh = state.mateHand || [];
+      var flipCls = '';
+      seatSpots().forEach(function (it) { if (it.seat === s && it.pos === 'top') flipCls = ' flip'; });
+      for (var mi = 0; mi < Math.min(mh.length, 12); mi++) {
+        backs += '<img class="uc uc-hand ucmate' + flipCls + '" src="' + cardImg(mh[mi]) + '" alt="' + cardAlt(mh[mi]) + '">';
+      }
+      var n2 = state.mateHand.length;
+      cntBadge = n2 > 12 ? '<span class="uo-p-cnt">' + n2 + '</span>' : '';
+    } else {
+      var n = Math.min(cnt, 12);
+      for (var i = 0; i < n; i++) backs += '<div class="uo-back"></div>';
+      var cntBadge = cnt > 12 ? '<span class="uo-p-cnt">' + cnt + '</span>' : '';
+    }
     // 对手头像优先级：联机对手真实头像 > 本机自定义 > 默认图；
     // AI 对手（名字带 AI· 前缀或 AI 模式）恒用默认图
     var oppAvatar = DEFAULT_AVATAR;
@@ -295,17 +312,8 @@
     el.myHand.innerHTML = html;
     if (h.length === 0) el.myHand.innerHTML = '<div class="uo-empty">已出完</div>';
 
-    if (state.mate != null && state.mateHand) {
-      
-      var mh = '';
-      for (var j = 0; j < state.mateHand.length; j++) {
-        mh += '<img class="uc uc-hand ucmate" src="' + cardImg(state.mateHand[j]) + '" alt="' + cardAlt(state.mateHand[j]) + '">';
-      }
-      el.mateHand.innerHTML = mh;
-      el.mateRow.hidden = false;
-    } else {
-      el.mateRow.hidden = true;
-    }
+    // 队友手牌已直接在对面头像下方正面显示（oppCard），不再底部两行
+    if (el.mateRow) el.mateRow.hidden = true;
 
     // UNO 按钮常驻：剩 1 张且未出完时激活（不弹隐藏）；播放中且轮到我全会弹出提示
     var unoActive = (h.length === 1 && state.winner < 0);

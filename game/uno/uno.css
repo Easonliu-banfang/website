@@ -562,3 +562,6 @@ button { -webkit-tap-highlight-color: transparent; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--mono);
 }
+
+/* 对面队友牌：翻转 180° 正面朝我 */
+.ucmate.flip { transform: rotate(180deg); }
