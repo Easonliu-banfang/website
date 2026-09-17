@@ -532,13 +532,45 @@
       else if (o) o.sendCallUno();
       el.btnUno.classList.remove('on');
     });
+    // 万色选色：UNO 官方风格——点选后全部色块注入所选颜色，再收合
+    var cmBusy = false;
     el.colorModal.addEventListener('click', function (e) {
-      var b = e.target.closest('.cp');
-      if (!b) return;
-      var color = b.getAttribute('data-c');
-      if (mode === 'ai') { Uno.setColor(localState, me, color); applyLocalView(); maybeLocalAI(); }
-      else if (o) o.sendSetColor(color);
-      el.colorModal.hidden = true;
+      var chip = e.target.closest('.uno-cm-chip');
+      if (!chip || cmBusy) return;
+      cmBusy = true;
+      var color = chip.getAttribute('data-c');
+      var chips = el.colorModal.querySelectorAll('.uno-cm-chip');
+      // 1) 点击的色块脉冲放大 + 扩散环
+      chip.classList.add('picked');
+      // 2) 取所选颜色（从被点色块的 CSS 变量）
+      var cs = getComputedStyle(chip);
+      var cClr = cs.getPropertyValue('--clr').trim();
+      var cD = cs.getPropertyValue('--clr-d').trim();
+      var cL = cs.getPropertyValue('--clr-l').trim();
+      // 3) 其余色块依次「注入」所选颜色（间隔 90ms 波浪）
+      [].forEach.call(chips, function (el2, i) {
+        if (el2 === chip) return;
+        setTimeout(function () {
+          el2.classList.add('flood');
+          el2.style.setProperty('--clr', cClr);
+          el2.style.setProperty('--clr-d', cD);
+          el2.style.setProperty('--clr-l', cL);
+        }, 120 + i * 90);
+      });
+      // 4) 全部注入完成后面板收合，提交选色
+      setTimeout(function () {
+        el.colorModal.classList.add('out');
+        setTimeout(function () {
+          el.colorModal.hidden = true;
+          el.colorModal.classList.remove('out');
+          [].forEach.call(chips, function (el2) {
+            el2.classList.remove('picked', 'flood');
+          });
+          if (mode === 'ai') { Uno.setColor(localState, me, color); applyLocalView(); maybeLocalAI(); }
+          else if (o) o.sendSetColor(color);
+          cmBusy = false;
+        }, 300);
+      }, 120 + chips.length * 90 + 160);
     });
     // 左下快捷功能区（占位交互）
     function quickMsg(ico, txt) { return function () { if (window.Notify) window.Notify.show(ico + ' ' + txt, 'info'); }; }

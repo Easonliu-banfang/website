@@ -318,6 +318,9 @@
   .uo-me-zone { bottom: 104px; }
   .uo-quickbar { right: 16px; bottom: auto; top: 38%; }
   .uo-uno-big { width: 120px; height: 116px; right: 18px; bottom: 118px; }
+  .uno-cm-panel { padding: 20px 22px 24px; border-radius: 20px; }
+  .uno-cm-chip { width: 72px; height: 72px; }
+  .uno-cm-grid { gap: 12px; }
   
 
 /* ---------- 竖屏遮罩（亮色） ---------- */
@@ -341,79 +344,7 @@
 /* ---------- 万色选色弹窗 ---------- */
 .uo-modal-inner { background: #fff; border: 2px solid #e2ebfb; border-radius: 18px; padding: 22px 26px; text-align: center; box-shadow: 0 20px 60px rgba(31, 68, 130, 0.25); }
 .uo-modal-inner h3 { font-family: var(--mono); font-size: 17px; margin-bottom: 16px; color: #0f2440; }
-.uo-colorpick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.cp {
-  width: 92px; height: 54px; border: 3px solid #fff; border-radius: 14px;
-  font-size: 16px; font-weight: 800; color: #fff; cursor: pointer;
-  transition: transform 0.15s ease; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  box-shadow: 0 6px 16px rgba(31, 68, 130, 0.2);
-}
-.cp:hover { transform: scale(1.08); }
-.cp:active { transform: scale(0.95); }
-.cp-r { background: #e5484d; }
-.cp-b { background: #3e8ef7; }
-.cp-g { background: #2ebd59; }
-.cp-y { background: #f0a90a; }
-
-/* ---------- 结果横幅（亮色） ---------- */
-.uo-result {
-  position: fixed; left: 50%; top: 50%;
-  transform: translate(-50%, -50%); z-index: 110;
-  background: rgba(255, 255, 255, 0.97);
-  border: 2px solid #e2ebfb; border-radius: 22px;
-  padding: 30px 44px; font-size: 22px; font-weight: 800; text-align: center;
-  color: #0f2440;
-  box-shadow: 0 24px 70px rgba(31, 68, 130, 0.3);
-  display: flex; flex-direction: column; gap: 16px; align-items: center;
-  animation: uoResultIn 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
-}
-@keyframes uoResultIn { from { transform: translate(-50%, -40%) scale(0.7); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-.uo-result.big { font-size: 30px; color: #16a34a; border-color: rgba(34, 197, 94, 0.6); }
-.uo-again { margin-top: 4px; }
-
-/* ---------- 断线横幅 ---------- */
-.uo-connnote {
-  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-  z-index: 120; background: rgba(255, 235, 236, 0.96);
-  border: 2px solid rgba(225, 36, 42, 0.5); color: #c0260c;
-  border-radius: 999px; padding: 6px 18px; font-size: 13px; font-weight: 700;
-  box-shadow: 0 8px 20px rgba(200, 30, 30, 0.2);
-}
-
-/* 万色选择小屏适配（仅横屏） */
-@media (orientation: landscape) and (max-width: 640px) {
-  .cp { width: 76px; }
-}
-
-/* ============ 竖屏自动横显：竖持手机时整体旋转 90° 以横屏布局呈现 ============ */
-/* rotate 90°：竖屏画面横过来，用户将手机转 90° 即可正着看。
-   旋转后 vw/vh 仍按真实视口（竖屏 390 宽）计算会错位 → 关键布局用 %（相对旋转后逻辑视口） */
-body.portrait {
-  position: fixed;
-  top: 0;
-  left: 100vw;
-  width: 100vh;
-  height: 100vw;
-  min-height: 0;              /* 覆盖 .uno-play-body height:100dvh / body min-height 撑高问题 */
-  transform: rotate(90deg);
-  transform-origin: 0 0;
-  overflow: hidden;
-}
-body.portrait #landscapeOverlay { display: none !important; }
-body.portrait .uo-table-disc {
-  width: min(72%, 860px);
-  height: min(46%, 420px);
-}
-
-/* ========== 2.5D 按钮 ================================================
- * 给所有按钮加立体感：顶部受光面 + 底部厚度(伪元素) + 按下下沉
- * 适用于：UNO 大按钮 / 摸牌 / 过 / 质疑 / 快捷栏 / 表情
- * ================================================================== */
-button { -webkit-tap-highlight-color: transparent; }
-
-/* 通用 2.5D 壳层 */
-.uq-btn, .uo-pass-btn, .uo-challenge-btn, .uo-deck,
-.uq-btn--25d, .uo-color-opt, .cp, .uo-modal-close {
+.cp, .uo-modal-close {
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
@@ -565,3 +496,105 @@ button { -webkit-tap-highlight-color: transparent; }
 
 /* 对面队友牌：翻转 180° 正面朝我 */
 .ucmate.flip { transform: rotate(180deg); }
+
+/* ========== 万色选色弹窗（UNO 官方风格：2×2 立体圆形色块） ========== */
+.uno-cm { position: fixed; inset: 0; z-index: 9990; display: flex; align-items: center; justify-content: center; }
+.uno-cm-mask {
+  position: absolute; inset: 0; background: rgba(6, 10, 18, 0.78);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  animation: unoCmFade 0.22s ease both;
+}
+@keyframes unoCmFade { from { opacity: 0; } to { opacity: 1; } }
+.uno-cm-panel {
+  position: relative; z-index: 1;
+  background: linear-gradient(180deg, #17233a, #0f1830);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 26px 30px 30px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: unoCmPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
+}
+.uno-cm.out .uno-cm-panel { animation: unoCmShrink 0.26s ease both; }
+@keyframes unoCmPop {
+  from { transform: scale(0.72); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes unoCmShrink {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0.6); opacity: 0; }
+}
+.uno-cm-title {
+  margin: 0 0 18px; text-align: center;
+  font-size: 17px; font-weight: 800; letter-spacing: 3px;
+  color: rgba(240, 246, 255, 0.95); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.uno-cm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* 立体圆形色块：球体渐变 + 顶部高光 + 底部厚边投影（2.5D） */
+.uno-cm-chip {
+  position: relative;
+  width: 92px; height: 92px; border-radius: 50%;
+  border: none; cursor: pointer; padding: 0;
+  outline-offset: 3px;
+  background:
+    radial-gradient(circle at 50% 26%, var(--clr-l) 0%, var(--clr) 46%, var(--clr-d) 100%);
+  box-shadow:
+    0 9px 0 var(--clr-d),
+    0 16px 26px rgba(0, 0, 0, 0.45),
+    inset 0 4px 8px rgba(255, 255, 255, 0.35),
+    inset 0 -10px 16px rgba(0, 0, 0, 0.3);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease;
+  animation: unoCmIdle 2.6s ease-in-out infinite;
+}
+.uno-cm-chip:nth-child(2) { animation-delay: 0.32s; }
+.uno-cm-chip:nth-child(3) { animation-delay: 0.64s; }
+.uno-cm-chip:nth-child(4) { animation-delay: 0.96s; }
+@keyframes unoCmIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+/* 顶部球体高光 */
+.uno-cm-chip::before {
+  content: "";
+  position: absolute; left: 50%; top: 16%; width: 52%; height: 26%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.uno-cm-chip .cm-ico {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 900; color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
+}
+.uno-cm-chip:hover { transform: translateY(-6px) scale(1.06); filter: brightness(1.08); }
+.uno-cm-chip:active { transform: translateY(1px) scale(0.96); }
+.uno-cm-chip:focus-visible { outline: 3px solid rgba(255, 255, 255, 0.7); }
+
+/* 点击选中：脉冲扩散环 + 轻微放大 */
+.uno-cm-chip.picked {
+  animation: unoCmPick 0.5s ease both;
+  z-index: 2;
+}
+@keyframes unoCmPick {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.16); }
+  100% { transform: scale(1.02); }
+}
+.uno-cm-chip.picked::after {
+  content: "";
+  position: absolute; inset: -8px; border-radius: 50%;
+  border: 3px solid var(--clr-l);
+  animation: unoCmRing 0.6s ease-out both;
+  pointer-events: none;
+}
+@keyframes unoCmRing {
+  0% { transform: scale(0.7); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* 全变所选色：相邻色块依次「注入」所选颜色（CSS 变量切换 + 过渡） */
+.uno-cm-chip.flood {
+  transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.5s ease;
+}
