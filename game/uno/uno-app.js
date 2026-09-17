@@ -894,6 +894,8 @@ var PRELOAD_ASSETS = (function () {
   });
   files.push('cards/WC.png', 'cards/W4.png');
   files.push('cards/back.png');
+  // 喊 UNO 按钮图（避免首局按钮空白）
+  files.push('assets/uno-button.png');
   return files;
 })();
 

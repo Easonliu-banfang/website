@@ -275,7 +275,7 @@
 /* ⑦ 右下角 UNO 大按钮（亮色高对比） */
 .uo-uno-big {
   position: absolute; right: 26px; bottom: 150px; z-index: 16;
-  width: 150px; height: 145px;   /* 按原图比例 1001x968 ≈ 1.034:1 */
+  width: 110px; height: 106px;   /* 按原图比例 1001x968 ≈ 1.034:1（缩小版） */
   color: transparent;
   font-size: 0;
   cursor: pointer;
@@ -317,7 +317,7 @@
   .uo-me-avatar { width: 50px; height: 50px; font-size: 25px; }
   .uo-me-zone { bottom: 104px; }
   .uo-quickbar { right: 16px; bottom: auto; top: 38%; }
-  .uo-uno-big { width: 120px; height: 116px; right: 18px; bottom: 118px; }
+  .uo-uno-big { width: 92px; height: 89px; right: 18px; bottom: 118px; }
   .uno-cm-panel { padding: 20px 22px 24px; border-radius: 20px; }
   .uno-cm-chip { width: 72px; height: 72px; }
   .uno-cm-grid { gap: 12px; }
