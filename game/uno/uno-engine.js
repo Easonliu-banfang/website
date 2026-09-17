@@ -150,16 +150,6 @@
     if (i < 0) return { ok: false, err: 'no such card' };
     if (!playable(state, s, id)) return { ok: false, err: 'illegal play' };
 
-    // 严格：万色+4 只能在没有同色牌可出时使用（叠牌场景豁免）
-    if (kindOf(id) === 'w4' && !stacking) {
-      // 官方：仅当手里没有任何「与当前颜色匹配」的牌时才可出万色+4（同数字不同色不算）
-      var hasMatchColor = (state.hands[s] || []).some(function (c) {
-        var kk = kindOf(c);
-        if (kk === 'w' || kk === 'w4') return false;
-        return state.topColor && colorOf(c) === state.topColor;
-      });
-      if (hasMatchColor) return { ok: false, err: 'wild+4 only when no matching color' };
-    }
 
     state.hands[s].splice(i, 1);
     state.top = id;

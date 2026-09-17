@@ -143,11 +143,7 @@
     if (kindOf(top) === 'w') return c.charAt(0) === color;
     return c.charAt(0) === color || c.charAt(1) === top.charAt(1);
   }
-  // 万色+4 官方严格：手里有「与顶牌同色」的牌就禁止出
-  function w4RuleOk(c, hand, color) {
-    if (c !== 'w4') return true;
-    return !hand.some(function (x) { var k = kindOf(x); return k !== 'w' && x.charAt(0) === color; });
-  }
+  
   function playableCards() {
     if (!state || state.awaitColor || me !== state.turn || state.winner >= 0) return [];
     var out = [];

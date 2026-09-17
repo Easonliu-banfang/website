@@ -22,13 +22,8 @@
     if (k === 'w') return true;
     // 万色+4：官方规则要求手中没有任何「与当前颜色匹配」的牌才可出（同数字不同色不算）
     if (k === 'w4') {
-      if (state.nextDraw > 0) return false;   // 罚期不能出（本引擎不支持叠牌）
-      if (!state.topColor) return true;
-      return !(state.hand || []).some(function (c) {
-        var kk = kindOf(c);
-        if (kk === 'w' || kk === 'w4') return false;
-        return colorOf(c) === state.topColor;
-      });
+      if (state.nextDraw > 0) return false;   // 罚期不能出（叠牌由 choose 的叠牌分支处理）
+      return true;                            // 非罚期随时可出（不要求无同色牌）
     }
     if (state.topColor && colorOf(id) === state.topColor) return true;
     var tk = kindOf(state.top);
