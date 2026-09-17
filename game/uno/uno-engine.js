@@ -109,6 +109,7 @@
 
   function playable(state, s, cardId) {
     if (!validIdx(state, s) || s !== state.turn || state.awaitColor) return false;
+    if (state.justDrew && cardId !== state.lastDrawn) return false;   // 抽牌后只能出刚摸的
     if (state.nextDraw > 0) {
       // 叠牌：+4 可叠加任何罚；+2 也可叠任何罚（不限颜色、不限来源）
       var kk = kindOf(cardId);
@@ -146,6 +147,8 @@
     if (!validIdx(state, s) || s !== state.turn) return { ok: false, err: 'not your turn' };
     if (state.awaitColor) return { ok: false, err: 'choose color first' };
     var stacking = state.nextDraw > 0;   // 被罚时出叠牌
+    // 官方规则：主动摸牌后只能出刚摸的那张（或过），不能再出原有牌
+    if (state.justDrew && id !== state.lastDrawn) return { ok: false, err: 'must play drawn card' };
     var i = state.hands[s].indexOf(id);
     if (i < 0) return { ok: false, err: 'no such card' };
     if (!playable(state, s, id)) return { ok: false, err: 'illegal play' };
