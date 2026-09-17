@@ -62,7 +62,7 @@
       for (var si = 0; si < hand.length; si++) {
         var sc = hand[si];
         if (sc === 'w4') w4 = sc;
-        else if (sc.charAt(1) === 'd' && w4 == null && d2 == null && drawKind === 'd') d2 = sc;
+        else if (sc.charAt(1) === 'd' && w4 == null && d2 == null) d2 = sc;
       }
       var stk = w4 || d2;
       if (stk) {

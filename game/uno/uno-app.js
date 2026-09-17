@@ -152,12 +152,12 @@
     if (!state || state.awaitColor || me !== state.turn || state.winner >= 0) return [];
     var out = [];
     var h = state.hand || [];
-    // 被 +2/+4 罚时：+2 叠 +2 罚（不限颜色）；w4 可叠任何罚
+    // 被 +2/+4 罚时：+2 可叠任何罚（不限颜色）；w4 可叠任何罚
     if (state.nextDraw > 0) {
       for (var m = 0; m < h.length; m++) {
         var mc = h[m];
         var mk = symOf(mc);
-        if (mk === 'd' && state.drawKind === 'd') out.push(mc);
+        if (mk === 'd') out.push(mc);
         else if (mk === 'w4') out.push(mc);
       }
       return out;
@@ -546,9 +546,8 @@
     if (hand.indexOf(card) < 0) return;
     var k = symOf(card);
     if (state.nextDraw > 0) {
-      // 叠加：+2 叠 +2 罚（不限颜色）；+4 可叠任何罚
+      // 叠加：+2 / +4 可叠任何罚（不限颜色）
       if (k !== 'd' && k !== 'w4') return;
-      if (k === 'd' && state.drawKind !== 'd') { flash('+2 只能叠在 +2 上'); return; }
     } else {
       if (!kindOk(card, state.top, state.topColor)) { flash('这张牌不能出'); return; }
     }

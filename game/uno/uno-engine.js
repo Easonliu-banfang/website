@@ -110,10 +110,10 @@
   function playable(state, s, cardId) {
     if (!validIdx(state, s) || s !== state.turn || state.awaitColor) return false;
     if (state.nextDraw > 0) {
-      // 叠牌：+4 可叠加任何罚；+2 只能叠在 +2 罚上
+      // 叠牌：+4 可叠加任何罚；+2 也可叠任何罚（不限颜色、不限来源）
       var kk = kindOf(cardId);
       if (kk === 'w4') return true;
-      if (kk === 'd' && state.drawKind === 'd') return true;
+      if (kk === 'd') return true;
       return false;
     }
     if ((state.hands[s] || []).indexOf(cardId) < 0) return false;
