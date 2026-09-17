@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u37">
+  <link rel="stylesheet" href="uno.css?v=u38">
 <style>
 /* 全屏加载遮罩（内嵌，避免外部 CSS 缓存导致纯文字） */
 #loadingOverlay{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,14,24,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .5s ease}
@@ -94,16 +94,13 @@
 
     <!-- ① 左上角计时区：卡通表盘 + 回合倒计时 -->
     <div class="uo-timer">
-      <div class="uo-timer-icon">
-        <svg viewBox="0 0 48 48" aria-hidden="true">
-          <circle cx="24" cy="24" r="21" fill="#151c26" stroke="#22d3ee" stroke-width="3"/>
-          <circle cx="24" cy="24" r="15" fill="none" stroke="rgba(34,211,238,.25)" stroke-width="1.5"/>
-          <path d="M24 24 L24 14 M24 24 L31 28" stroke="#e5f6ff" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="24" cy="24" r="2.5" fill="#f5c542"/>
-        </svg>
-      </div>
+      <div class="uo-game-clock">总时长 <b id="gameTimer">03:00</b></div>
       <div class="uo-timer-time" id="turnTimer">00:10</div>
-      <div class="uo-game-clock">整局 <b id="gameTimer">04:00</b></div>
+    </div>
+
+    <!-- 时间到提示（整局 3 分钟到 → 全屏大字） -->
+    <div id="timeUpOverlay" class="uno-timeup" hidden>
+      <div class="uno-timeup-text">时间到！</div>
     </div>
 
     <!-- ② 中央游戏桌（椭圆卡通桌，玩家围坐） -->
@@ -114,9 +111,9 @@
       <div class="uo-deck-zone">
         <button class="uo-deck uo-deck-disc" id="btnDraw" type="button" title="摸一张牌">
           <span class="uo-deck-stack">
-            <img class="uo-deck-back" alt=""><img class="uo-deck-back" alt=""><img class="uo-deck-back" alt="">
+            <img class="uo-deck-back" alt=""><img class="uo-deck-back" alt="">
+            <img class="uo-deck-back under" alt=""><img class="uo-deck-back under" alt="">
           </span>
-          <span class="uo-deck-inner" id="deckInner">摸牌</span>
           <span class="uo-deck-glow"></span>
         </button>
       </div>
@@ -153,8 +150,9 @@
 
     <!-- ⑥ 自己手牌（底部中央，大尺寸重叠排列） -->
     <div class="uo-hand-zone">
-      <div class="uo-pass-line">
-        <button class="uo-pass-btn" id="btnPass" type="button" hidden>过</button>
+      <div class="uo-pass-line" id="passLine">
+        <button class="uo-pass-btn" id="btnPlayDrawn" type="button" hidden>打出</button>
+        <button class="uo-pass-btn" id="btnPass" type="button" hidden>不出</button>
       </div>
       <div class="uo-mate" id="mateRow" hidden>
         <span class="uo-mate-label" id="mateLabel">队友</span>
@@ -238,13 +236,13 @@
 <!-- 结果横幅 -->
 <div class="uo-result" id="resultBanner" hidden></div>
 
-<script src="uno-engine.js?v=u10"></script>
+<script src="uno-engine.js?v=u11"></script>
 <script src="uno-online.js?v=u8"></script>
 <script src="../lobby.js?v=l15"></script>
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u7"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u51"></script>
+<script src="uno-app.js?v=u52"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>

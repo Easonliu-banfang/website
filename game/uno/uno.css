@@ -598,3 +598,97 @@
 .uno-cm-chip.flood {
   transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.5s ease;
 }
+
+/* ========== 时间到全屏提示 ========== */
+.uno-timeup {
+  position: fixed; inset: 0; z-index: 9995;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 4, 8, 0.72);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  animation: unoTimeupIn 0.3s ease both;
+}
+.uno-timeup[hidden] { display: none; }
+.uno-timeup-text {
+  font-family: 'Arial Black', var(--mono), sans-serif;
+  font-style: italic;
+  font-size: 88px; font-weight: 900; letter-spacing: 8px;
+  color: #ff2438;
+  text-shadow:
+    0 0 24px rgba(255, 36, 56, 0.85),
+    0 0 60px rgba(255, 36, 56, 0.5),
+    0 6px 0 rgba(120, 8, 20, 0.9),
+    0 12px 32px rgba(0, 0, 0, 0.7);
+  animation: unoTimeupPulse 0.5s ease-in-out infinite;
+  transform: rotate(-3deg);
+}
+@keyframes unoTimeupIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes unoTimeupPulse {
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  50% { transform: rotate(-3deg) scale(1.06); }
+}
+@media (max-width: 680px) {
+  .uno-timeup-text { font-size: 54px; letter-spacing: 5px; }
+}
+
+/* ========== 牌堆：大号双排牌背（去掉白色卡片底与文字） ========== */
+.uo-deck-disc {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 6px !important;
+  min-width: 0 !important;
+  color: transparent !important;
+}
+.uo-deck-disc .uo-deck-inner { display: none !important; }
+.uo-deck-stack { height: 86px; margin: 0; }
+.uo-deck-back {
+  width: 54px; height: 78px; margin-left: -27px;
+  border-radius: 9px; border: 2px solid #fff;
+  box-shadow: 0 4px 10px rgba(20, 40, 70, 0.4);
+  background-image: url('cards/back.png');
+  background-size: 100% 100%;
+}
+/* 第二排牌背（under）垫在下方 */
+.uo-deck-back.under { top: 8px; }
+.uo-deck-back:nth-child(1) { transform: translate(-10px, 2px) rotate(-8deg); }
+.uo-deck-back:nth-child(2) { transform: translate(10px, 0px) rotate(8deg); }
+.uo-deck-back.under:nth-child(3) { transform: translate(-6px, 10px) rotate(-3deg); z-index: 0; }
+.uo-deck-back.under:nth-child(4) { transform: translate(6px, 12px) rotate(3deg); z-index: 0; }
+
+/* ========== 抽牌后：刚摸的牌可打 → 上移高亮；其余锁定 ========== */
+.uc-wrap.drawn { transform: translateY(-26px); }
+.uc-wrap.drawn .uc-hand.drawn-glow {
+  box-shadow: 0 0 18px rgba(255, 200, 60, 0.9), 0 6px 16px rgba(0, 0, 0, 0.35);
+  filter: brightness(1.08);
+}
+.uc-wrap.locked { opacity: 0.45; filter: grayscale(0.4); cursor: not-allowed; }
+.uc-wrap.locked .uc-hand { pointer-events: none; }
+
+/* ========== 过/打出 双按钮（黄色圆角大白字） ========== */
+.uo-pass-line { gap: 14px; height: 46px; }
+.uo-pass-btn {
+  border: none !important;
+  background: linear-gradient(180deg, #ffd23f, #f0a500) !important;
+  color: #fff !important;
+  border-radius: 16px !important;
+  padding: 9px 26px !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  letter-spacing: 2px;
+  box-shadow: 0 5px 0 #a86f00, 0 10px 18px rgba(80, 50, 0, 0.3) !important;
+  text-shadow: 0 2px 3px rgba(90, 55, 0, 0.5);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
+}
+.uo-pass-btn:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.uo-pass-btn:active { transform: translateY(1px) scale(0.97); box-shadow: 0 1px 0 #a86f00 !important; }
+/* 不可用（摸的牌不能打）→ 暗色 */
+.uo-pass-btn.dim {
+  background: linear-gradient(180deg, #8a8f98, #5d6269) !important;
+  box-shadow: 0 5px 0 #3c4046, 0 8px 14px rgba(0, 0, 0, 0.25) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  text-shadow: none;
+  cursor: not-allowed;
+}

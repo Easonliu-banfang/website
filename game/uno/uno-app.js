@@ -272,14 +272,26 @@
     var myDraw = canDrawNow();
     el.btnDraw.disabled = !myDraw;
     el.btnDraw.classList.toggle('on', myDraw);
-    el.deckInner.textContent = (state.nextDraw > 0 ? '摸 ' + state.nextDraw + ' 张' : '摸牌');
     // 质疑 +4：被加人轮到且未操作时显示
     var canChallenge = !!(state.challenge && state.nextDraw > 0 && me === state.turn);
     if (el.btnChallenge) {
       el.btnChallenge.hidden = !canChallenge;
       el.btnDraw.classList.toggle('with-challenge', canChallenge);
     }
-    el.btnPass.hidden = !passAllowed();
+    // 抽牌后操作区：刚摸的牌能打 → 打出/不出 双按钮；不能打 → 打出暗色
+    if (el.btnPlayDrawn) {
+      var pd = !!state && me === state.turn && state.justDrew && state.nextDraw === 0 && state.winner < 0 && !state.awaitColor;
+      var drawnPlayable = pd && !!state.lastDrawn && playableCards().indexOf(state.lastDrawn) >= 0;
+      el.btnPlayDrawn.hidden = !pd;
+      el.btnPlayDrawn.classList.toggle('dim', !drawnPlayable);
+      el.btnPlayDrawn.disabled = !drawnPlayable;
+      if (el.btnPass) {
+        el.btnPass.hidden = !pd;
+        el.btnPass.disabled = false;
+      }
+    } else if (el.btnPass) {
+      el.btnPass.hidden = !passAllowed();
+    }
   }
   function colorCss(c) { return { r: '#e5484d', b: '#3e8ef7', g: '#2ebd59', y: '#f5c542' }[c] || '#888'; }
   function colorLabel(c) { return { r: '红', b: '蓝', g: '绿', y: '黄' }[c] || ''; }
@@ -302,8 +314,11 @@
     for (var i = 0; i < h.length; i++) {
       var c = h[i];
       var p = !!playableSet[c];
-      html += '<div class="uc-wrap' + (p ? ' ok' : ' no') + '" data-card="' + c + '" data-idx="' + i + '">' +
-        '<img class="uc uc-hand' + (p ? ' glow' : '') + '" src="' + cardImg(c) + '" alt="' + cardAlt(c) + '"></div>';
+      // 刚摸的牌（lastDrawn）：若能打出 → 上移高亮（drawn 视觉），并禁止点其它牌
+      var isDrawn = state.justDrew && c === state.lastDrawn;
+      var wrapCls = (p ? ' ok' : ' no') + (isDrawn ? ' drawn' : '') + (state.justDrew && !isDrawn ? ' locked' : '');
+      html += '<div class="uc-wrap' + wrapCls + '" data-card="' + c + '" data-idx="' + i + '">' +
+        '<img class="uc uc-hand' + (p ? ' glow' : '') + (isDrawn ? ' drawn-glow' : '') + '" src="' + cardImg(c) + '" alt="' + cardAlt(c) + '"></div>';
     }
     el.myHand.innerHTML = html;
     if (h.length === 0) el.myHand.innerHTML = '<div class="uo-empty">已出完</div>';
@@ -432,7 +447,40 @@ function showResultOverlay() {
       stats: [['规则', '官方牌面分 · 单局积分'], ['牌面分值', '数字=面值 / 功能=20 / 万色=50'], ['赢家', '别人手牌分 − 自己手牌分'], ['输家', '−自己手牌分 + 赢家分÷输家人数']]
     });
   }
- function showResult() {
+ // 整局时间到：全屏「时间到！」2 秒 → 强制结算（按当前手牌分排名）
+  function forceTimeUp() {
+    var ov = document.getElementById('timeUpOverlay');
+    if (ov) ov.hidden = false;
+    setTimeout(function () {
+      if (ov) ov.hidden = true;
+      finishByTimeUp();
+    }, 2000);
+  }
+  // 时间到结算：无出完者时按手牌分最小者判胜（模拟 winner 并走统一结算）
+  function finishByTimeUp() {
+    if (!state || state.winner >= 0) return;
+    var cnt = state.counts || [];
+    var seatCap = (state && state.capacity) || cnt.length;
+    var scoreSums = (state && state.scores) || (state.hands ? state.hands.map(handScore) : []);
+    if (mode === '2v2') {
+      var tp = [0, 0];
+      for (var s = 0; s < seatCap; s++) {
+        var t = (state.teams && state.teams[s] != null) ? state.teams[s] : 0;
+        tp[t] += scoreSums[s] || 0;
+      }
+      var winT = tp[0] <= tp[1] ? 0 : 1;
+      state.winner = winT;
+    } else {
+      var best = 0, bestPts = Infinity;
+      for (var s = 0; s < seatCap; s++) {
+        if ((scoreSums[s] || 0) < bestPts) { bestPts = scoreSums[s] || 0; best = s; }
+      }
+      state.winner = best;
+    }
+    showResult();
+    if (window.Notify) window.Notify.show('⏱ 时间到！按手牌分最少者结算', 'warn');
+  }
+  function showResult() {
     var r = el.resultBanner;
     r.textContent = winnerText();
     r.className = 'uo-result show' + ((mode !== '2v2' && state.winner === me) ? ' big' : '');
@@ -560,6 +608,20 @@ function showResultOverlay() {
       if (mode === 'ai') localStep(function (s) { Uno.pass(s, me); });
       else if (o) o.sendPass();
     });
+    // 抽牌后「打出」：把刚摸的牌打出去（走 tryPlay 路径，含飞牌动画）
+    if (el.btnPlayDrawn) {
+      el.btnPlayDrawn.addEventListener('click', function () {
+        if (!state || state.justDrew !== true || me !== state.turn) return;
+        var cd = state.lastDrawn;
+        if (!cd || playableCards().indexOf(cd) < 0) return;
+        var wraps = el.myHand.querySelectorAll('.uc-wrap');
+        var target = null;
+        [].forEach.call(wraps, function (w2) { if (w2.getAttribute('data-card') === cd && !target) target = w2; });
+        if (target) tryPlay(cd, target, false);
+        else if (mode === 'ai') { Uno.play(localState, me, cd); applyLocalView(); maybeLocalAI(); }
+        else if (o) o.sendPlay(cd);
+      });
+    }
     // 我的头像（用户自定义优先，无则默认）+ 显示名（真人用户名，未登录才「你」）
     el.meAvatar.innerHTML = avatarImg('', myName());
     el.meLabel.textContent = myName();
@@ -620,6 +682,8 @@ function showResultOverlay() {
   function tryPlay(card, wrap, dragged) {
     if (!state || me !== state.turn || state.winner >= 0) return;
     if (state.awaitColor) return;
+    // 抽牌后只能出刚摸的那张（或过），点其它牌直接忽略
+    if (state.justDrew && card !== state.lastDrawn) return;
     var hand = state.hand || [];
     if (hand.indexOf(card) < 0) return;
     var k = symOf(card);
@@ -979,8 +1043,8 @@ function preloadAssets(onLoaded) {
 }
 function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
-     'topCardImg', 'btnDraw', 'deckInner', 'turnTimer',
-     'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
+     'topCardImg', 'btnDraw', 'turnTimer',
+     'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'btnPlayDrawn', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
      'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle', 'btnChallenge',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
     renderGameClock();

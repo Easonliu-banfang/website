@@ -215,6 +215,7 @@
     }
     drawCards(state, s, 1);
     state.justDrew = true;                    // 主动摸 1：可立即出或过
+    state.lastDrawn = state.hands[s][state.hands[s].length - 1];   // 记录刚摸的牌
     return { ok: true, drew: 1, forced: false };
   }
 
