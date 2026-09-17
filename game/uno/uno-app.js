@@ -372,80 +372,107 @@ function showResultOverlay() {
     var w = state.winner;
     var cnt = state.counts || [];
     var nameOf = function (s) { return (names && names[s]) ? names[s] : ('玩家 ' + (s + 1)); };
-    if (mode === '2v2') {                         // ===== 组队（2v2）官方积分制 =====
+    if (mode === '2v2') {                         // ===== 组队（2v2）积分制：队伍手牌分合计 =====
       var myTeam = teamOfMe();
       var myWon = (w === myTeam);
-      var mine = [], foe = [];
       var scoreSums = (state && state.scores) || (state.hands ? state.hands.map(handScore) : []);
+      var teamPts = [0, 0], teamCnt = [0, 0];
       for (var s = 0; s < cnt.length; s++) {
-        (state.teams && state.teams[s] === myTeam ? mine : foe).push({ s: s, c: cnt[s], pts: scoreSums[s] || 0 });
+        var t = (state.teams && state.teams[s] != null) ? state.teams[s] : 0;
+        teamPts[t] += scoreSums[s] || 0;
+        teamCnt[t] += 1;
       }
-      var minePts = mine.reduce(function (a, o) { return a + o.pts; }, 0);   // 我方剩余手牌分
-      var foePts = foe.reduce(function (a, o) { return a + o.pts; }, 0);     // 对方剩余手牌分
-      // 队伍获胜方得分 = 对方队伍手牌分总和
-      var winTeam = myWon ? myTeam : (1 - myTeam);
-      var gain = myWon ? foePts : minePts;
+      // 赢队 = 手牌分合计最小的队（0=出完）；输队 = 另一队
+      var winTeam = teamPts[0] <= teamPts[1] ? 0 : 1;
+      var loseTeam = 1 - winTeam;
+      var winGain = teamPts[loseTeam] - teamPts[winTeam];     // 赢队得分 = 对方合计 − 自己合计
+      var loseGain = -teamPts[loseTeam] + teamPts[winTeam] / Math.max(1, teamCnt[loseTeam]);  // 输队 = −自己 + 赢队分÷输队人数
       var myName = nameOf(me);
-      var foeName = foe.length ? nameOf(foe[0].s) : '对方';
+      var foeName = '';
+      for (var fi = 0; fi < cnt.length; fi++) if ((state.teams && state.teams[fi] === (1 - myTeam))) { foeName = nameOf(fi); break; }
+      if (!foeName) foeName = '对方';
       // 累积局点
       var match = loadMatchScores();
       var key = '2v2:' + names.join(',');
       var cur = match[key] || {};
-      cur[winTeam] = (cur[winTeam] || 0) + gain;
+      cur[winTeam] = (cur[winTeam] || 0) + winGain;
+      cur[loseTeam] = (cur[loseTeam] || 0) + loseGain;
       if (cur[winTeam] >= MATCH_TARGET) cur.matchWon = winTeam;
       match[key] = cur;
       saveMatchScores(match);
-      var matchWon = (cur.matchWon === winTeam);
+      var matchWonTeam = (cur.matchWon != null) ? cur.matchWon : -1;
       var myCum = cur[myTeam] || 0;
+      var matchWon = (matchWonTeam === myTeam);
+      var meWonRound = (winTeam === myTeam);
       ResultOverlay.show({
-        game: '优诺', title: matchWon ? ('🏆 ' + (myWon ? '你的队伍' : '对方队伍') + ' 赢得整场（500 分）！') : (myWon ? '🎉 你的队伍获胜！' : '😔 对方队伍获胜'),
-        sub: '本局得分 ' + gain + ' · 目标 500 分 · 累积 ' + (cur[winTeam] || 0) + '/' + MATCH_TARGET,
-        meRank: myWon ? 1 : 2,
-        me: { name: myName + ' 队', score: String(myCum), tag: myWon ? '本局 +' + gain : '本局 0 · 累积 ' + myCum },
+        game: '优诺', title: matchWon ? '🏆 你的队伍赢得整场（500 分）！' : (meWonRound ? '🎉 你的队伍获胜！' : '😔 对方队伍获胜'),
+        sub: '赢队 +' + Math.round(winGain) + ' · 输队 ' + Math.round(loseGain) + ' · 目标 ' + MATCH_TARGET + ' 分',
+        meRank: meWonRound ? 1 : 2,
+        me: { name: myName + ' 队', score: String(Math.round(myCum)), tag: meWonRound ? '本局 +' + Math.round(winGain) : '本局 ' + Math.round(loseGain) },
         players: [
-          { name: (myWon ? myName : foeName) + ' 队', score: String(myWon ? cur[myTeam] : cur[1 - myTeam]), tag: myWon ? (matchWon ? '🏆 局点胜利' : '胜') : '负' },
-          { name: (myWon ? foeName : myName) + ' 队', score: String(myWon ? cur[1 - myTeam] : cur[myTeam]), tag: myWon ? '负' : (matchWon ? '🏆 局点胜利' : '胜') }
+          { name: (winTeam === myTeam ? myName : foeName) + ' 队', score: String(Math.round(cur[winTeam])), tag: matchWonTeam === winTeam ? '🏆 整场胜利' : '本局 +' + Math.round(winGain) },
+          { name: (winTeam === myTeam ? foeName : myName) + ' 队', score: String(Math.round(cur[loseTeam])), tag: '本局 ' + Math.round(loseGain) }
         ],
-        stats: [['模式', '2v2 组队'], ['官方计分', '胜队得对方手牌分'], ['本局得分', '+' + gain + ' 分'], ['累积', (cur[winTeam] || 0) + ' / ' + MATCH_TARGET]]
+        stats: [['模式', '2v2 组队'], ['规则', '队伍手牌分合计'], ['赢队得分', '+' + Math.round(winGain) + ' 分'], ['累积', Math.round(cur[winTeam]) + ' / ' + MATCH_TARGET]]
       });
       return;
     }
-    // ===== 单人混战（2-4 人）：官方积分制 =====
-    // 胜者得分 = 其余玩家手牌分总和（数字=面值 / 20 / 50）
+    // ===== 单人混战（2-4 人）：积分制（官方牌面分）=====
+    // 手牌分：数字=面值 / 20 / 50；剩牌越多分越高 = 越菜
+    // 本局各人得分（可为负）：
+    //   赢家(手牌分最小/0)  = 别人手牌分总和 − 自己手牌分
+    //   输家             = −自己手牌分 + 赢家手牌分 ÷ 输家个数
+    // 多局累积先到 MATCH_TARGET(500) 者整场胜利
     var scoreSums = (state && state.scores) || (state.hands ? state.hands.map(handScore) : []);
-    var winnerGain = 0;
     var seats = [];
-    for (var i = 0; i < cnt.length; i++) {
-      if (i !== w) winnerGain += (scoreSums[i] || 0);
-      seats.push({ seat: i, cnt: cnt[i], pts: scoreSums[i] || 0 });
+    for (var i = 0; i < cnt.length; i++) seats.push({ seat: i, cnt: cnt[i], pts: scoreSums[i] || 0 });
+    // 排序：手牌分最小（0=出完）的赢，其余按分从低到高（菜鸟垫底）
+    seats.sort(function (a, b) { return (a.pts - b.pts); });
+    var winnerSeat = seats[0].seat;
+    var winnerPts = seats[0].pts;
+    var othersSum = 0;
+    for (var oi = 0; oi < seats.length; oi++) if (seats[oi].seat !== winnerSeat) othersSum += seats[oi].pts;
+    var loserCount = Math.max(1, seats.length - 1);
+    // 各人本局得分（delta）
+    var deltas = {};
+    deltas[winnerSeat] = othersSum - winnerPts;                 // 赢家
+    for (var di = 0; di < seats.length; di++) {
+      var s2 = seats[di].seat;
+      if (s2 !== winnerSeat) deltas[s2] = -seats[di].pts + winnerPts / loserCount;   // 输家
     }
-    // 名次：冠军(出完) 置顶，其余按剩余手牌分从低到高
-    seats.sort(function (a, b) { return (b.seat === w ? 1 : 0) - (a.seat === w ? 1 : 0) || (a.pts - b.pts); });
-    // 累积局点（localStorage）
+    // 累积局点（localStorage，先到 500 整场胜利）
     var match = loadMatchScores();
     var key = 'ffa:' + names.join(',');
     var cur = match[key] || {};
-    cur[w] = (cur[w] || 0) + winnerGain;
-    if (cur[w] >= MATCH_TARGET) cur.matchWon = w;      // 先到 500 → 局点胜利
+    var cum = {};
+    for (var ci = 0; ci < seats.length; ci++) {
+      var cs = seats[ci].seat;
+      cur[cs] = (cur[cs] || 0) + deltas[cs];
+      cum[cs] = cur[cs];
+      if (cur[cs] >= MATCH_TARGET) cur.matchWon = cs;
+    }
     match[key] = cur;
     saveMatchScores(match);
-    var matchWon = (cur.matchWon === w);
+    var matchWonSeat = (cur.matchWon != null) ? cur.matchWon : -1;
     var players = seats.map(function (o, idx) {
+      var d = deltas[o.seat];
+      var dStr = (d >= 0 ? '+' : '') + Math.round(d);
       return { name: nameOf(o.seat) + (o.seat === me ? '（我）' : ''),
-               score: String(o.pts), tag: idx === 0 ? (matchWon ? '🏆 局点胜利' : '先出完 · 胜') : '剩 ' + o.cnt + ' 张 · ' + o.pts + ' 分' };
+               score: String(Math.round(cum[o.seat])),
+               tag: o.seat === winnerSeat ? (matchWonSeat === o.seat ? '🏆 整场胜利' : '本局 +' + Math.round(d)) : '本局 ' + dStr + ' · 剩 ' + o.cnt + ' 张' };
     });
     var meIdx = 0;
     for (var k = 0; k < seats.length; k++) if (seats[k].seat === me) meIdx = k;
-    var meWin = (seats[0].seat === me);
-    var myCum = cur[me] || 0;
+    var meWin = (winnerSeat === me);
+    var matchWon = (matchWonSeat === me);
     ResultOverlay.show({
       game: '优诺',
-      title: matchWon ? ('🏆 ' + nameOf(w) + ' 赢得整场（500 分）！') : (meWin ? '🎉 你赢了本局！' : '😔 ' + nameOf(w) + ' 获胜'),
-      sub: '本局得分 ' + winnerGain + ' · 目标 500 分' + (cur[w] >= MATCH_TARGET ? '（已达成）' : ' · 累积 ' + (cur[w] || 0) + '/' + MATCH_TARGET),
+      title: matchWon ? '🏆 你赢得整场（500 分）！' : (meWin ? '🎉 你赢了本局！' : '😔 ' + nameOf(winnerSeat) + ' 获胜'),
+      sub: '赢家 +' + Math.round(deltas[winnerSeat]) + ' · 输家扣自己手牌分 · 目标 ' + MATCH_TARGET + ' 分',
       meRank: meIdx + 1,
-      me: { name: nameOf(me), score: String(myCum), tag: meWin ? '本局 +' + winnerGain : '本局 0 · 累积 ' + myCum },
+      me: { name: nameOf(me), score: String(Math.round(cum[me] || 0)), tag: meWin ? '本局 +' + Math.round(deltas[me]) : '本局 ' + (deltas[me] >= 0 ? '+' : '') + Math.round(deltas[me]) },
       players: players,
-      stats: [['规则', '官方计分'], ['牌面分值', '数字=面值 / 功能=20 / 万色=50'], ['本局胜者得分', '+' + winnerGain + ' 分'], ['累积目标', (cur[w] || 0) + ' / ' + MATCH_TARGET]]
+      stats: [['规则', '官方牌面分 · 积分制'], ['牌面分值', '数字=面值 / 功能=20 / 万色=50'], ['剩牌越多', '扣分越多（越菜）'], ['累积目标', Math.round(cur[winnerSeat] || 0) + ' / ' + MATCH_TARGET]]
     });
   }
 
