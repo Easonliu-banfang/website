@@ -645,6 +645,8 @@
     state = toLocalView(localState);
     renderOpps(); renderBoard(); renderMe();
     if (topChanged && state.top && prevTurn >= 0 && prevTurn !== me) oppFlyIn(prevTurn);
+    // 万色选色弹窗（AI 局同步）：轮到我且 awaitColor 时弹出
+    if (me === state.turn && state.awaitColor && state.winner < 0) el.colorModal.hidden = false;
     if (localState.winner >= 0) showResult();
     else if (el.resultBanner) el.resultBanner.hidden = true;
   }
