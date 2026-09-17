@@ -725,7 +725,7 @@
 var PRELOAD_ASSETS = (function () {
   var files = [];
   // 背景图
-  files.push('assets/uno-bg.jpg');
+  files.push('assets/uno-bg-wide.jpg');
   // 全部卡牌：4 色 × (0-9 + S/R/A2) + WC + W4
   ['R', 'B', 'G', 'Y'].forEach(function (c) {
     files.push('cards/' + c + '0.png');

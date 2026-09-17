@@ -513,16 +513,9 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .uno-bg::before {
   content: "";
-  position: absolute; inset: -40px;
-  background: url('assets/uno-bg.jpg') center / cover no-repeat;
-  filter: blur(28px) saturate(1.15);
-  transform: scale(1.02);
-}
-.uno-bg::after {
-  content: "";
   position: absolute; inset: 0;
-  background: url('assets/uno-bg.jpg') center / contain no-repeat;
-  box-shadow: inset 0 0 60px rgba(8, 16, 28, 0.35);
+  /* AI 扩图铺满窗口：中央为原图主视觉，边缘天空自然延伸（无需虚化） */
+  background: url('assets/uno-bg-wide.jpg') center / cover no-repeat;
 }
 
 /* ========== 全屏加载遮罩 ========== */
