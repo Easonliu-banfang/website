@@ -272,14 +272,18 @@
     var myDraw = canDrawNow();
     el.btnDraw.disabled = !myDraw;
     el.btnDraw.classList.toggle('on', myDraw);
-    // 质疑 +4：被加人轮到且未操作时显示
-    var canChallenge = !!(state.challenge && state.nextDraw > 0 && me === state.turn);
+    // 质疑 +4：被加人轮到且未操作时显示 质疑/接受 双按钮
+    var canChallenge = !!(state.challenge && state.nextDraw > 0 && me === state.turn && state.winner < 0);
     if (el.btnChallenge) {
       el.btnChallenge.hidden = !canChallenge;
+      el.btnAccept.hidden = !canChallenge;
+      if (el.challengeLine) el.challengeLine.hidden = !canChallenge;
       el.btnDraw.classList.toggle('with-challenge', canChallenge);
+      if (el.btnPlayDrawn) el.btnPlayDrawn.hidden = canChallenge ? true : el.btnPlayDrawn.hidden;
+      if (el.btnPass) el.btnPass.hidden = canChallenge ? true : el.btnPass.hidden;
     }
     // 抽牌后操作区：刚摸的牌能打 → 打出/不出 双按钮；不能打 → 打出暗色
-    if (el.btnPlayDrawn) {
+    if (el.btnPlayDrawn && !canChallenge) {
       var pd = !!state && me === state.turn && state.justDrew && state.nextDraw === 0 && state.winner < 0 && !state.awaitColor;
       var drawnPlayable = pd && !!state.lastDrawn && playableCards().indexOf(state.lastDrawn) >= 0;
       el.btnPlayDrawn.hidden = !pd;
@@ -598,10 +602,28 @@ function showResultOverlay() {
       if (mode === 'ai') localStep(function (s) { Uno.draw(s, me); });
       else if (o) o.sendDraw();
     });
+    // 质疑 +4：质疑者赌出牌者违规
     if (el.btnChallenge) el.btnChallenge.addEventListener('click', function () {
       if (!(state && state.challenge && state.nextDraw > 0 && me === state.turn)) return;
-      if (o && o.sendChallenge) o.sendChallenge();
-      el.btnChallenge.hidden = true;
+      if (mode === 'ai') {
+        var before = state.hands ? state.hands.map(function (h) { return h.length; }) : [];
+        localStep(function (s) { Uno.challengeW4(s, me); });
+        var after = state.hands ? state.hands.map(function (h) { return h.length; }) : [];
+        // 结果提示：质疑者手牌多了8 → 失败；出牌者多了4 → 成功
+        if (after[me] > before[me]) {
+          if (window.Notify) window.Notify.show('质疑失败！对方确实没有同色牌，你 +8 张', 'error', { sticky: true });
+        } else {
+          if (window.Notify) window.Notify.show('质疑成功！出牌者违规 +4 张', 'win', { sticky: true });
+        }
+      } else if (o && o.sendChallenge) o.sendChallenge();
+      if (el.challengeLine) el.challengeLine.hidden = true;
+    });
+    // 接受 +4：不质疑，直接吃罚
+    if (el.btnAccept) el.btnAccept.addEventListener('click', function () {
+      if (!(state && state.challenge && state.nextDraw > 0 && me === state.turn)) return;
+      if (mode === 'ai') localStep(function (s) { Uno.draw(s, me); });   // 被动吃罚
+      else if (o) o.sendDraw();
+      if (el.challengeLine) el.challengeLine.hidden = true;
     });
     el.btnPass.addEventListener('click', function () {
       if (!passAllowed()) return;
@@ -718,6 +740,7 @@ function showResultOverlay() {
       you: me, mode: 'ai', capacity: s.capacity, top: s.top, topColor: s.topColor,
       turn: s.turn, dir: s.dir, nextDraw: s.nextDraw, drawKind: s.drawKind ?? 0, awaitColor: s.awaitColor,
       justDrew: s.justDrew, lastDrawn: s.lastDrawn, uno: s.uno, winner: s.winner,
+      challenge: s.challenge ? { victim: s.challenge.victim, by: s.challenge.by, color: s.challenge.color } : null,
       hand: s.hands[me].slice(), counts: s.hands.map(function (h) { return h.length; }), scores: s.hands.map(handScore),
       teams: s.teams, mate: null, mateHand: null, challenge: false
     };
@@ -760,6 +783,7 @@ function showResultOverlay() {
   function maybeLocalAI() {
     if (!localState || localState.winner >= 0) return;
     if (localState.turn === me) return;
+    if (localState.challenge) return;   // 挑战窗口：AI 不自动操作（等玩家决策）
     if (localAI_busy) return;
     localAI_busy = true;
     setTimeout(function () {
@@ -1046,7 +1070,7 @@ function preloadAssets(onLoaded) {
 function boot() {
     ['landscapeOverlay', 'gameRoot', 'gameView', 'playerTop', 'playerLeft', 'playerRight',
      'topCardImg', 'btnDraw', 'turnTimer',
-     'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'btnPlayDrawn', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
+     'banner', 'meLabel', 'meAvatar', 'btnUno', 'btnPass', 'btnPlayDrawn', 'btnAccept', 'challengeLine', 'myHand', 'mateRow', 'mateLabel', 'mateHand',
      'btnEmoji', 'btnChat', 'btnVoice', 'gameTimer', 'unoGameTitle', 'btnChallenge',
      'colorModal', 'resultBanner', 'roomCodeTag'].forEach(function (id) { el[id] = $(id); });
     renderGameClock();

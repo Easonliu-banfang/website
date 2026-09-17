@@ -159,6 +159,18 @@
     if (kindOf(id) !== 'w' && kindOf(id) !== 'w4') state.topColor = colorOf(id);
     state.justDrew = false;
 
+    // 出 w4：记录挑战判定数据（出牌时手里是否还有同色牌 → 供下家质疑）
+    if (id === 'w4') {
+      var hadMatchColor = (state.hands[s] || []).some(function (hc) {
+        var hk = kindOf(hc);
+        if (hk === 'w' || hk === 'w4') return false;
+        return state.topColor && colorOf(hc) === state.topColor;
+      });
+      state.w4Info = { by: s, color: state.topColor, hadMatch: hadMatchColor };
+    } else {
+      state.w4Info = null;
+    }
+
     // UNO：出到剩 1 张 → 给出 4 秒宽容窗口喊「UNO」；超时未喊由 settleUno 罚摸 2
     if (state.hands[s].length === 1 && !state.uno[s]) {
       state.unoDueAt = (typeof Date !== 'undefined' ? Date.now() : 0) + 4000;
@@ -198,9 +210,43 @@
     state.topColor = color;
     state.awaitColor = false;
     var isW4 = kindOf(state.top) === 'w4';
-    if (isW4) { state.nextDraw += 4; state.drawKind = 'w4'; state.turn = nextSlot(state, s); }
-    else state.turn = nextSlot(state, s);
+    if (isW4) {
+      state.nextDraw += 4; state.drawKind = 'w4';
+      var victim = nextSlot(state, s);
+      state.turn = victim;
+      // 质疑窗口：被罚者可选择 质疑/接受（仅 w4 且未被叠过时）
+      if (state.w4Info && state.w4Info.by === s && state.nextDraw === 4) {
+        state.challenge = { victim: victim, by: s, hadMatch: !!state.w4Info.hadMatch, color: color };
+      } else {
+        state.challenge = null;
+      }
+    } else {
+      state.challenge = null;
+      state.turn = nextSlot(state, s);
+    }
     return { ok: true };
+  }
+
+  // 质疑 +4：挑战者赌出牌者违规（出 w4 时手里还有同色牌）
+  //   质疑成功（确实违规）→ 出牌者 +4 张（质疑者无事）
+  //   质疑失败（没违规）→ 质疑者 +8 张（原本的4+惩罚4）
+  function challengeW4(state, s) {
+    if (state.winner >= 0) return { ok: false, err: 'game over' };
+    if (!state.challenge || state.nextDraw <= 0) return { ok: false, err: 'no challenge window' };
+    if (s !== state.challenge.victim) return { ok: false, err: 'not your turn' };
+    var c = state.challenge;
+    state.challenge = null;
+    var wasIllegal = !!c.hadMatch;          // 出牌时手里有同色牌 = 违规
+    if (wasIllegal) {
+      // 质疑成功：出牌者 +4（官方规则：违规者自己吃罚，再叠加2张给质疑者？标准：出牌者罚4）
+      drawCards(state, c.by, 4);
+    } else {
+      // 质疑失败：质疑者吃 8 张（4 罚 + 4 惩罚）
+      drawCards(state, s, 8);
+    }
+    state.nextDraw = 0; state.drawKind = 0;
+    state.turn = nextSlot(state, s);   // 质疑后回合照常轮转
+    return { ok: true, illegal: wasIllegal, by: c.by, victim: s };
   }
 
   // 摸牌：被动(+2/+4) 或 主动摸 1
@@ -254,6 +300,7 @@
     createState: createState, deal: deal,
     playable: playable, playableCards: playableCards,
     play: play, draw: draw, pass: pass, setColor: setColor, callUno: callUno, settleUno: settleUno,
+    challengeW4: challengeW4,
     fileFor: fileFor, colorOf: colorOf, kindOf: kindOf,
     CREATE: createDeck, SHUFFLE: shuffle,
     COLOR_LABEL: COLOR_LABEL

@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0e14">
   <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-  <link rel="stylesheet" href="uno.css?v=u40">
+  <link rel="stylesheet" href="uno.css?v=u41">
 <style>
 /* 全屏加载遮罩（内嵌，避免外部 CSS 缓存导致纯文字） */
 #loadingOverlay{position:fixed;inset:0;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,14,24,0.94);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .5s ease}
@@ -84,6 +84,24 @@
 .uc-wrap.locked{opacity:.45;filter:grayscale(.4);cursor:not-allowed}
 .uc-wrap.locked .uc-hand{pointer-events:none}
 .uo-pass-line{gap:14px;height:46px}
+/* 质疑/接受 挑战按钮（内嵌，防缓存）：质疑红 / 接受黄 */
+#challengeLine{margin-top:6px}
+#btnChallenge{
+  border:none;background:linear-gradient(180deg,#ff5f5f,#e03131);color:#fff;
+  border-radius:16px;padding:9px 22px;font-size:14px;font-weight:900;letter-spacing:1px;
+  box-shadow:0 5px 0 #9c1c1c,0 10px 18px rgba(120,20,20,.35);text-shadow:0 2px 3px rgba(80,10,10,.5);
+  cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
+}
+#btnChallenge:hover{transform:translateY(-2px);filter:brightness(1.06)}
+#btnChallenge:active{transform:translateY(1px) scale(.97);box-shadow:0 1px 0 #9c1c1c}
+#btnAccept{
+  border:none;background:linear-gradient(180deg,#ffd23f,#f0a500);color:#fff;
+  border-radius:16px;padding:9px 22px;font-size:14px;font-weight:900;letter-spacing:1px;
+  box-shadow:0 5px 0 #a86f00,0 10px 18px rgba(80,50,0,.3);text-shadow:0 2px 3px rgba(90,55,0,.5);
+  cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
+}
+#btnAccept:hover{transform:translateY(-2px);filter:brightness(1.06)}
+#btnAccept:active{transform:translateY(1px) scale(.97);box-shadow:0 1px 0 #a86f00}
 </style>
 </head>
 <body class="uno-play-body">
@@ -184,6 +202,10 @@
         <button class="uo-pass-btn" id="btnPlayDrawn" type="button" hidden>打出</button>
         <button class="uo-pass-btn" id="btnPass" type="button" hidden>不出</button>
       </div>
+      <div class="uo-pass-line" id="challengeLine" hidden>
+        <button class="uo-pass-btn ch-alert" id="btnChallenge" type="button">质疑（失败+8）</button>
+        <button class="uo-pass-btn" id="btnAccept" type="button">接受（+4）</button>
+      </div>
       <div class="uo-mate" id="mateRow" hidden>
         <span class="uo-mate-label" id="mateLabel">队友</span>
         <div class="uo-hand uo-hand--mate" id="mateHand"></div>
@@ -266,13 +288,13 @@
 <!-- 结果横幅 -->
 <div class="uo-result" id="resultBanner" hidden></div>
 
-<script src="uno-engine.js?v=u12"></script>
+<script src="uno-engine.js?v=u13"></script>
 <script src="uno-online.js?v=u8"></script>
 <script src="../lobby.js?v=l15"></script>
 <script src="../notify.js?v=n3"></script>
 <script src="uno-ai.js?v=u7"></script>
 <script src="../bot.js?v=b2"></script>
-<script src="uno-app.js?v=u55"></script>
+<script src="uno-app.js?v=u56"></script>
   <script src=../result-overlay.js?v=ro2"></script>
   <script src="../device.js?v=d1"></script>
 <script src="../auth-check.js?v=a2"></script>
