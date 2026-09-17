@@ -676,9 +676,13 @@
     }, 700 + Math.random() * 900);
   }
   function localPlay(card) {
-    Uno.play(localState, me, card);
-    if (localState.hands[me].length === 1) Uno.callUno(localState, me);
+    var r = Uno.play(localState, me, card);
+    if (r && r.ok && localState.hands[me].length === 1) Uno.callUno(localState, me);
     applyLocalView();
+    // 双保险：出的是万色牌（w/w4）且 awaitColor → 弹窗立即打开
+    if (r && r.ok && localState.awaitColor && localState.turn === me && localState.winner < 0) {
+      el.colorModal.hidden = false;
+    }
     maybeLocalAI();
   }
 
