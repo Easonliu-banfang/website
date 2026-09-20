@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r8';
-import { createShotgun } from './gun.js?v=r8';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r8';
-import { createDemon } from './demon.js?v=r8';
-import * as SFX from './sfx.js?v=r8';
+import { createScene } from './scene.js?v=r9';
+import { createShotgun } from './gun.js?v=r9';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r9';
+import { createDemon } from './demon.js?v=r9';
+import * as SFX from './sfx.js?v=r9';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r8';
+} from './roulette-engine.js?v=r9';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -396,6 +396,31 @@ const lookDesk = new THREE.Vector3(0, 0.42, -0.35);
 const stand = new THREE.Vector3(0, 1.72, 1.9);
 const lookSweep = new THREE.Vector3(0.4, 1.1, -0.6);
 
+/* ---------- 玩家视角 360° 自由旋转（第一人称） ----------
+ * 操作：按住拖拽转视角（鼠标左键 / 触屏单指滑动）
+ *       双击 canvas 复位到默认看向桌子
+ * 俯仰钳制 ±80°，水平不限（可绕 360° 环视）
+ */
+const camDefaultPitch = -0.30;        // 默认俯仰（看向桌面）
+let camYaw = 0, camPitch = camDefaultPitch;      // 目标角（拖拽实时改）
+let camYawS = 0, camPitchS = camDefaultPitch;    // 平滑渲染角
+let dragLook = false, dragX = 0, dragY = 0;
+const canvasEl = canvas;
+function onLookDown(px, py) { dragLook = true; dragX = px; dragY = py; }
+function onLookMove(px, py) {
+  if (!dragLook) return;
+  const dx = px - dragX, dy = py - dragY;
+  dragX = px; dragY = py;
+  camYaw -= dx * 0.0052;                                   // 水平任意转（360°）
+  camPitch = Math.max(-1.35, Math.min(1.35, camPitch + dy * 0.0042));  // 仰/俯钳制
+}
+function onLookUp() { dragLook = false; }
+canvasEl.addEventListener('pointerdown', (e) => { e.preventDefault(); onLookDown(e.clientX, e.clientY); });
+window.addEventListener('pointermove', (e) => { if (dragLook) onLookMove(e.clientX, e.clientY); });
+window.addEventListener('pointerup', onLookUp);
+window.addEventListener('pointercancel', onLookUp);
+canvasEl.addEventListener('dblclick', () => { camYaw = 0; camPitch = camDefaultPitch; });   // 双击复位
+
 app.start((tSec) => {
   const now = performance.now();
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -408,9 +433,18 @@ app.start((tSec) => {
     camera.position.set(stand.x + s * 0.3, stand.y + Math.cos(tSec * 0.23) * 0.08, stand.z);
     camera.lookAt(new THREE.Vector3(lookSweep.x + s * 0.5, lookSweep.y, lookSweep.z));
   } else {
-    // 坐姿
-    camera.position.set(camBase.x, camBase.y + Math.sin(tSec * 1.4) * 0.008, camBase.z);
-    camera.lookAt(lookDesk);
+    // 坐姿 + 360° 自由视角（拖拽改目标角，渲染平滑跟随）
+    camYawS += (camYaw - camYawS) * Math.min(1, dt * 10);
+    camPitchS += (camPitch - camPitchS) * Math.min(1, dt * 10);
+    const headY = camBase.y + Math.sin(tSec * 1.4) * 0.008;   // 轻微呼吸
+    camera.position.set(camBase.x, headY, camBase.z);
+    // 视线方向：yaw 水平任意角，pitch 俯仰；距离 4 得到目标点
+    const lookPt = new THREE.Vector3(
+      camBase.x + Math.cos(camPitchS) * Math.sin(camYawS) * 4,
+      headY + Math.sin(camPitchS) * 4,
+      camBase.z - Math.cos(camPitchS) * Math.cos(camYawS) * 4
+    );
+    camera.lookAt(lookPt);
   }
 
   // 枪归属：平滑移动到当前持枪方（玩家=桌面中央 / 恶魔=恶魔手中）
