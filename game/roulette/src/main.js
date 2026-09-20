@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r16';
-import { createShotgun } from './gun.js?v=r16';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r16';
-import { createDemon } from './demon.js?v=r16';
-import * as SFX from './sfx.js?v=r16';
+import { createScene } from './scene.js?v=r17';
+import { createShotgun } from './gun.js?v=r17';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r17';
+import { createDemon } from './demon.js?v=r17';
+import * as SFX from './sfx.js?v=r17';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r16';
+} from './roulette-engine.js?v=r17';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -388,7 +388,7 @@ function endGame() {
 /* ---------- 渲染循环 ---------- */
 let last = performance.now();
 let started = false;
-const camBase = new THREE.Vector3(0, 1.42, 1.78);
+const camBase = new THREE.Vector3(0, 1.15, 1.35);   // 玩家椅(0,0,1.35)正中上方，坐姿眼高
 const lookDesk = new THREE.Vector3(0, 0.42, -0.35);
 const stand = new THREE.Vector3(0, 1.72, 1.9);
 const lookSweep = new THREE.Vector3(0.4, 1.1, -0.6);
