@@ -3,7 +3,7 @@
  *   - createItem(type)：8 种道具（放大镜/香烟/手铐/手锯/啤酒/肾上腺素/感应调整器/手机）
  * 所有道具带 userData.update(dt, t)：悬浮 + 缓慢自转（放在桌上道具格或手边）
  */
-import * as THREE from '../lib/three.module.min.js?v=r9';
+import * as THREE from '../lib/three.module.min.js?v=r10';
 
 /* ---------- 子弹 ---------- */
 export function createShell(isLive) {

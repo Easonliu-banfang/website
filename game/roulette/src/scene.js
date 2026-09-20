@@ -11,8 +11,8 @@
  *
  * 所有几何用 Box/Cyl/Sphere 等组合出"精细感"，纯程序化（零外部资源）。
  */
-import * as THREE from '../lib/three.module.min.js?v=r9';
-import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r9';
+import * as THREE from '../lib/three.module.min.js?v=r10';
+import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r10';
 
 export function createScene(canvas) {
   // ---- 渲染器 ----
@@ -94,15 +94,17 @@ export function createScene(canvas) {
     add(seam);
   }
 
-  // 墙
+  // 墙（四面闭合，飞行视角任意旋转不穿帮）
   const wallGeo = new THREE.BoxGeometry(12, 3.4, 0.25);
   const backWall = new THREE.Mesh(wallGeo, MAT.concrete); backWall.position.set(0, 1.7, -4.5); add(backWall);
   const lWall = new THREE.Mesh(wallGeo, MAT.concrete); lWall.rotation.y = Math.PI / 2; lWall.position.set(-6, 1.7, 0); add(lWall);
   const rWall = new THREE.Mesh(wallGeo, MAT.concrete); rWall.rotation.y = Math.PI / 2; rWall.position.set(6, 1.7, 0); add(rWall);
+  const fWall = new THREE.Mesh(wallGeo, MAT.concrete); fWall.position.set(0, 1.7, 4.5); add(fWall);
+  // （前墙腰线/踢脚线并入下方统一循环，避免引用未声明材质）
 
   // 墙面装饰横条（工业风腰线）
   const railMat = new THREE.MeshStandardMaterial({ color: 0x464c66, roughness: 0.6, metalness: 0.3, emissive: 0x2a2f44, emissiveIntensity: 0.4 });
-  for (const [x, z, ry] of [[0, -4.37, 0], [-5.87, 0, Math.PI / 2], [5.87, 0, Math.PI / 2]]) {
+  for (const [x, z, ry] of [[0, -4.37, 0], [-5.87, 0, Math.PI / 2], [5.87, 0, Math.PI / 2], [0, 4.37, 0]]) {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(12, 0.06, 0.06), railMat);
     rail.rotation.y = ry;
     rail.position.set(x, 1.15, z);
@@ -115,7 +117,7 @@ export function createScene(canvas) {
 
   // 踢脚线
   const kickMat = new THREE.MeshStandardMaterial({ color: 0x12141c, roughness: 0.85 });
-  for (const [x, z, ry] of [[0, -4.37, 0], [-5.87, 0, Math.PI / 2], [5.87, 0, Math.PI / 2]]) {
+  for (const [x, z, ry] of [[0, -4.37, 0], [-5.87, 0, Math.PI / 2], [5.87, 0, Math.PI / 2], [0, 4.37, 0]]) {
     const k = new THREE.Mesh(new THREE.BoxGeometry(12, 0.16, 0.1), kickMat);
     k.rotation.y = ry;
     k.position.set(x, 0.08, z);

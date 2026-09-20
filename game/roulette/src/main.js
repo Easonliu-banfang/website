@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r9';
-import { createShotgun } from './gun.js?v=r9';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r9';
-import { createDemon } from './demon.js?v=r9';
-import * as SFX from './sfx.js?v=r9';
+import { createScene } from './scene.js?v=r10';
+import { createShotgun } from './gun.js?v=r10';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r10';
+import { createDemon } from './demon.js?v=r10';
+import * as SFX from './sfx.js?v=r10';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r9';
+} from './roulette-engine.js?v=r10';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -396,12 +396,16 @@ const lookDesk = new THREE.Vector3(0, 0.42, -0.35);
 const stand = new THREE.Vector3(0, 1.72, 1.9);
 const lookSweep = new THREE.Vector3(0.4, 1.1, -0.6);
 
-/* ---------- 玩家视角 360° 自由旋转（第一人称） ----------
- * 操作：按住拖拽转视角（鼠标左键 / 触屏单指滑动）
- *       双击 canvas 复位到默认看向桌子
- * 俯仰钳制 ±80°，水平不限（可绕 360° 环视）
+/* ---------- 玩家飞行相机（第一人称自由视角） ----------
+ * 鼠标拖拽 / 触屏单指：旋转视角（水平 360°、俯仰无限制）
+ * 键盘（电脑版）：
+ *   ↑ 前 / ↓ 后 / ← 左平移 / → 右平移（水平移动，沿视角方向）
+ *   空格按住 = 上升 ｜ 快速双击空格并按住 = 下降
+ *   双击画面 = 复位（位置回座位 + 视角回桌子）
+ * 视角无限制：俯仰不限（可翻转到头顶/脚下）
  */
 const camDefaultPitch = -0.30;        // 默认俯仰（看向桌面）
+const camPos = camBase.clone();       // 相机位置（可飞行移动）
 let camYaw = 0, camPitch = camDefaultPitch;      // 目标角（拖拽实时改）
 let camYawS = 0, camPitchS = camDefaultPitch;    // 平滑渲染角
 let dragLook = false, dragX = 0, dragY = 0;
@@ -411,15 +415,31 @@ function onLookMove(px, py) {
   if (!dragLook) return;
   const dx = px - dragX, dy = py - dragY;
   dragX = px; dragY = py;
-  camYaw -= dx * 0.0052;                                   // 水平任意转（360°）
-  camPitch = Math.max(-1.35, Math.min(1.35, camPitch + dy * 0.0042));  // 仰/俯钳制
+  camYaw -= dx * 0.0052;                                   // 水平任意转
+  camPitch += dy * 0.0042;                                 // 俯仰无限制（可翻转）
 }
 function onLookUp() { dragLook = false; }
 canvasEl.addEventListener('pointerdown', (e) => { e.preventDefault(); onLookDown(e.clientX, e.clientY); });
 window.addEventListener('pointermove', (e) => { if (dragLook) onLookMove(e.clientX, e.clientY); });
 window.addEventListener('pointerup', onLookUp);
 window.addEventListener('pointercancel', onLookUp);
-canvasEl.addEventListener('dblclick', () => { camYaw = 0; camPitch = camDefaultPitch; });   // 双击复位
+canvasEl.addEventListener('dblclick', () => {
+  camPos.copy(camBase); camYaw = 0; camPitch = camDefaultPitch;   // 复位回座位看桌
+});
+
+/* 键盘飞行：方向键水平移动 + 空格升降（双击空格按住 = 下降） */
+const keysDown = {};
+let lastSpaceDown = 0, spaceDouble = false;
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    const now = performance.now();
+    spaceDouble = (now - lastSpaceDown < 350);   // 快速二次按下 = 双击
+    lastSpaceDown = now;
+    e.preventDefault();
+  }
+  keysDown[e.code] = true;
+});
+window.addEventListener('keyup', (e) => { keysDown[e.code] = false; });
 
 app.start((tSec) => {
   const now = performance.now();
@@ -433,16 +453,28 @@ app.start((tSec) => {
     camera.position.set(stand.x + s * 0.3, stand.y + Math.cos(tSec * 0.23) * 0.08, stand.z);
     camera.lookAt(new THREE.Vector3(lookSweep.x + s * 0.5, lookSweep.y, lookSweep.z));
   } else {
-    // 坐姿 + 360° 自由视角（拖拽改目标角，渲染平滑跟随）
+    // 飞行相机：角度平滑跟随 + 键盘水平移动 / 空格升降
     camYawS += (camYaw - camYawS) * Math.min(1, dt * 10);
     camPitchS += (camPitch - camPitchS) * Math.min(1, dt * 10);
-    const headY = camBase.y + Math.sin(tSec * 1.4) * 0.008;   // 轻微呼吸
-    camera.position.set(camBase.x, headY, camBase.z);
-    // 视线方向：yaw 水平任意角，pitch 俯仰；距离 4 得到目标点
+    const headY = camPos.y + Math.sin(tSec * 1.4) * 0.008;   // 轻微呼吸
+    // 水平移动：沿视角方向（fwd）前进后退，垂直（right）左右平移
+    const fwdX = Math.sin(camYawS), fwdZ = -Math.cos(camYawS);
+    const rtX = Math.cos(camYawS), rtZ = Math.sin(camYawS);
+    const mv = 2.6 * dt;
+    if (keysDown['ArrowUp']) { camPos.x += fwdX * mv; camPos.z += fwdZ * mv; }
+    if (keysDown['ArrowDown']) { camPos.x -= fwdX * mv; camPos.z -= fwdZ * mv; }
+    if (keysDown['ArrowLeft']) { camPos.x -= rtX * mv; camPos.z -= rtZ * mv; }
+    if (keysDown['ArrowRight']) { camPos.x += rtX * mv; camPos.z += rtZ * mv; }
+    // 空格：单击按住上升 / 双击按住下降
+    if (keysDown['Space']) {
+      camPos.y += (spaceDouble ? -1.8 : 1.8) * dt;
+    }
+    camera.position.set(camPos.x, headY, camPos.z);
+    // 视线方向：pitch 无限制（任意角度）
     const lookPt = new THREE.Vector3(
-      camBase.x + Math.cos(camPitchS) * Math.sin(camYawS) * 4,
+      camPos.x + Math.cos(camPitchS) * Math.sin(camYawS) * 4,
       headY + Math.sin(camPitchS) * 4,
-      camBase.z - Math.cos(camPitchS) * Math.cos(camYawS) * 4
+      camPos.z - Math.cos(camPitchS) * Math.cos(camYawS) * 4
     );
     camera.lookAt(lookPt);
   }
