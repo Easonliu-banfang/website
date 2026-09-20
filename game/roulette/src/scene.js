@@ -273,63 +273,55 @@ export function createScene(canvas) {
     }
   }
 
-  // ---- 桌面记分牌（单个 · 立在桌面右侧 · 竖向长条 · 屏幕朝玩家：左=对手(红) 右=我(绿)） ----
+  // ---- 桌面记分牌（单个 · 横版小台机立在桌面上 · 正面朝玩家：左=对手(红) 右=我(绿)） ----
   const scoreboard = new THREE.Group();
-  // 机身：竖向长方形（薄，竖着立）
+  // 机身：宽扁横牌（宽 0.42 > 高 0.24，立在桌面，比例正常）
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.26, 0.5, 0.045, 1, 8, 1),
+    new THREE.BoxGeometry(0.42, 0.24, 0.05, 1, 4, 1),
     MAT.machineBody
   );
-  body.position.y = 0.25;               // 牌体中心(相对底座)
+  body.position.y = 0.12;
   scoreboard.add(body);
-  // 屏幕（正面：+z 朝玩家）；屏内左=对手命数(红)、右=我的命数(绿)
-  const sbTex = screenDual(4, 4);
+  // 屏幕（正面 +z 朝向玩家）；左=对手命数(红)、右=我的命数(绿)
+  const sbTex = screenDual(3, 3);
   const screen = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.4, 0.02),
-    new THREE.MeshStandardMaterial({ map: sbTex, emissive: 0xffffff, emissiveMap: sbTex, emissiveIntensity: 0.45, roughness: 0.3, metalness: 0.1 })
+    new THREE.BoxGeometry(0.36, 0.16, 0.02),
+    new THREE.MeshStandardMaterial({ map: sbTex, emissive: 0xffffff, emissiveMap: sbTex, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.1 })
   );
-  screen.position.set(0, 0.26, 0.035);   // 贴在正面(+z)
+  screen.position.set(0, 0.12, 0.035);
   scoreboard.add(screen);
   // 屏幕金属边框（上下左右四根细边）
   const frameMat = MAT.iron;
-  const frameT = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.03), frameMat);
-  frameT.position.set(0, 0.46, 0.035);
+  const frameT = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.015, 0.022), frameMat);
+  frameT.position.set(0, 0.2, 0.035);
   scoreboard.add(frameT);
-  const frameB = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.03), frameMat);
-  frameB.position.set(0, 0.06, 0.035);
+  const frameB = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.015, 0.022), frameMat);
+  frameB.position.set(0, 0.04, 0.035);
   scoreboard.add(frameB);
-  for (const sx of [-0.115, 0.115]) {
-    const frameS = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.42, 0.03), frameMat);
-    frameS.position.set(sx, 0.26, 0.035);
+  for (const sx of [-0.19, 0.19]) {
+    const frameS = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.19, 0.022), frameMat);
+    frameS.position.set(sx, 0.12, 0.035);
     scoreboard.add(frameS);
   }
   // 顶部小指示灯（工作状态）
-  const sbLed = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), MAT.lampBulb);
-  sbLed.position.set(0, 0.52, 0.035);
+  const sbLed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), MAT.lampBulb);
+  sbLed.position.set(-0.16, 0.24, 0.02);
   scoreboard.add(sbLed);
-  // 顶部天线（细杆 + 小球）
-  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.09, 6), MAT.iron);
-  ant.position.set(0, 0.58, 0.035);
-  scoreboard.add(ant);
-  const antBall = new THREE.Mesh(new THREE.SphereGeometry(0.006, 8, 6), MAT.lampBulb);
-  antBall.position.set(0, 0.63, 0.035);
-  scoreboard.add(antBall);
   // 屏幕下方两个小按钮（操作感）
-  for (const bx of [-0.05, 0.05]) {
-    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.008, 10), MAT.iron);
+  for (const bx of [-0.06, 0.06]) {
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.007, 10), MAT.iron);
     btn.rotation.x = Math.PI / 2;
-    btn.position.set(bx, -0.02, 0.052);
+    btn.position.set(bx, -0.02, 0.055);
     scoreboard.add(btn);
   }
   // 底座（短柱立在桌面）
-  const base = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.1), MAT.ironDark);
-  base.position.y = 0.015;
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.025, 0.12), MAT.ironDark);
+  base.position.y = 0.012;
   scoreboard.add(base);
-  // 位置：桌面右外侧(靠桌沿)，玩家视线右前方；朝向角对准玩家坐姿 (yaw = atan2(-0.72, +1.46) ≈ -0.46 rad)
-  // 位置：西侧墙边（玩家正北 = -z → 西 = -x），屏幕法线朝西（-x）
-  scoreboard.position.set(-1.15, TABLE_H + 0.02, 0.15);
-  scoreboard.rotation.y = Math.PI / 2;   // 法线 +z → -x（朝西）
-  scoreboard.rotation.x = -0.16;         // 微微前倾
+  // 位置：桌面右侧（放回桌上，不是墙边）；立正，正面朝玩家（+z）
+  scoreboard.position.set(0.58, TABLE_H + 0.042, 0.02);   // 桌面内（右缘 0.8，宽 0.42 不超沿）
+  scoreboard.rotation.y = -0.32;    // 屏面朝向玩家坐姿方位（不歪）
+  scoreboard.rotation.x = 0;        // 立正（无前倾）
   table.add(scoreboard);
 
   add(table);               // 桌子整体加入场景
