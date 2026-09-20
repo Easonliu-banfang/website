@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r6';
-import { createShotgun } from './gun.js?v=r6';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r6';
-import { createDemon } from './demon.js?v=r6';
-import * as SFX from './sfx.js?v=r6';
+import { createScene } from './scene.js?v=r7';
+import { createShotgun } from './gun.js?v=r7';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r7';
+import { createDemon } from './demon.js?v=r7';
+import * as SFX from './sfx.js?v=r7';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r6';
+} from './roulette-engine.js?v=r7';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);

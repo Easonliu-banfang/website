@@ -173,6 +173,7 @@ export function createShotgun(MAT) {
   let aiming = 'idle';
   let raiseT = 1;     // 举枪进度 0..1（每次瞄准重新从 0 升起 → 首次开枪也会举起）
   let recoilT = 0;    // 后坐 0..1
+  let layT = 1;       // 拿/放进度：1=45°躺桌　0=端平举起（拿起/放下动画核心）
 
   gun.userData = {
     /** 泵动上膛（把下一发送入膛内） */
@@ -192,7 +193,12 @@ export function createShotgun(MAT) {
      *  每次瞄准都重新举枪（raiseT 从 0 升起），保证每次开枪都有抬起动作 */
     aim(dir) {
       aiming = (dir === 'me') ? 'me' : (dir === 'foe' ? 'foe' : 'idle');
-      raiseT = (aiming === 'idle') ? 1 : 0;   // 待机不举枪；瞄准从 0 举起
+      if (aiming === 'idle') {
+        layT = 1;                  // 放下：慢慢躺回 45°
+      } else {
+        layT = 0;                  // 拿起来：端平 + 举起
+        raiseT = 0;
+      }
     },
     getAim() { return aiming; },
     /** 每帧更新（t = 帧间隔秒） */
@@ -215,26 +221,30 @@ export function createShotgun(MAT) {
       // 后坐衰减复位
       recoilT = Math.max(0, recoilT - dt * 3.6);
       gun.position.z += (0 - gun.position.z) * Math.min(1, dt * 8);
-      // 待机：45° 斜放（枪永远以 45 度姿态放在桌上，拿起才旋转调整）
-      if (aiming === 'idle') {
-        const idleRotY = -Math.PI / 4;                       // 45° 斜放
-        gun.rotation.y += (idleRotY - gun.rotation.y) * Math.min(1, dt * 5);
-        gun.rotation.x += (0 - gun.rotation.x) * Math.min(1, dt * 5);
-        gun.rotation.z += (0.03 - gun.rotation.z) * Math.min(1, dt * 5);  // 微侧躺
-        return;
-      }
-      // 举枪进度（每次瞄准从 0 → 1，先快后缓，带轻微过冲手感）
-      if (raiseT < 1) raiseT = Math.min(1, raiseT + dt / 0.38);
-      const ra = raiseT * raiseT * (3 - 2 * raiseT);          // smoothstep
-      const overshoot = Math.sin(Math.min(1, raiseT * 1.4) * Math.PI) * 0.03;  // 轻微过头
-      // 俯仰 = 举枪瞄准（对准玩家抬更高）+ 后坐后仰
-      const pitch = -(ra * (aiming === 'me' ? 0.26 : 0.16)) + overshoot + recoilT * 0.13;
-      gun.rotation.x = pitch;
-      // 目标方位：'me'=玩家(+z, π)｜'foe'=恶魔(-z, 0) —— 与持枪者无关
-      const targetRotY = aiming === 'me' ? Math.PI : 0;
-      gun.rotation.y += (targetRotY - gun.rotation.y) * Math.min(1, dt * 6);
-      // 轻微待机晃动（手持感）
-      gun.rotation.z = Math.sin(tSec * 1.6) * 0.012;
+      // ===== 拿起/放下（lay）+ 举枪（raiseT）+ 后坐（recoilT）一体化 =====
+      const layTarget = (aiming === 'idle') ? 1 : 0;          // 放下→躺回 / 拿起→端平
+      layT += (layTarget - layT) * Math.min(1, dt * 3.2);
+      const lay = layT * layT * (3 - 2 * layT);               // smoothstep 0..1
+
+      // 举枪进度（拿起过程中同步抬起）
+      if (aiming !== 'idle' && raiseT < 1) raiseT = Math.min(1, raiseT + dt / 0.38);
+      const ra = raiseT * raiseT * (3 - 2 * raiseT);
+      const overshoot = Math.sin(Math.min(1, raiseT * 1.4) * Math.PI) * 0.03;   // 轻微过头
+      const aimPitch = -(ra * (aiming === 'me' ? 0.26 : 0.16)) + overshoot + recoilT * 0.13;
+
+      // 目标方位（端平后）：'me'=玩家(+z,π)｜'foe'=恶魔(-z,0)｜idle=45°
+      const baseYaw = (aiming === 'me') ? Math.PI : (aiming === 'foe' ? 0 : -Math.PI / 4);
+      // 拿起过程绕 y 转到目标方位；放下过程归位 45°（永远 45 度放）
+      const yawTarget = baseYaw * (1 - lay) + (-Math.PI / 4) * lay;
+      gun.rotation.y += (yawTarget - gun.rotation.y) * Math.min(1, dt * 5);
+
+      // 俯仰：躺平=微倾 0.02 ｜ 端平举起=瞄准俯仰（放下时平滑回平）
+      const pitchTarget = lay * 0.02 + (1 - lay) * (aiming === 'idle' ? 0 : aimPitch);
+      gun.rotation.x += (pitchTarget - gun.rotation.x) * Math.min(1, dt * 6);
+
+      // 侧倾：躺下加重侧躺；端平时轻微手持晃动
+      const rollTarget = lay * 0.055 + (1 - lay) * (aiming === 'idle' ? 0 : Math.sin(tSec * 1.6) * 0.012);
+      gun.rotation.z += (rollTarget - gun.rotation.z) * Math.min(1, dt * 6);
     },
   };
 
