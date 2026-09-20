@@ -41,40 +41,101 @@ const demon = createDemon();
 demon.position.set(0, 1.42, -1.3);            // 恶魔侧（对面）
 scene.add(demon);
 
-/* ---------- 子弹展示（桌面枪座旁，一排剩余弹） ---------- */
-const shellRow = new THREE.Group();
-shellRow.position.set(-0.12, app.tableY + 0.055, 0.3);
-scene.add(shellRow);
+/* ---------- 子弹导轨（桌下升起 · 实弹组/空弹组分开摆 · 顺序保密） ---------- */
+const RAIL_X = -0.12, RAIL_Z = 0.3;
+const RAIL_UP_Y = app.tableY + 0.062;        // 升起（桌面之上）
+const RAIL_DOWN_Y = app.tableY - 0.42;       // 收起（桌下，看不见）
+const shellRail = new THREE.Group();         // 导轨整体（升降）
+shellRail.position.set(RAIL_X, RAIL_DOWN_Y, RAIL_Z);
+scene.add(shellRail);
+
+// 导轨金属槽（展示子弹的托架）
+const railMat = new THREE.MeshStandardMaterial({ color: 0x33373f, roughness: 0.4, metalness: 0.8 });
+const railBase = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.014, 0.062), railMat);
+railBase.position.y = -0.026;
+shellRail.add(railBase);
+for (const sx of [-0.2, 0.2]) {
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.034, 0.068), MAT.ironDark);
+  cap.position.set(sx, -0.008, 0);
+  shellRail.add(cap);
+}
+// 导轨挡边（子弹不会掉出来）
+const lip = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.02, 0.008), MAT.ironDark);
+lip.position.set(0, -0.006, 0.03);
+shellRail.add(lip);
+const lip2 = lip.clone();
+lip2.position.z = -0.03;
+shellRail.add(lip2);
+
+const shellRow = new THREE.Group();          // 子弹组（分组摆放）
+shellRail.add(shellRow);
+
+let railT = 0;                                // 0=桌下 1=桌面（平滑过渡）
+let railTarget = 0;
+let railHold = null;
+let lastLoadSeq = -1;
+
+/* 分组渲染：先「实弹排一起」，再留一道缝，然后「空弹排一起」——不代表任何顺序 */
 function renderShells(v) {
-  // 清掉旧弹
   while (shellRow.children.length) shellRow.remove(shellRow.children[0]);
-  const total = v.shell.length;
+  const left = v.shellLeft || { live: 0, blank: 0 };
+  const live = left.live, blank = left.blank;
+  const total = live + blank;
   if (!total) return;
-  const spacing = Math.min(0.045, 0.34 / total);
-  v.shell.forEach((live, i) => {
-    const s = createShell(live);
-    s.rotation.x = Math.PI / 2;                 // 躺平（沿 z 排列
-    s.position.set(i * spacing, 0, 0);
+  const spacing = Math.min(0.042, 0.3 / total);
+  const gap = 0.024;                          // 实弹组与空弹组之间的间隙
+  const span = (total - 1) * spacing + (live > 0 && blank > 0 ? gap : 0);
+  let x = -span / 2;
+  for (let i = 0; i < live; i++) {            // 实弹组（红）
+    const s = createShell(true);
+    s.rotation.x = Math.PI / 2;
+    s.rotation.z = Math.PI / 2;
+    s.position.set(x, 0, 0);
     shellRow.add(s);
-  });
-  // 整排居中
-  shellRow.position.x = -0.12 - (total - 1) * spacing / 2 + 0.06;
+    x += spacing;
+  }
+  if (live > 0 && blank > 0) x += gap;        // 组间缝
+  for (let i = 0; i < blank; i++) {           // 空弹组（蓝）
+    const s = createShell(false);
+    s.rotation.x = Math.PI / 2;
+    s.rotation.z = Math.PI / 2;
+    s.position.set(x, 0, 0);
+    shellRow.add(s);
+    x += spacing;
+  }
 }
 
-/* ---------- 玩家道具（桌面玩家侧道具格：左右各 2） ---------- */
+/* 导轨升起展示（装弹后）：滑出 → 停 5 秒让人看清 → 缩回桌下 */
+function showShellRail(holdMs) {
+  railTarget = 1;
+  if (railHold) clearTimeout(railHold);
+  railHold = setTimeout(() => { railTarget = 0; }, holdMs || 5000);
+}
+
+/* ---------- 道具：精确放进桌上 8 个格子（玩家侧 4 + 恶魔侧 4） ---------- */
 const itemSlots = new THREE.Group();
 scene.add(itemSlots);
+// 与 scene.js 的 makeSlot 完全对齐：x = ±0.30 / ±0.62；玩家侧 z=0.52、恶魔侧 z=-0.52
+const SLOT_GRID_X = [0.30, 0.62];
+const SLOT_GRID_Z = { me: 0.52, foe: -0.52 };
 function renderItems(v) {
   while (itemSlots.children.length) itemSlots.remove(itemSlots.children[0]);
-  const list = v.items.me.slice(0, 4);   // 最多摆 4 个（左右各 2）
-  list.forEach((type, i) => {
-    const it = createItem(type);
-    const side = i < 2 ? -1 : 1;
-    const k = i % 2;
-    it.position.set(side * (0.3 + k * 0.25), app.tableY + 0.1, 0.52);
-    it.scale.setScalar(0.85);
-    itemSlots.add(it);
-  });
+  const place = (list, z, owner) => {
+    (list || []).slice(0, 4).forEach((type, i) => {
+      const it = createItem(type);
+      const side = i < 2 ? -1 : 1;              // 左 2 格 / 右 2 格
+      const x = side * SLOT_GRID_X[i % 2];      // 内格 / 外格
+      it.position.set(x, app.tableY + 0.105, z);
+      it.scale.setScalar(0.92);                 // 贴合 0.24 格宽
+      it.userData.owner = owner;
+      it.userData.slotIndex = i;
+      // 恶魔侧道具朝玩家侧微微倾斜展示
+      if (owner === 'foe') it.rotation.x = -0.12;
+      itemSlots.add(it);
+    });
+  };
+  place(v.items.me, SLOT_GRID_Z.me, 'me');
+  place(v.items.foe, SLOT_GRID_Z.foe, 'foe');
 }
 
 /* ---------- 游戏状态 ---------- */
@@ -94,10 +155,14 @@ function renderHUD() {
   const v = view(g);
   renderLives($('myLives'), v.lives.me, v.maxLives, 'me');
   renderLives($('foeLives'), v.lives.foe, v.maxLives, 'foe');
-  const live = v.shell.filter(Boolean).length;
-  const blank = v.shell.length - live;
-  $('shellStatus').textContent = '弹仓 ' + v.shell.length + ' 发（实 ' + live + ' / 空 ' + blank + '）';
+  const left = v.shellLeft || { live: 0, blank: 0, total: 0 };
+  $('shellStatus').textContent = '弹仓 ' + left.total + ' 发（实 ' + left.live + ' / 空 ' + left.blank + '）';
   renderShells(v);
+  // 装弹序号变化 → 导轨升起展示 5 秒（谁也不暴露顺序，只展示实/空各几发）
+  if (v.loadSeq !== lastLoadSeq) {
+    lastLoadSeq = v.loadSeq;
+    showShellRail(5000);
+  }
   renderItems(v);
   renderActions(v);
 }
@@ -339,6 +404,10 @@ app.start((tSec) => {
 
   // 枪归属：平滑移动到当前持枪方（玩家=桌面中央 / 恶魔=恶魔手中）
   gun.position.lerp(gunTarget, Math.min(1, dt * 4));
+
+  // 导轨升降（0=桌下 → 1=桌面）
+  railT += (railTarget - railT) * Math.min(1, dt * 5.5);
+  shellRail.position.y = RAIL_DOWN_Y + (RAIL_UP_Y - RAIL_DOWN_Y) * railT;
 
   // 各部件动画
   gun.userData.update(dt, tSec);

@@ -48,6 +48,8 @@ export function createGame(seed) {
     log: [],
     _aiKnown: false,
     _aiActed: false,           // AI 本回合是否已动作（道具/射击）
+    loadSeq: 0,                // 装弹序号（前端导轨展示触发）
+    loadInfo: null,            // 本轮装弹信息 { total, live, blank }
   };
   dealItems(g);
   load(g);
@@ -70,6 +72,8 @@ export function load(g, n) {
   g.shell = arr;
   g.idx = 0;
   g._aiKnown = false;
+  g.loadSeq = (g.loadSeq || 0) + 1;      // 装弹序号（前端据此触发导轨展示）
+  g.loadInfo = { total, live, blank: total - live };   // 公开信息：本轮实/空数量
   return g.shell;
 }
 
@@ -236,16 +240,22 @@ export function aiDecide(g) {
   const who = 'foe';
   const items = g.items[who] || [];
   const has = (n) => items.indexOf(n) >= 0;
-  const cur = peek(g);
+  // 重要：AI 不允许偷看膛内弹序。只有「用过放大镜」本回合才知道当前这发是什么
+  const known = !!g._aiKnown;
+  const cur = known ? peek(g) : null;      // 未看→不读（防止 AI 开挂）
   const ratio = liveRatio(g);
+  const rest = remains(g);
 
-  // 回合内已用道具 → 直接射击
+  // 回合内已用道具 → 射击（有信息按信息，无信息按概率）
   if (g.itemUsedThisTurn) {
-    if (cur === true) return { action: 'shoot', target: 'foe', reason: '已用道具+实弹→射玩家' };
-    return { action: 'shoot', target: 'self', reason: '已用道具+空弹→自射' };
+    if (known && cur === true) return { action: 'shoot', target: 'foe', reason: '已知实弹→射玩家' };
+    if (known && cur === false) return { action: 'shoot', target: 'self', reason: '已知空弹→自射续命' };
+    // 未知：实弹概率高 → 赌射玩家；否则自射
+    if (ratio >= 0.45) return { action: 'shoot', target: 'foe', reason: '未知·实弹率高→赌' };
+    return { action: 'shoot', target: 'self', reason: '未知·空弹率高→自射' };
   }
 
-  // 残血且有烟 → 回命（3 命制可无脑回血）
+  // 残血且有烟 → 回命
   if (g.lives[who] < MAX_LIVES && has('cigarette')) {
     return { action: 'item', item: 'cigarette', reason: '回命' };
   }
@@ -255,31 +265,46 @@ export function aiDecide(g) {
     return { action: 'item', item: 'handcuff', reason: '铐住玩家' };
   }
 
-  // 没看过当前弹且有放大镜 → 先看
-  if (!g._aiKnown && has('magnifier')) {
+  // 没看过当前弹且有放大镜 → 先看（获得合法信息）
+  if (!known && has('magnifier') && rest > 0) {
     g._aiKnown = true;
     return { action: 'item', item: 'magnifier', reason: '查看当前弹' };
   }
 
   // 弹仓空兜底
-  if (cur === null) return { action: 'shoot', target: 'self', reason: '空仓兜底' };
+  if (rest <= 0) return { action: 'shoot', target: 'self', reason: '空仓兜底' };
 
-  // 已知当前弹
-  if (cur === true) {
+  // 已知当前弹（放大镜看的）
+  if (known && cur === true) {
     if (has('handsaw') && !g.saw) return { action: 'item', item: 'handsaw', reason: '实弹+锯→翻倍' };
     return { action: 'shoot', target: 'foe', reason: '实弹射玩家' };
   }
-  // 空弹：实弹占比高时赌一把射玩家，否则自射续命
-  if (ratio >= 0.5) return { action: 'shoot', target: 'foe', reason: '空弹但高实弹率→赌射玩家' };
-  return { action: 'shoot', target: 'self', reason: '空弹自射续命' };
+  if (known && cur === false) {
+    return { action: 'shoot', target: 'self', reason: '空弹自射续命' };
+  }
+
+  // 未知（大多数情况）：纯概率决策，和玩家信息对等
+  //   实弹占比高 → 把风险给玩家（射玩家）；低 → 自射博续回合
+  if (has('handsaw') && !g.saw && ratio >= 0.5) {
+    return { action: 'item', item: 'handsaw', reason: '实弹率高+锯→翻倍' };
+  }
+  if (ratio >= 0.5) return { action: 'shoot', target: 'foe', reason: '未知·实弹率' + Math.round(ratio * 100) + '%→射玩家' };
+  return { action: 'shoot', target: 'self', reason: '未知·空弹率高→自射' };
 }
 
 /** 公开状态（给 UI 渲染） */
 export function view(g) {
+  const rest = g.shell.slice(g.idx);
+  const liveLeft = rest.filter(Boolean).length;
+  const blankLeft = rest.length - liveLeft;
   return {
     maxLives: MAX_LIVES,
     lives: { me: g.lives.me, foe: g.lives.foe },
-    shell: g.shell.slice(g.idx),
+    // 只公开「剩余实弹/空弹数量」——顺序保密，谁也预知不了下一发
+    shellLeft: { live: liveLeft, blank: blankLeft, total: rest.length },
+    shellTotal: g.shell.length,          // 本轮装弹总数（导轨展示用）
+    loadSeq: g.loadSeq || 0,
+    loadInfo: g.loadInfo ? { ...g.loadInfo } : null,
     turn: g.turn,
     items: { me: g.items.me.slice(), foe: g.items.foe.slice() },
     itemUsedThisTurn: g.itemUsedThisTurn,
