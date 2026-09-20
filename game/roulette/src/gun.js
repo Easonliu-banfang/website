@@ -223,7 +223,7 @@ export function createShotgun(MAT) {
       gun.position.z += (0 - gun.position.z) * Math.min(1, dt * 8);
       // ===== 拿起/放下（lay）+ 举枪（raiseT）+ 后坐（recoilT）一体化 =====
       const layTarget = (aiming === 'idle') ? 1 : 0;          // 放下→躺回 / 拿起→端平
-      layT += (layTarget - layT) * Math.min(1, dt * 3.2);
+      layT += (layTarget - layT) * Math.min(1, dt * 5.2);     // 拿起更快：~0.6s 端平到位
       const lay = layT * layT * (3 - 2 * layT);               // smoothstep 0..1
 
       // 举枪进度（拿起过程中同步抬起）
@@ -236,7 +236,7 @@ export function createShotgun(MAT) {
       const baseYaw = (aiming === 'me') ? Math.PI : (aiming === 'foe' ? 0 : -Math.PI / 4);
       // 拿起过程绕 y 转到目标方位；放下过程归位 45°（永远 45 度放）
       const yawTarget = baseYaw * (1 - lay) + (-Math.PI / 4) * lay;
-      gun.rotation.y += (yawTarget - gun.rotation.y) * Math.min(1, dt * 5);
+      gun.rotation.y += (yawTarget - gun.rotation.y) * Math.min(1, dt * 6.5);
 
       // 俯仰：躺平=微倾 0.02 ｜ 端平举起=瞄准俯仰（放下时平滑回平）
       const pitchTarget = lay * 0.02 + (1 - lay) * (aiming === 'idle' ? 0 : aimPitch);
