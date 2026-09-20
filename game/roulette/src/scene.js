@@ -11,8 +11,8 @@
  *
  * 所有几何用 Box/Cyl/Sphere 等组合出"精细感"，纯程序化（零外部资源）。
  */
-import * as THREE from '../lib/three.module.min.js?v=r1';
-import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r1';
+import * as THREE from '../lib/three.module.min.js?v=r2';
+import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r2';
 
 export function createScene(canvas) {
   // ---- 渲染器 ----
@@ -208,6 +208,22 @@ export function createScene(canvas) {
   const tipDot = new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 8), MAT.iron);
   tipDot.position.set(0, TABLE_H + 0.062, 0.12);
   gunSeat.add(tipDot);
+  // 枪座外圈铆钉（8 颗）
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.007, 6, 5),
+      new THREE.MeshStandardMaterial({ color: 0xcfd6e0, metalness: 0.85, roughness: 0.3 }));
+    rivet.position.set(Math.cos(a) * 0.21, TABLE_H + 0.058, Math.sin(a) * 0.21);
+    gunSeat.add(rivet);
+  }
+  // 枪座中心十字刻痕（两片细金属条）
+  const crossA = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.004, 0.012), MAT.ironDark);
+  crossA.position.set(0, TABLE_H + 0.058, 0);
+  gunSeat.add(crossA);
+  const crossB = crossA.clone();
+  crossB.rotation.y = Math.PI / 2;
+  crossB.scale.set(1, 1, 1.1);
+  gunSeat.add(crossB);
   gunSeat.position.set(0, 0, 0);
   table.add(gunSeat);
 
@@ -286,6 +302,12 @@ export function createScene(canvas) {
         table.add(dot);
       }
     }
+    // 格边棱线（四边细亮条，立体感）
+    for (const [ex, ez, ew, ed] of [[0, -0.095, 0.21, 0.006], [0, 0.095, 0.21, 0.006], [-0.095, 0, 0.006, 0.21], [0.095, 0, 0.006, 0.21]]) {
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(ew, 0.004, ed), MAT.mark);
+      edge.position.set(x + ex, TABLE_H + 0.039, z + ez);
+      table.add(edge);
+    }
   }
 
   // ---- 桌面记分牌（单个 · 立在桌面右侧 · 竖向长条 · 屏幕朝玩家：左=对手(红) 右=我(绿)） ----
@@ -322,6 +344,20 @@ export function createScene(canvas) {
   const sbLed = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), MAT.lampBulb);
   sbLed.position.set(0, 0.52, 0.035);
   scoreboard.add(sbLed);
+  // 顶部天线（细杆 + 小球）
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.09, 6), MAT.iron);
+  ant.position.set(0, 0.58, 0.035);
+  scoreboard.add(ant);
+  const antBall = new THREE.Mesh(new THREE.SphereGeometry(0.006, 8, 6), MAT.lampBulb);
+  antBall.position.set(0, 0.63, 0.035);
+  scoreboard.add(antBall);
+  // 屏幕下方两个小按钮（操作感）
+  for (const bx of [-0.05, 0.05]) {
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.008, 10), MAT.iron);
+    btn.rotation.x = Math.PI / 2;
+    btn.position.set(bx, -0.02, 0.052);
+    scoreboard.add(btn);
+  }
   // 底座（短柱立在桌面）
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.1), MAT.ironDark);
   base.position.y = 0.015;

@@ -3,7 +3,7 @@
  *   - createItem(type)：8 种道具（放大镜/香烟/手铐/手锯/啤酒/肾上腺素/感应调整器/手机）
  * 所有道具带 userData.update(dt, t)：悬浮 + 缓慢自转（放在桌上道具格或手边）
  */
-import * as THREE from '../lib/three.module.min.js?v=r1';
+import * as THREE from '../lib/three.module.min.js?v=r2';
 
 /* ---------- 子弹 ---------- */
 export function createShell(isLive) {
@@ -399,11 +399,14 @@ export function createItem(type) {
   }
 
   // 道具通用动画：悬浮 + 自转
-  const baseY = g.position.y;
+  // ⚠ 悬浮基准 baseY 必须「首次 update 时」从当前位置读取——
+  // 因为道具是先 createItem()（y=0）再被摆放到格子上（set position），
+  // 若创建时捕获会覆盖摆放高度导致道具沉到桌面以下。
   g.userData.type = type;
   g.userData.update = function (dt, t) {
+    if (g.userData.baseY == null) g.userData.baseY = g.position.y;
     g.rotation.y += dt * 0.8;
-    g.position.y = baseY + Math.sin(t * 2 + baseY * 12) * 0.006;
+    g.position.y = g.userData.baseY + Math.sin(t * 2 + g.userData.baseY * 12) * 0.006;
   };
 
   return g;

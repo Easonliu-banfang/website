@@ -30,6 +30,19 @@ export function createDemon() {
   brow.position.set(0, 0.1, 0.28);
   brow.rotation.x = 0.16;
   demon.add(brow);
+  // 额头皱纹（3 道浅沟）
+  for (let i = 0; i < 3; i++) {
+    const wrinkle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.008, 0.012),
+      new THREE.MeshStandardMaterial({ color: 0xb8b1a0, roughness: 0.95 }));
+    wrinkle.position.set(0, 0.17 + i * 0.045, 0.285);
+    demon.add(wrinkle);
+  }
+  // 颧骨疤痕（右颊一道深色斜纹）
+  const scar = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.01, 0.008),
+    new THREE.MeshStandardMaterial({ color: 0x7a6f5c, roughness: 0.85 }));
+  scar.position.set(0.16, -0.05, 0.28);
+  scar.rotation.z = -0.35;
+  demon.add(scar);
 
   // ---- 双角 ----
   for (const sx of [-1, 1]) {
@@ -42,6 +55,14 @@ export function createDemon() {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.07, 0.04, 12), hornMat);
     base.position.set(sx * 0.17, 0.2, -0.01);
     demon.add(base);
+    // 角环纹（3 道，螺旋起伏感）
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.042 - i * 0.008, 0.006, 6, 14), hornMat);
+      ring.position.set(sx * 0.17, 0.235 + i * 0.05, -0.01);
+      ring.rotation.y = sx * 0.3;
+      ring.rotation.z = Math.PI / 2 + sx * 0.25;
+      demon.add(ring);
+    }
   }
 
   // ---- 眼窝（深陷） + 发光红瞳 ----
@@ -59,6 +80,14 @@ export function createDemon() {
     );
     pupil.position.set(sx * 0.13, 0.045, 0.32);
     demon.add(pupil);
+    // 竖缝瞳孔（黑色细梭形，野兽感）
+    const slit = new THREE.Mesh(
+      new THREE.SphereGeometry(0.013, 10, 8, 0, Math.PI * 2, 0, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.1, metalness: 0.1 })
+    );
+    slit.scale.set(0.55, 1.35, 0.5);
+    slit.position.set(sx * 0.13, 0.045, 0.347);
+    demon.add(slit);
     // 瞳孔高光（小白点）
     const glint = new THREE.Mesh(
       new THREE.SphereGeometry(0.008, 8, 6),
@@ -76,13 +105,24 @@ export function createDemon() {
   demon.add(mouth);
   // 上排牙 + 下排牙（参差小白块）
   const toothMat = new THREE.MeshStandardMaterial({ color: 0xf0ece0, roughness: 0.5 });
-  for (let i = 0; i < 7; i++) {
-    const t = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.03, 0.018), toothMat);
-    t.position.set(-0.075 + i * 0.025, -0.1, 0.3);
+  for (let i = 0; i < 9; i++) {
+    // 上牙（中间两颗拉长为犬齿）
+    const isFang = (i === 3 || i === 5);
+    const t = new THREE.Mesh(new THREE.BoxGeometry(0.02, isFang ? 0.05 : 0.028, 0.018), toothMat);
+    t.position.set(-0.08 + i * 0.02, -0.1 + (isFang ? 0.012 : 0), 0.3);
+    if (isFang) t.rotation.z = i === 3 ? -0.12 : 0.12;
     demon.add(t);
-    const b = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.026, 0.016), toothMat);
-    b.position.set(-0.062 + i * 0.024, -0.175, 0.295);
+    // 下牙
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.024, 0.016), toothMat);
+    b.position.set(-0.07 + i * 0.019, -0.175, 0.295);
     demon.add(b);
+  }
+  // 犬齿尖（上牙两侧的尖锥）
+  for (const fx of [-0.062, 0.062]) {
+    const fangTip = new THREE.Mesh(new THREE.ConeGeometry(0.009, 0.03, 8), toothMat);
+    fangTip.position.set(fx, -0.065, 0.315);
+    fangTip.rotation.z = fx < 0 ? -0.25 : 0.25;
+    demon.add(fangTip);
   }
 
   // ---- 两只漂浮手 ----
@@ -99,6 +139,16 @@ export function createDemon() {
       f.rotation.z = Math.PI / 2;
       f.position.set(0.085, 0.028 - i * 0.026, -0.03);
       hand.add(f);
+      // 指节（中段小环）
+      const knuckle = new THREE.Mesh(new THREE.TorusGeometry(0.0108, 0.0022, 6, 10),
+        new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: 0.8 }));
+      knuckle.rotation.y = Math.PI / 2;
+      knuckle.position.set(0.11, 0.028 - i * 0.026, -0.03);
+      hand.add(knuckle);
+      // 指尖（略粗末端）
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), skinMat);
+      tip.position.set(0.13, 0.028 - i * 0.026, -0.03);
+      hand.add(tip);
     }
     // 拇指
     const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.011, 0.055, 8), skinMat);
