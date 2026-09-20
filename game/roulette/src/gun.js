@@ -169,7 +169,8 @@ export function createShotgun(MAT) {
   let pumpT = 0;      // 泵动动画进度 0..1
   let flashT = 0;     // 火光计时
   let pumping = false;
-  let aiming = 'foe'; // 当前枪口朝向：'foe'（对手）| 'self'（自己）
+  // 目标方位（与持枪者无关）：'me'=对准玩家(+z,π) | 'foe'=对准恶魔(-z,0) | 'idle'=45°斜放
+  let aiming = 'idle';
   let raiseT = 1;     // 举枪进度 0..1（每次瞄准重新从 0 升起 → 首次开枪也会举起）
   let recoilT = 0;    // 后坐 0..1
 
@@ -187,11 +188,11 @@ export function createShotgun(MAT) {
       flashLight.intensity = 6;
       recoilT = 1;            // 后坐（由 update 衰减）
     },
-    /** 瞄准：target = 'self'（枪口掉转 180° 对准自己）| 'foe'（枪口正对恶魔 -z）
+    /** 瞄准：aim('me') = 对准玩家(+z)｜aim('foe') = 对准恶魔(-z)｜aim('idle') = 45° 斜放待机
      *  每次瞄准都重新举枪（raiseT 从 0 升起），保证每次开枪都有抬起动作 */
-    aim(target) {
-      aiming = (target === 'self') ? 'self' : 'foe';
-      raiseT = 0;             // 重新举枪
+    aim(dir) {
+      aiming = (dir === 'me') ? 'me' : (dir === 'foe' ? 'foe' : 'idle');
+      raiseT = (aiming === 'idle') ? 1 : 0;   // 待机不举枪；瞄准从 0 举起
     },
     getAim() { return aiming; },
     /** 每帧更新（t = 帧间隔秒） */
@@ -214,15 +215,23 @@ export function createShotgun(MAT) {
       // 后坐衰减复位
       recoilT = Math.max(0, recoilT - dt * 3.6);
       gun.position.z += (0 - gun.position.z) * Math.min(1, dt * 8);
+      // 待机：45° 斜放（枪永远以 45 度姿态放在桌上，拿起才旋转调整）
+      if (aiming === 'idle') {
+        const idleRotY = -Math.PI / 4;                       // 45° 斜放
+        gun.rotation.y += (idleRotY - gun.rotation.y) * Math.min(1, dt * 5);
+        gun.rotation.x += (0 - gun.rotation.x) * Math.min(1, dt * 5);
+        gun.rotation.z += (0.03 - gun.rotation.z) * Math.min(1, dt * 5);  // 微侧躺
+        return;
+      }
       // 举枪进度（每次瞄准从 0 → 1，先快后缓，带轻微过冲手感）
       if (raiseT < 1) raiseT = Math.min(1, raiseT + dt / 0.38);
       const ra = raiseT * raiseT * (3 - 2 * raiseT);          // smoothstep
       const overshoot = Math.sin(Math.min(1, raiseT * 1.4) * Math.PI) * 0.03;  // 轻微过头
-      // 俯仰 = 举枪瞄准（射自己抬更高）+ 后坐后仰
-      const pitch = -(ra * (aiming === 'self' ? 0.26 : 0.16)) + overshoot + recoilT * 0.13;
+      // 俯仰 = 举枪瞄准（对准玩家抬更高）+ 后坐后仰
+      const pitch = -(ra * (aiming === 'me' ? 0.26 : 0.16)) + overshoot + recoilT * 0.13;
       gun.rotation.x = pitch;
-      // 瞄准姿态：射自己 → 绕 y 精确 180°（枪口从 -z 掉头到 +z）；射对手 → 0°
-      const targetRotY = aiming === 'self' ? Math.PI : 0;
+      // 目标方位：'me'=玩家(+z, π)｜'foe'=恶魔(-z, 0) —— 与持枪者无关
+      const targetRotY = aiming === 'me' ? Math.PI : 0;
       gun.rotation.y += (targetRotY - gun.rotation.y) * Math.min(1, dt * 6);
       // 轻微待机晃动（手持感）
       gun.rotation.z = Math.sin(tSec * 1.6) * 0.012;

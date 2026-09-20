@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r5';
-import { createShotgun } from './gun.js?v=r5';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r5';
-import { createDemon } from './demon.js?v=r5';
-import * as SFX from './sfx.js?v=r5';
+import { createScene } from './scene.js?v=r6';
+import { createShotgun } from './gun.js?v=r6';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r6';
+import { createDemon } from './demon.js?v=r6';
+import * as SFX from './sfx.js?v=r6';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r5';
+} from './roulette-engine.js?v=r6';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -247,7 +247,7 @@ function playerShoot(target) {
   if (busy || g.over) return;
   const who = g.turn;              // 固定为 'me'（玩家回合才调得到
   SFX.uiClick();
-  gun.userData.aim(target);        // 枪口朝向（自射/射对手
+  gun.userData.aim(target === 'self' ? 'me' : 'foe');   // 目标方位：射自己=玩家(+z) 射恶魔=恶魔(-z)
   setTimeout(() => {
     gun.userData.fire();           // 开枪特效
     SFX.fireShot();                // 枪声
@@ -306,6 +306,7 @@ function afterAction(r) {
     setTimeout(aiTurn, 900);
   } else {
     gunTarget.copy(GUN_DESK);    // 枪回到桌面中央（交还玩家）
+    gun.userData.aim('idle');    // 45° 斜放待机（拿起才旋转对准目标）
     busy = false;
     renderHUD();
   }
@@ -327,7 +328,7 @@ function aiTurn() {
     }
     // 射击
     const target = d.target;       // 'self'（自射）| 'foe'（射玩家
-    gun.userData.aim(target);                            // 恶魔拿枪（枪口朝向：自射→掉头朝自己，射玩家→正对玩家）
+    gun.userData.aim(target === 'self' ? 'foe' : 'me');   // 恶魔视角：自射=恶魔方位(-z) 射玩家=玩家方位(+z)
     setTimeout(() => {
       gun.userData.fire();
       SFX.fireShot();
