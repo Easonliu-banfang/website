@@ -174,6 +174,7 @@ export function createShotgun(MAT) {
   let raiseT = 1;     // 举枪进度 0..1（每次瞄准重新从 0 升起 → 首次开枪也会举起）
   let recoilT = 0;    // 后坐 0..1
   let layT = 1;       // 拿/放进度：1=45°躺桌　0=端平举起（拿起/放下动画核心）
+  let gateRot = 0;    // 转向门：端起完成后才从 0→1（拿起→瞄准 两段式）
 
   gun.userData = {
     /** 泵动上膛（把下一发送入膛内） */
@@ -232,10 +233,13 @@ export function createShotgun(MAT) {
       const overshoot = Math.sin(Math.min(1, raiseT * 1.4) * Math.PI) * 0.03;   // 轻微过头
       const aimPitch = -(ra * (aiming === 'me' ? 0.26 : 0.16)) + overshoot + recoilT * 0.13;
 
-      // 目标方位（端平后）：'me'=玩家(+z,π)｜'foe'=恶魔(-z,0)｜idle=45°
+      // 两段式瞄准：① 先端起（45° 躺 → 端平朝前 0°）② 端起完成(≥75%)才旋转到目标方位
+      const pickUp = 1 - lay;                                   // 端起程度 0..1
+      const gateGoal = (aiming === 'idle') ? 0 : Math.max(0, Math.min(1, (pickUp - 0.72) / 0.28));
+      gateRot += (gateGoal - gateRot) * Math.min(1, dt * 9);    // 平滑门
       const baseYaw = (aiming === 'me') ? Math.PI : (aiming === 'foe' ? 0 : -Math.PI / 4);
-      // 拿起过程绕 y 转到目标方位；放下过程归位 45°（永远 45 度放）
-      const yawTarget = baseYaw * (1 - lay) + (-Math.PI / 4) * lay;
+      // 端起时 yaw 归 0（端平朝前），端起完成后 gateRot→1 才转到目标方位
+      const yawTarget = (-Math.PI / 4) * (1 - pickUp) + baseYaw * gateRot;
       gun.rotation.y += (yawTarget - gun.rotation.y) * Math.min(1, dt * 6.5);
 
       // 俯仰：躺平=微倾 0.02 ｜ 端平举起=瞄准俯仰（放下时平滑回平）
