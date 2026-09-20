@@ -146,11 +146,12 @@ export function shoot(g, who, target) {
   g._aiActed = false;
   g._aiKnown = false;      // 下一回合重新用放大镜（信息不跨回合记忆）
 
-  // 弹仓打空 → 重装 + 补发道具
+  // 弹仓打空 → 重装 + 补发道具；正版规则：新负载从玩家先手
   if (g.idx >= g.shell.length) {
     load(g);
     giveItems(g, 'me', 2);
     giveItems(g, 'foe', 2);
+    g.turn = 'me';          // 正版：每次装弹后玩家先手
   }
 
   // 有人归零 → 直接结束（无第二局）

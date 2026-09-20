@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r4';
-import { createShotgun } from './gun.js?v=r4';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r4';
-import { createDemon } from './demon.js?v=r4';
-import * as SFX from './sfx.js?v=r4';
+import { createScene } from './scene.js?v=r5';
+import { createShotgun } from './gun.js?v=r5';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r5';
+import { createDemon } from './demon.js?v=r5';
+import * as SFX from './sfx.js?v=r5';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r4';
+} from './roulette-engine.js?v=r5';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -455,17 +455,11 @@ async function beginGame() {
   lastItemSig = '';
   renderHUD();             // 导轨升起 + 道具分发（错峰弹落到格）
   await sleep(5300);       // 等导轨展示完缩回 + 道具落定
-  // 随机先手（抛硬币）：原先引擎写死 turn='me'，改为随机
-  const first = Math.random() < 0.5 ? 'me' : 'foe';
-  g.turn = first;
+  // 正版规则：玩家永远先手（装弹后固定从玩家开始，不随机）
+  g.turn = 'me';
   busy = false;
   renderHUD();
-  if (first === 'me') {
-    toast('🚦 你先手 —— 枪已上膛，选个方向扣扳机');
-  } else {
-    toast('🌑 恶魔先手 —— 看着它扣动扳机');
-    setTimeout(() => aiTurn(), 1300);
-  }
+  toast('🚦 正版规则：你先手 —— 枪已上膛，选个方向扣扳机');
 }
 
 $('btnStart').addEventListener('click', () => {

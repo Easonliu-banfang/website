@@ -49,12 +49,20 @@ console.log('--- 射击判定：射自己 ---');
   eq('自射空弹保留回合', g.turn, 'me');
 }
 {
+  // 自射实弹 + 弹仓剩余 → 换手给对手
   const g = createGame(42);
-  g.shell = [true]; g.idx = 0;          // 实弹
+  g.shell = [true, false]; g.idx = 0;   // 实弹 + 还有 1 发
   const before = g.lives.me;
   shoot(g, 'me', 'self');
   eq('自射实弹扣 1 命', g.lives.me, before - 1);
-  eq('自射实弹换对手', g.turn, 'foe');
+  eq('自射实弹(未空仓)换对手', g.turn, 'foe');
+}
+{
+  // 自射实弹恰好打空弹仓 → 重装 → 玩家先手（正版：每轮装弹后玩家先手）
+  const g = createGame(42);
+  g.shell = [true]; g.idx = 0;          // 只有 1 发实弹
+  shoot(g, 'me', 'self');
+  eq('弹仓打空重装后玩家先手', g.turn, 'me');
 }
 
 console.log('--- 射击判定：射恶魔 ---');
