@@ -36,7 +36,6 @@ var app = {
     introPlaying: false,
     handsHidden: true,   // 开局抽取阶段手牌不渲染（避免遮罩下隐约可见）
     revealSequence: 0,
-    lastPropRound: -1,
     connectionTimer: null,
     roomStarted: false,
     profileActive: false,
@@ -60,8 +59,6 @@ var app = {
     challenge: $('challengeBtn'), play: $('playBtn'),
     modeBadge: $('modeBadge'),
     continueBtn: $('continueBtn'), onlineContinue: $('onlineContinue'),
-    shootChoices: $('shootChoices'), shootPrompt: $('shootPrompt'),
-    shootSelfBtn: $('shootSelfBtn'), shootOtherBtn: $('shootOtherBtn'),
     restartBtn: $('restartBtn'), endLeaveBtn: $('endLeaveBtn'),
     revealed: $('revealedCards'), revealTitle: $('revealTitle'),
     revealEyebrow: $('revealEyebrow'), revealCopy: $('revealCopy'),
@@ -123,115 +120,19 @@ var app = {
     renderPile(view);
     renderHistory(view.history);
     renderControls(me, view);
-    renderProps(view);
-  }
-
-  /* 桌上道具 ↔ 游戏状态联动：每个道具对应一个状态信号 */
-  function propEl(name) {
-    return document.querySelector('.liar-prop[data-prop="' + name + '"]');
-  }
-  function setProp(name, cls, on) {
-    var el = propEl(name);
-    if (el) el.classList.toggle(cls, !!on);
-  }
-  function bumpProp(name) {
-    var el = propEl(name);
-    if (!el) return;
-    el.classList.remove('bump');
-    void el.offsetWidth;          // 重排以重启动画
-    el.classList.add('bump');
-    setTimeout(function () { el.classList.remove('bump'); }, 900);
-  }
-  /* 子弹导轨：从桌下滑出 → 展示实弹/虚弹分组（顺序保密）→ 5 秒后缩回 */
-  // AI 开枪决策：只看公开概率（剩余实弹/虚弹），不看顺序——和真人一样信息
-  function aiChooseTarget(shooterId) {
-    var info = railInfoOf(shooterId);
-    if (!info) return 'other';
-    var total = info.live + info.blank;
-    if (total <= 0) return 'other';
-    var risk = info.live / total;          // 朝自己的中弹风险
-    // 风险 ≤ 35% 敢赌朝自己（空弹可再开一枪）；否则把枪指向对方
-    return risk <= 0.35 ? 'self' : 'other';
-  }
-  function renderRailSlots(liveLeft, blankLeft) {
-    var html = '';
-    for (var i = 0; i < liveLeft; i++) {
-      html += '<div class="liar-rail-slot"><span class="rl-live"></span></div>';
-    }
-    if (liveLeft > 0 && blankLeft > 0) html += '<div class="rl-gap"></div>';
-    for (var j = 0; j < blankLeft; j++) {
-      html += '<div class="liar-rail-slot"><span class="rl-blank"></span></div>';
-    }
-    if (!html) html = '<div class="liar-rail-note">弹巢已空</div>';
-    return html;
-  }
-  var railTimer = null;
-  function showBulletRail(whoName, liveLeft, blankLeft, holdMs) {
-    var rail = document.getElementById('bulletRail');
-    if (!rail) return;
-    var title = document.getElementById('railTitle');
-    var slots = document.getElementById('railSlots');
-    if (title) title.textContent = (whoName ? whoName + ' 的左轮 · ' : '左轮 · ') +
-      '实弹 ' + liveLeft + ' / 虚弹 ' + blankLeft;
-    if (slots) slots.innerHTML = renderRailSlots(liveLeft, blankLeft);
-    rail.classList.add('show');
-    if (railTimer) clearTimeout(railTimer);
-    railTimer = setTimeout(function () { rail.classList.remove('show'); }, holdMs || 5000);
-  }
-  function hideBulletRail() {
-    var rail = document.getElementById('bulletRail');
-    if (railTimer) { clearTimeout(railTimer); railTimer = null; }
-    if (rail) rail.classList.remove('show');
-  }
-  // 从当前局面取某人的实弹/虚弹（liveLeft/blankLeft 为公开信息）
-  function railInfoOf(playerId) {
-    var view = app.view;
-    if (!view || !view.players) return null;
-    var p = view.players.find(function (x) { return x.id === playerId; });
-    if (!p) return null;
-    return { name: p.name, live: p.liveLeft != null ? p.liveLeft : 1, blank: p.blankLeft != null ? p.blankLeft : 5 };
-  }
-
-  function renderProps(view) {
-    if (!document.querySelector('.liar-props')) return;
-    var myTurn = view.phase === 'playing' && view.current === app.youId;
-    var shooting = view.phase === 'shooting';
-    var canChallenge = myTurn && !!view.lastPlay && app.youId !== (view.lastPlay && view.lastPlay.player);
-    // 🔫 左轮 ↔ 开枪阶段
-    setProp('revolver', 'active', shooting);
-    // 🔍 放大镜 ↔ 可质疑（轮到我 + 上家出过牌）
-    setProp('lens', 'active', canChallenge);
-    // 🕯️ 蜡烛 ↔ 我的回合
-    setProp('candle', 'lit', myTurn);
-    // ⛓️ 手铐 ↔ 有人手牌出尽（被"锁"住只能质疑）
-    var anyEmpty = view.players.some(function (p) { return p.alive !== false && p.handCount === 0; });
-    setProp('cuffs', 'active', anyEmpty);
-    // 🚬 雪茄 ↔ 已淘汰人数（有人死 → 熄灭）
-    var dead = view.players.filter(function (p) { return p.alive === false; }).length;
-    setProp('cigar', 'doused', dead > 0);
-    // 🍺 啤酒 ↔ 新一局（碰杯弹跳）
-    if (app.lastPropRound !== view.round) {
-      app.lastPropRound = view.round;
-      if (view.round > 0) bumpProp('beer');
-    }
   }
 
   function renderOpponents(opponents) {
     var view = app.view;
     els.players.innerHTML = opponents.map(function (player, index) {
       var cards = Array.from({ length: player.handCount }, function () { return '<i class="liar-mini-card"></i>'; }).join('');
-      // 弹巢：显示剩余实弹（红）/虚弹（灰）——不暴露顺序
-      var liveN = player.liveLeft != null ? player.liveLeft : 0;
-      var blankN = player.blankLeft != null ? player.blankLeft : 0;
-      var chambers = Array.from({ length: liveN }, function () {
-        return '<span class="live"></span>';
-      }).join('') + Array.from({ length: blankN }, function () {
-        return '<span></span>';
+      var chambers = Array.from({ length: 6 }, function (_, chamber) {
+        return '<span class="' + (chamber < player.shots ? 'used' : '') + '"></span>';
       }).join('');
       var status = !player.connected ? '已断开连接'
         : !player.alive ? '已淘汰'
-        : player.handCount ? (player.handCount + ' 张牌 · 弹巢 实' + (player.liveLeft != null ? player.liveLeft : 0) + ' 虚' + (player.blankLeft != null ? player.blankLeft : 0))
-        : ('手牌已出尽 · 弹巢 实' + (player.liveLeft != null ? player.liveLeft : 0) + ' 虚' + (player.blankLeft != null ? player.blankLeft : 0));
+        : player.handCount ? (player.handCount + ' 张牌 · 弹巢 ' + player.shots + '/6')
+        : ('手牌已出尽 · 弹巢 ' + player.shots + '/6');
       return '<article class="liar-opp ' + (!player.alive ? 'dead' : '') + ' ' + (view.current === player.id && view.phase === 'playing' ? 'active' : '') + '" data-seat="' + (index + 1) + '" data-total="' + opponents.length + '">' +
         '<div class="liar-avatar-ring"><div class="liar-avatar">' + avatarHtml(player.avatar) + '</div><i class="liar-turn-dot"></i></div>' +
         '<div class="liar-name">' + escapeHtml(player.name) + '</div>' +
@@ -679,7 +580,7 @@ var app = {
     var result = app.engine.challenge(challenger);
     await showReveal(result, false);
     refreshLocal();
-    if (app.engine.phase === 'reveal' && !app.engine.reveal.pending) continueLocal();
+    if (app.engine.phase === 'reveal') continueLocal();
   }
 
   async function showReveal(result, online) {
@@ -691,7 +592,6 @@ var app = {
     els.eliminationImpact.hidden = true;
     els.revealed.innerHTML = '';
     els.roulette.className = 'liar-roulette';
-    els.shootChoices.hidden = true;                 // 默认隐藏开枪按钮
     els.revealTitle.textContent = result.lied ? '谎言被揭穿' : '质疑失败';
     els.revealEyebrow.textContent = playerName(result.challenger) + ' 发起质疑';
     els.revealed.innerHTML = result.cards.map(function (card) {
@@ -702,170 +602,48 @@ var app = {
     els.revealCopy.textContent = result.lied
       ? (accusedName + ' 宣称的牌里藏着假牌，谎言被识破！')
       : (accusedName + ' 说的是真话，' + loserName + ' 误判了。');
-    // 左轮动画（转轮 + 已用弹巢）
+    // 质疑结果顶部横幅（≥3 秒，红色高亮）
+    if (window.Notify) {
+      var revealText = result.lied
+        ? '🕵 ' + playerName(result.challenger) + ' 识破了 ' + accusedName + ' 的谎言！'
+        : '😨 ' + playerName(result.challenger) + ' 质疑失败，' + accusedName + ' 说的是真话';
+      window.Notify.show(revealText, result.bang ? 'error' : 'warn', { ttl: 4000 });
+    }
+    // 左轮动画
     var chambers = els.roulette.querySelectorAll('.liar-chamber span');
     els.rouletteText.textContent = '左轮转动……';
     els.roulette.classList.add('spin');
-    await sleep(650);
-    var shotsAfter = result.shotsAfter != null ? result.shotsAfter : 0;
-    chambers.forEach(function (c, i2) { c.className = i2 < shotsAfter ? 'used' : ''; });
+    await sleep(700);
+    chambers.forEach(function (c, i) { c.className = i < result.shotsAfter ? 'used' : ''; });
+    els.rouletteText.textContent = result.bang ? '💥 击发了！' : '咔哒……空膛';
     if (result.bang) {
-      els.rouletteText.textContent = '💥 击发了！';
-      await sleep(600);
-      var victimName = playerName(result.victim != null ? result.victim : result.loser);
-      showEliminationImpact(victimName);
-      await sleep(1600);
-    } else {
-      els.rouletteText.textContent = '咔哒……空膛';
-      await sleep(500);
+      await sleep(700);
+      showEliminationImpact(loserName);
+      await sleep(1800);          // 让「☠ OUT OF THE BAR」冲击动画完整播完（否则弹窗下一秒就关，动画等于没有）
+      // 显示剩余人数（>1 人继续，==1 人决出冠军）
+      var aliveNow = app.view.players.filter(function (p) { return p.alive !== false && p.id !== result.loser; }).length;
+      if (aliveNow > 1) {
+        els.revealCopy.textContent += ' 还剩 ' + aliveNow + ' 人继续。';
+        if (window.Notify) window.Notify.show(loserName + ' 被淘汰，还剩 ' + aliveNow + ' 人', 'error', { ttl: 4000 });
+      } else {
+        els.revealCopy.textContent += ' 最后一人！';
+        if (window.Notify) window.Notify.show('🏆 仅剩 1 人，游戏结束', 'win', { ttl: 4000 });
+      }
     }
     if (sequence !== app.revealSequence) return;
-    // 开枪阶段：导轨滑出，把左轮装填（实弹/虚弹）展示给所有人看，5 秒后缩回
-    if (result.shooter != null && app.view && app.view.phase === 'shooting') {
-      var info = railInfoOf(result.shooter);
-      if (info) showBulletRail(info.name, info.live, info.blank, 5000);
-    }
-    // 我是否该开枪？
-    var myTurn = result.shooter != null && result.shooter === app.youId;
     if (online) {
-      // 联机：我开枪 → 显示按钮；否则等待对方开枪（服务端会推送下一状态）
-      els.shootChoices.hidden = !myTurn;
-      if (myTurn) els.shootPrompt.textContent = '轮到你开枪：' + (result.bang === false && result.victim === app.youId ? '（你活过了这一枪）' : '');
-      if (!myTurn) {
-        els.onlineContinue.hidden = false;
-        await sleep(2200);
-        els.reveal.hidden = true;     // 等对方开枪时先收弹窗，服务端推送后再开
-      }
+      els.onlineContinue.hidden = false;
+      await sleep(2600);
+      els.reveal.hidden = true;          // 联机：动画播完即关闭弹窗，等服务端推送下一局 state
     } else {
-      // 本地/AI：只有我的开枪权才给按钮；AI 开枪自动决策
-      if (myTurn) {
-        els.shootChoices.hidden = false;
-        els.shootPrompt.textContent = '轮到你开枪：' + (result.bang === false && result.victim === app.youId ? '你活过了这一枪，再选一次方向' : '选择开枪方向');
-      } else if (result.shooter != null) {
-        // AI 开枪：自动决策（朝对方优先，朝自己赌空弹其次——用 AI 简单策略）
-        await sleep(800);
-        var aiTarget = aiChooseTarget(result.shooter);
-        // 记录本次 shoot 结果以驱动下一轮
-        doLocalShoot(result.shooter, aiTarget, sequence);
-      } else {
-        // 无人需要开枪 → 进入下一局
-        els.continueBtn.hidden = false;
-      }
+      els.continueBtn.hidden = true;   // 取消「继续」按钮，直接 5 秒停留
+      // 单人：质疑结果停留 5 秒让人看清，再自动进入下一局
+      await sleep(5000);
+      if (sequence !== app.revealSequence) return;
+      els.reveal.hidden = true;
     }
   }
 
-  // 本地开枪（含 AI 自动开枪）
-  async function doLocalShoot(shooter, target, sequence) {
-    var seq = sequence || ++app.revealSequence;
-    els.shootChoices.hidden = true;
-    var result;
-    try {
-      result = app.engine.shoot(shooter, target);
-    } catch (e) {
-      if (window.Notify) window.Notify.show(e.message || '开枪失败', 'error');
-      els.reveal.hidden = true;
-      refreshLocal();
-      return;
-    }
-    app.view = app.engine.viewFor(app.youId);
-    render();
-    if (seq !== app.revealSequence) return;
-    // 开枪后更新导轨（展示最新剩余实弹/虚弹）
-    var vInfo = railInfoOf(result.victim != null ? result.victim : shooter);
-    if (vInfo) showBulletRail(vInfo.name, vInfo.live, vInfo.blank, 3200);
-    // 动画
-    els.rouletteText.textContent = '扣动扳机……';
-    els.roulette.className = 'liar-roulette spin';
-    await sleep(600);
-    var chambers = els.roulette.querySelectorAll('.liar-chamber span');
-    var shotsAfter = result.shotsAfter != null ? result.shotsAfter : 0;
-    chambers.forEach(function (c, i2) { c.className = i2 < shotsAfter ? 'used' : ''; });
-    els.rouletteText.textContent = result.bang ? '💥 击发了！' : '咔哒……空膛';
-    if (result.bang) {
-      await sleep(600);
-      var victimName = playerName(result.victim != null ? result.victim : shooter);
-      showEliminationImpact(victimName);
-      await sleep(1500);
-    } else {
-      await sleep(500);
-    }
-    // 整局结束？
-    if (app.engine.phase === 'ended') {
-      els.reveal.hidden = true;
-      els.eliminationImpact.hidden = true;
-      app.busy = true;
-      refreshLocal();
-      return;
-    }
-    if (seq !== app.revealSequence) return;
-    // 继续下一开枪者
-    if (result.shooter != null && result.shooter === app.youId) {
-      // 又轮到我（朝自己空弹再开 / 对方空弹后轮到我）
-      els.shootChoices.hidden = false;
-      els.shootPrompt.textContent = (result.bang === false && result.victim === app.youId) ? '你活下来了，再开一枪' : '轮到你开枪';
-    } else if (result.shooter != null) {
-      // AI 继续开枪
-      await sleep(800);
-      var ai2 = aiChooseTarget(result.shooter);
-      doLocalShoot(result.shooter, ai2, seq);
-    } else {
-      els.continueBtn.hidden = false;   // 无人开枪 → 下一局
-    }
-  }
-
-  // 联机开枪结果：动画 + 更新弹窗给下一开枪者
-  async function playOnlineShoot(result) {
-    var seq = ++app.revealSequence;
-    els.shootChoices.hidden = true;
-    var ovInfo = railInfoOf(result.victim != null ? result.victim : result.shooter);
-    if (ovInfo) showBulletRail(ovInfo.name, ovInfo.live, ovInfo.blank, 3200);
-    var chambers = els.roulette.querySelectorAll('.liar-chamber span');
-    els.rouletteText.textContent = '扣动扳机……';
-    els.roulette.className = 'liar-roulette spin';
-    await sleep(600);
-    var shotsAfter = result.shotsAfter != null ? result.shotsAfter : 0;
-    chambers.forEach(function (c, i2) { c.className = i2 < shotsAfter ? 'used' : ''; });
-    els.rouletteText.textContent = result.bang ? '💥 击发了！' : '咔哒……空膛';
-    if (result.bang) {
-      await sleep(600);
-      var victimName = playerName(result.victim != null ? result.victim : app.youId);
-      showEliminationImpact(victimName);
-      await sleep(1500);
-    } else {
-      await sleep(500);
-    }
-    if (seq !== app.revealSequence) return;
-    // 局面状态
-    var ph = app.view && app.view.phase;
-    if (ph === 'ended') {
-      els.reveal.hidden = true;
-      els.eliminationImpact.hidden = true;
-      showEnd();
-      return;
-    }
-    // 下一开枪者：我 → 显示按钮；对方 → 等待服务端推送；无人 → 下一局
-    var myTurn = result.shooter != null && result.shooter === app.youId;
-    if (result.shooter != null) {
-      els.shootChoices.hidden = !myTurn;
-      if (myTurn) els.shootPrompt.textContent = '轮到你开枪';
-    } else {
-      els.reveal.hidden = true;          // 开枪结束 → 等服务端推送下一局
-    }
-  }
-
-  // 开枪按钮绑定（本地直接引擎；联机发消息）
-  function bindShootButtons() {
-    if (els.shootSelfBtn) els.shootSelfBtn.addEventListener('click', function () {
-      els.shootChoices.hidden = true;
-      if (app.mode === 'solo') doLocalShoot(app.youId, 'self');
-      else if (app.mode === 'online') sendOnline({ type: 'shoot', target: 'self' });
-    });
-    if (els.shootOtherBtn) els.shootOtherBtn.addEventListener('click', function () {
-      els.shootChoices.hidden = true;
-      if (app.mode === 'solo') doLocalShoot(app.youId, 'other');
-      else if (app.mode === 'online') sendOnline({ type: 'shoot', target: 'other' });
-    });
-  }
   function showEliminationImpact(name) {
     els.eliminationName.textContent = name;
     els.eliminationImpact.hidden = false;
@@ -1146,18 +924,10 @@ var app = {
       app.view = message.view || app.view;   // 服务端附带最新局面（含 shotsAfter）
       if (message.result) message.result.shotsAfter = message.result.shotsAfter != null ? message.result.shotsAfter : 0;
       showReveal(message.result, true).then(function () {
-        // 联机：shooting 阶段交给开枪循环（服务端等 shoot 消息），否则自动下一局
+        // 联机：揭示动画后自动进入下一局
         if (app.mode === 'solo') return;
-        if (app.view && app.view.phase === 'shooting') return;
         sendOnline({ type: 'next' });
       });
-      return;
-    }
-    if (message.type === 'shoot') {
-      app.view = message.view || app.view;
-      if (!message.result) { return; }
-      // 播放开枪结果动画（含下一开枪者）
-      playOnlineShoot(message.result);
       return;
     }
     if (message.type === 'next') {
@@ -1189,7 +959,6 @@ var app = {
     els.play.addEventListener('click', playSelected);
     els.challenge.addEventListener('click', challenge);
     els.continueBtn.addEventListener('click', continueLocal);
-    bindShootButtons();
     els.restartBtn.addEventListener('click', function () {
       els.end.hidden = true;
       if (app.mode === 'solo') startSolo();
