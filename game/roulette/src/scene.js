@@ -11,8 +11,8 @@
  *
  * 所有几何用 Box/Cyl/Sphere 等组合出"精细感"，纯程序化（零外部资源）。
  */
-import * as THREE from '../lib/three.module.min.js?v=r3';
-import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r3';
+import * as THREE from '../lib/three.module.min.js?v=r4';
+import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r4';
 
 export function createScene(canvas) {
   // ---- 渲染器 ----

@@ -4,17 +4,18 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r3';
-import { createShotgun } from './gun.js?v=r3';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r3';
-import { createDemon } from './demon.js?v=r3';
-import * as SFX from './sfx.js?v=r3';
+import { createScene } from './scene.js?v=r4';
+import { createShotgun } from './gun.js?v=r4';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r4';
+import { createDemon } from './demon.js?v=r4';
+import * as SFX from './sfx.js?v=r4';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r3';
+} from './roulette-engine.js?v=r4';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* ---------- 场景 ---------- */
 const canvas = $('stage');
@@ -74,6 +75,7 @@ let railT = 0;                                // 0=桌下 1=桌面（平滑过�
 let railTarget = 0;
 let railHold = null;
 let lastLoadSeq = -1;
+let lastItemSig = '';
 
 /* 分组渲染：先「实弹排一起」，再留一道缝，然后「空弹排一起」——不代表任何顺序 */
 function renderShells(v) {
@@ -125,12 +127,15 @@ function renderItems(v) {
       const it = createItem(type);
       const side = i < 2 ? -1 : 1;              // 左 2 格 / 右 2 格
       const x = side * SLOT_GRID_X[i % 2];      // 内格 / 外格
-      it.position.set(x, app.tableY + 0.105, z);
+      const baseY = app.tableY + 0.105;
+      it.position.set(x, baseY, z);
       it.scale.setScalar(0.92);                 // 贴合 0.24 格宽
       it.userData.owner = owner;
       it.userData.slotIndex = i;
       // 恶魔侧道具朝玩家侧微微倾斜展示
       if (owner === 'foe') it.rotation.x = -0.12;
+      // 分发动画：从上方错峰弹落（easeOutBounce），0.45s 一个
+      it.userData.drop = { t: -i * 0.22, fromY: baseY + 0.55, endY: baseY };
       itemSlots.add(it);
     });
   };
@@ -163,7 +168,12 @@ function renderHUD() {
     lastLoadSeq = v.loadSeq;
     showShellRail(5000);
   }
-  renderItems(v);
+  // 道具增量：只有道具集合或装弹轮变化才重建（避免每帧重复掉落动画）
+  const sig = (v.items.me || []).join('') + '|' + (v.items.foe || []).join('') + '|' + (v.loadSeq || 0);
+  if (sig !== lastItemSig) {
+    lastItemSig = sig;
+    renderItems(v);
+  }
   renderActions(v);
 }
 function renderActions(v) {
@@ -413,7 +423,21 @@ app.start((tSec) => {
   gun.userData.update(dt, tSec);
   demon.userData.update(dt, tSec);
   itemSlots.children.forEach((it) => {
-    if (it.userData && it.userData.update) it.userData.update(dt, tSec);
+    if (!it.userData) return;
+    const d = it.userData.drop;
+    if (d) {
+      // 分发动画：道具从高处错峰弹落到格子（easeOutCubic 下落 + 末期弹跳）
+      d.t += dt;
+      if (d.t >= 0) {
+        const p = Math.min(1, d.t / 0.55);
+        const fall = 1 - Math.pow(1 - p, 3);                                // 主体下落
+        const bounce = Math.abs(Math.sin(p * Math.PI * 2.5)) * (1 - p) * 0.09; // 末期弹跳
+        it.position.y = d.fromY + (d.endY - d.fromY) * fall - bounce;
+        if (p >= 1) { it.userData.drop = null; it.position.y = d.endY; }
+      }
+      return;
+    }
+    if (it.userData.update) it.userData.update(dt, tSec);
   });
 
   renderer.render(scene, camera);
@@ -424,14 +448,33 @@ app.start((tSec) => {
 });
 
 /* ---------- 入局 ---------- */
+/* 开局流程：装弹导轨展示(≈5s，含道具分发落下) → 随机先手 → 开打 */
+async function beginGame() {
+  busy = true;
+  lastLoadSeq = -1;        // 强制触发开局装弹导轨
+  lastItemSig = '';
+  renderHUD();             // 导轨升起 + 道具分发（错峰弹落到格）
+  await sleep(5300);       // 等导轨展示完缩回 + 道具落定
+  // 随机先手（抛硬币）：原先引擎写死 turn='me'，改为随机
+  const first = Math.random() < 0.5 ? 'me' : 'foe';
+  g.turn = first;
+  busy = false;
+  renderHUD();
+  if (first === 'me') {
+    toast('🚦 你先手 —— 枪已上膛，选个方向扣扳机');
+  } else {
+    toast('🌑 恶魔先手 —— 看着它扣动扳机');
+    setTimeout(() => aiTurn(), 1300);
+  }
+}
+
 $('btnStart').addEventListener('click', () => {
   started = true;
   $('hud').classList.remove('hidden');
   $('actionBar').classList.remove('hidden');
   $('introScreen').classList.add('fade');
   setTimeout(() => ($('introScreen').style.display = 'none'), 700);
-  renderHUD();
-  toast('对局开始：你 3 条命 · 恶魔 3 条命 —— 选择射自己或射恶魔');
+  beginGame();
 });
 
 /* 调试：暴露游戏状态 */
