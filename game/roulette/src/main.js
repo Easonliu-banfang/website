@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r10';
-import { createShotgun } from './gun.js?v=r10';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r10';
-import { createDemon } from './demon.js?v=r10';
-import * as SFX from './sfx.js?v=r10';
+import { createScene } from './scene.js?v=r11';
+import { createShotgun } from './gun.js?v=r11';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r11';
+import { createDemon } from './demon.js?v=r11';
+import * as SFX from './sfx.js?v=r11';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r10';
+} from './roulette-engine.js?v=r11';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -415,8 +415,8 @@ function onLookMove(px, py) {
   if (!dragLook) return;
   const dx = px - dragX, dy = py - dragY;
   dragX = px; dragY = py;
-  camYaw -= dx * 0.0052;                                   // 水平任意转
-  camPitch += dy * 0.0042;                                 // 俯仰无限制（可翻转）
+  camYaw += dx * 0.0052;                                   // 水平：跟随拖动方向
+  camPitch -= dy * 0.0042;                                 // 垂直：跟随拖动方向
 }
 function onLookUp() { dragLook = false; }
 canvasEl.addEventListener('pointerdown', (e) => { e.preventDefault(); onLookDown(e.clientX, e.clientY); });
