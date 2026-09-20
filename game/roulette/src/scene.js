@@ -323,6 +323,12 @@ export function createScene(canvas) {
   scoreboard.rotation.y = -0.32;    // 屏面朝向玩家坐姿方位（不歪）
   scoreboard.rotation.x = 0;        // 立正（无前倾）
   table.add(scoreboard);
+  // 恶魔侧记分牌：对称摆到左侧，屏面朝恶魔（-z 方向）——恶魔也能看
+  const foeBoard = scoreboard.clone();
+  foeBoard.position.set(-0.58, TABLE_H + 0.042, 0.02);
+  foeBoard.rotation.y = Math.PI - 0.32;   // 屏面朝向恶魔（与玩家侧对称）
+  foeBoard.rotation.x = 0;
+  table.add(foeBoard);
 
   add(table);               // 桌子整体加入场景
 
