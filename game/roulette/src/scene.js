@@ -124,13 +124,6 @@ export function createScene(canvas) {
     add(k);
   }
 
-  // 通风栅（仅后墙左侧；右侧会挡玩家视角右上角造成"一坨"）
-  const ventMat = new THREE.MeshStandardMaterial({ color: 0x1a1e2a, roughness: 0.6, metalness: 0.5 });
-  for (let i = 0; i < 5; i++) {
-    const vent = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.03, 0.04), ventMat);
-    vent.position.set(-1.8, 0.7 + i * 0.14, -4.36);
-    add(vent);
-  }
 
   // 天花板 + 管线
   const ceilMat = new THREE.MeshStandardMaterial({ color: 0x171922, roughness: 1 });
@@ -382,12 +375,6 @@ export function createScene(canvas) {
   // 主光已由 mainLight 承担；此处不再建任何可见灯体
   mainLight.position.set(0, 2.9, -0.6);
 
-  // ================= 后墙霓虹 =================
-  for (const [x, y] of [[-1.6, 1.8], [-1.3, 1.8], [-1.45, 2.0]]) {
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.03), MAT.neon);
-    bar.position.set(x, y, -4.37);
-    add(bar);
-  }
 
   // 尺寸适配
   function resize() {
