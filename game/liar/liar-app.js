@@ -36,6 +36,7 @@ var app = {
     introPlaying: false,
     handsHidden: true,   // 开局抽取阶段手牌不渲染（避免遮罩下隐约可见）
     revealSequence: 0,
+    lastPropRound: -1,
     connectionTimer: null,
     roomStarted: false,
     profileActive: false,
@@ -122,6 +123,47 @@ var app = {
     renderPile(view);
     renderHistory(view.history);
     renderControls(me, view);
+    renderProps(view);
+  }
+
+  /* 桌上道具 ↔ 游戏状态联动：每个道具对应一个状态信号 */
+  function propEl(name) {
+    return document.querySelector('.liar-prop[data-prop="' + name + '"]');
+  }
+  function setProp(name, cls, on) {
+    var el = propEl(name);
+    if (el) el.classList.toggle(cls, !!on);
+  }
+  function bumpProp(name) {
+    var el = propEl(name);
+    if (!el) return;
+    el.classList.remove('bump');
+    void el.offsetWidth;          // 重排以重启动画
+    el.classList.add('bump');
+    setTimeout(function () { el.classList.remove('bump'); }, 900);
+  }
+  function renderProps(view) {
+    if (!document.querySelector('.liar-props')) return;
+    var myTurn = view.phase === 'playing' && view.current === app.youId;
+    var shooting = view.phase === 'shooting';
+    var canChallenge = myTurn && !!view.lastPlay && app.youId !== (view.lastPlay && view.lastPlay.player);
+    // 🔫 左轮 ↔ 开枪阶段
+    setProp('revolver', 'active', shooting);
+    // 🔍 放大镜 ↔ 可质疑（轮到我 + 上家出过牌）
+    setProp('lens', 'active', canChallenge);
+    // 🕯️ 蜡烛 ↔ 我的回合
+    setProp('candle', 'lit', myTurn);
+    // ⛓️ 手铐 ↔ 有人手牌出尽（被"锁"住只能质疑）
+    var anyEmpty = view.players.some(function (p) { return p.alive !== false && p.handCount === 0; });
+    setProp('cuffs', 'active', anyEmpty);
+    // 🚬 雪茄 ↔ 已淘汰人数（有人死 → 熄灭）
+    var dead = view.players.filter(function (p) { return p.alive === false; }).length;
+    setProp('cigar', 'doused', dead > 0);
+    // 🍺 啤酒 ↔ 新一局（碰杯弹跳）
+    if (app.lastPropRound !== view.round) {
+      app.lastPropRound = view.round;
+      if (view.round > 0) bumpProp('beer');
+    }
   }
 
   function renderOpponents(opponents) {

@@ -780,3 +780,74 @@ body.portrait .liar-chat { bottom: 12px; }
 }
 .liar-shoot-btns .liar-btn.danger:hover { filter: brightness(1.08); }
 .liar-shoot-btns .liar-btn.danger:active { transform: translateY(2px) scale(0.97); box-shadow: 0 1px 0 #7c1d14; }
+
+/* ============ 道具 ↔ 游戏状态联动 ============ */
+/* 通用：激活态微光 */
+.liar-prop.active .lp3d { filter: brightness(1.18) saturate(1.15); }
+.liar-prop.active::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 14px;
+  background: radial-gradient(circle at 50% 70%, rgba(255, 200, 90, 0.22), transparent 70%);
+  pointer-events: none; animation: lpAura 1.6s ease-in-out infinite;
+}
+@keyframes lpAura { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* 🔫 左轮：开枪阶段 → 红光脉冲 + 轻微抖动 */
+.liar-prop[data-prop="revolver"].active::after {
+  background: radial-gradient(circle at 50% 70%, rgba(255, 60, 40, 0.3), transparent 70%);
+}
+.liar-prop[data-prop="revolver"].active .lp-revolver {
+  animation: lpRevolverShake 0.55s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(255, 70, 40, 0.85));
+}
+@keyframes lpRevolverShake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-1.5px) rotate(-1.5deg); }
+  75% { transform: translateX(1.5px) rotate(1.5deg); }
+}
+
+/* 🔍 放大镜：可质疑 → 青光扫过镜片 */
+.liar-prop[data-prop="lens"].active::after {
+  background: radial-gradient(circle at 50% 70%, rgba(60, 220, 255, 0.26), transparent 70%);
+}
+.liar-prop[data-prop="lens"].active .lp-lens::before {
+  box-shadow:
+    inset 3px 3px 6px rgba(255, 255, 255, 0.5),
+    inset -3px -3px 6px rgba(10, 30, 50, 0.45),
+    0 0 14px 3px rgba(80, 220, 255, 0.6);
+}
+
+/* 🕯️ 蜡烛：我的回合 → 烛光变亮变大 */
+.liar-prop[data-prop="candle"].lit .lp-candle::after {
+  filter: drop-shadow(0 0 14px rgba(255, 180, 60, 1)) brightness(1.25);
+  transform: scale(1.25);
+}
+.liar-prop[data-prop="candle"].lit::after {
+  background: radial-gradient(circle at 50% 60%, rgba(255, 190, 90, 0.32), transparent 72%);
+}
+
+/* ⛓️ 手铐：有人出尽手牌 → 晃动警示 */
+.liar-prop[data-prop="cuffs"].active .lp-cuffs {
+  animation: lpCuffsRattle 0.7s ease-in-out infinite;
+}
+@keyframes lpCuffsRattle {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-6deg); }
+  70% { transform: rotate(6deg); }
+}
+
+/* 🚬 雪茄：有人被淘汰 → 余烬熄灭（变灰暗） */
+.liar-prop[data-prop="cigar"].doused .lp-cigar::after {
+  background: radial-gradient(circle, #6b6b6b 0%, #3f3f3f 60%, #262626 100%);
+  box-shadow: none;
+  animation: none;
+}
+.liar-prop[data-prop="cigar"].doused .lp-cigar { filter: grayscale(0.75) brightness(0.72); }
+
+/* 🍺 啤酒：新一局 → 碰杯弹跳 */
+.liar-prop.bump .lp-beer { animation: lpBeerToast 0.85s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes lpBeerToast {
+  0% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-10px) rotate(-8deg); }
+  55% { transform: translateY(-4px) rotate(5deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
