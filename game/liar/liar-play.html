@@ -7,9 +7,9 @@
 <title>骗子酒馆 · Liar's Table</title>
 <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-<link rel="stylesheet" href="liar.css?v=l21">
+<link rel="stylesheet" href="liar.css?v=l22">
 <style>
-/* 桌上道具架 + 状态联动（内嵌防缓存） */
+/* 道具架 + 导轨 + 状态联动（内嵌防缓存） */
 .liar-props {
   position: absolute;
   left: 50%; top: 66%;
@@ -284,6 +284,94 @@
   100% { transform: translateY(0) rotate(0deg); }
 }
 
+/* ================= 子弹导轨（桌下滑出展示） ================= */
+.liar-rail {
+  position: absolute;
+  left: 50%; bottom: 22%;
+  transform: translate(-50%, 140%);          /* 默认藏在桌下 */
+  z-index: 8;
+  transition: transform 0.62s cubic-bezier(0.22, 1.1, 0.36, 1);
+  pointer-events: none;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.6));
+}
+.liar-rail.show { transform: translate(-50%, 0); }   /* 滑出 */
+
+.liar-rail-body {
+  position: relative; z-index: 1;
+  padding: 12px 22px 10px;
+  background: linear-gradient(180deg, #1b2430, #12181f);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px 14px 4px 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 -8px 20px rgba(0, 0, 0, 0.45);
+}
+.liar-rail-title {
+  margin: 0 0 8px; text-align: center;
+  font-size: 13px; font-weight: 800; letter-spacing: 3px;
+  color: rgba(240, 246, 255, 0.9);
+}
+.liar-rail-slots {
+  display: flex; align-items: flex-end; justify-content: center; gap: 7px;
+  min-height: 40px;
+}
+/* 弹巢槽 */
+.liar-rail-slot {
+  width: 20px; height: 38px; border-radius: 4px;
+  background: linear-gradient(180deg, #0d1218, #1a222c);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 3px;
+}
+/* 虚弹：灰色空壳 */
+.liar-rail-slot .rl-blank {
+  width: 12px; height: 24px; border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(90deg, #7d848c, #b9c0c8 45%, #6d747c);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+/* 实弹：铜壳 + 红弹头 */
+.liar-rail-slot .rl-live {
+  position: relative;
+  width: 12px; height: 30px; border-radius: 3px 3px 2px 2px;
+  background: linear-gradient(90deg, #a8741f, #e8b45a 45%, #94631a);
+  box-shadow: inset 0 1px 2px rgba(255, 240, 200, 0.5), 0 0 10px 2px rgba(255, 150, 40, 0.5), 0 2px 3px rgba(0, 0, 0, 0.5);
+  animation: rlLiveGlow 1.3s ease-in-out infinite;
+}
+.liar-rail-slot .rl-live::before {   /* 红弹头 */
+  content: ""; position: absolute; left: 0; right: 0; top: -9px; height: 10px;
+  border-radius: 50% 50% 20% 20% / 80% 80% 20% 20%;
+  background: radial-gradient(circle at 40% 35%, #ff7b6a, #d02818 62%, #8f1408);
+  box-shadow: 0 0 8px 2px rgba(255, 70, 40, 0.6);
+}
+@keyframes rlLiveGlow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25); } }
+
+.liar-rail-note {
+  margin: 8px 0 0; text-align: center;
+  font-size: 11px; color: rgba(255, 255, 255, 0.45); letter-spacing: 1px;
+}
+/* 导轨轨道（金属质感） */
+.liar-rail-track {
+  height: 8px; margin: 0 -14px;
+  background: linear-gradient(180deg, #6b7480, #39414b 70%, #262c34);
+  border-radius: 0 0 6px 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+/* 弹巢分组间隙（实弹与虚弹之间） */
+.liar-rail-slots .rl-gap { width: 14px; }
+@media (max-width: 760px) {
+  .liar-rail { bottom: 30%; }
+  .liar-rail-slot { width: 15px; height: 30px; }
+  .liar-rail-slot .rl-live { height: 24px; width: 9px; }
+  .liar-rail-slot .rl-blank { height: 19px; width: 9px; }
+}
+
+/* 弹巢圆点：实弹（红发光）/ 虚弹（灰）——不暴露顺序 */
+.liar-chambers span.live {
+  background: #ff4d3d; border-color: #ff6a5c;
+  box-shadow: 0 0 7px rgba(255, 77, 61, 0.7);
+  animation: chamberLivePulse 1.4s ease-in-out infinite;
+}
+@keyframes chamberLivePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.72; } }
+.liar-chambers span:not(.live) { background: rgba(140, 150, 165, 0.35); border-color: rgba(160, 170, 185, 0.5); }
+
 </style>
 </head>
 <body class="liar-body">
@@ -339,6 +427,16 @@
       <div id="playedPile" class="liar-pile" aria-label="桌面牌堆" aria-live="polite">
         <div class="liar-empty">等待出牌</div>
       </div>
+    </div>
+
+    <!-- 子弹导轨：从桌下滑出，展示当前左轮的实弹/虚弹分布（顺序保密） -->
+    <div id="bulletRail" class="liar-rail" aria-hidden="true">
+      <div class="liar-rail-body">
+        <p class="liar-rail-title" id="railTitle">左轮装填</p>
+        <div class="liar-rail-slots" id="railSlots"></div>
+        <p class="liar-rail-note">顺序未知 · 没人知道下一发是什么</p>
+      </div>
+      <div class="liar-rail-track"></div>
     </div>
 
     <!-- 桌上道具架：酒馆风格格子，精制 3D 道具 -->
@@ -503,11 +601,11 @@
 
 <script src="../notify.js?v=n3"></script>
 <script src="../lobby.js?v=l15"></script>
-<script src="liar-engine.js?v=l14"></script>
+<script src="liar-engine.js?v=l15"></script>
 <script src="liar-ai.js?v=l13"></script>
 <script src="liar-bot.js?v=l1"></script>
 <script src="../bot.js?v=b5"></script>
-<script src="liar-app.js?v=l26"></script>
+<script src="liar-app.js?v=l27"></script>
 <script src=../result-overlay.js?v=ro2"></script>
 <script src="../auth-check.js?v=a2"></script>
 </body>

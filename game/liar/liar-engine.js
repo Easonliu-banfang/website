@@ -46,7 +46,9 @@ class GameEngine {
       connected: true,
       hand: [],
       shots: 0,
-      bullet: 0,
+      liveLeft: 1,        // 剩余实弹数
+      blankLeft: 5,       // 剩余虚弹数
+      cylinder: null,     // 内部：随机装填顺序（保密，视图不透传）
     }));
     this.round = 0;
     this.target = 'K';
@@ -65,12 +67,43 @@ class GameEngine {
       player.connected = true;
       player.hand = [];
       player.shots = 0;
-      player.bullet = Math.floor(this.random() * 6);
+      this.loadCylinder(player);        // 装填：1 发实弹 + 5 发虚弹，顺序随机保密
     });
     this.round = 0;
     this.history = [];
     this.winner = null;
     return this.startRound();
+  }
+
+  // 装填左轮：1 发实弹 + 5 发虚弹，顺序由 random 打乱（前端与 AI 均无法预知下一发）
+  loadCylinder(player) {
+    const chambers = [true, false, false, false, false, false];   // true=实弹
+    for (let i = chambers.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(this.random() * (i + 1));
+      [chambers[i], chambers[j]] = [chambers[j], chambers[i]];
+    }
+    player.cylinder = chambers;
+    player.liveLeft = chambers.filter(Boolean).length;
+    player.blankLeft = chambers.length - player.liveLeft;
+    player.shots = 0;
+  }
+
+  // 扣一次扳机：从剩余弹巢随机抽一发（不可预知）
+  pullTrigger(player) {
+    if (!player.cylinder || !player.cylinder.length) {
+      // 兜底：弹巢耗尽按剩余数量比例
+      const isLive = player.liveLeft > 0;
+      if (isLive) player.liveLeft -= 1; else player.blankLeft = Math.max(0, player.blankLeft - 1);
+      player.shots += 1;
+      return isLive;
+    }
+    const idx = Math.floor(this.random() * player.cylinder.length);
+    const isLive = !!player.cylinder.splice(idx, 1)[0];
+    if (isLive) player.liveLeft = Math.max(0, player.liveLeft - 1);
+    else player.blankLeft = Math.max(0, player.blankLeft - 1);
+    player.shots += 1;
+    if (isLive) player.cylinder.length = 0;   // 中弹即中止（弹巢清空）
+    return isLive;
   }
 
   startRound() {
@@ -87,6 +120,8 @@ class GameEngine {
     this.players.forEach((player) => {
       player.hand = player.alive ? deck.splice(0, 5) : [];
     });
+    // 每局重新装填存活玩家的左轮（1 实 5 虚，随机顺序）
+    this.players.forEach((player) => { if (player.alive) this.loadCylinder(player); });
     const candidates = this.alivePlayers();
     this.current = candidates[Math.floor(this.random() * candidates.length)].id;
     this.log(`第 ${this.round} 局开始，指定牌是 ${this.target}`);
@@ -175,15 +210,18 @@ class GameEngine {
     if (target !== 'self' && target !== 'other') throw new Error('无效的开枪方向');
     if (!this.player(id).alive) throw new Error('你已被淘汰');
 
-    // 受枪者：朝自己 → 开枪者；朝对方 → 质疑者（对方）
-    let victimId = target === 'self' ? id : reveal.challenger;
-    if (victimId === id && target === 'other') {
-      // 朝对方但对方就是自己（单人存活对手为自己？不可能）——兜底
-      victimId = this.nextAlive(id);
+    // 受枪者：朝自己 → 开枪者；朝对方 → 质疑者（必须存活，否则换下一个存活对手）
+    let victimId = id;
+    if (target === 'other') {
+      victimId = reveal.challenger;
+      if (victimId === id || !this.player(victimId).alive) victimId = this.nextAlive(id);
+    }
+    if (!victimId || !this.player(victimId).alive) {
+      // 找不到可开枪的对象（理论上已 finish）→ 直接结束惩罚
+      throw new Error('没有可开枪的对象');
     }
     const victim = this.player(victimId);
-    const bang = victim.shots === victim.bullet;
-    victim.shots += 1;
+    const bang = this.pullTrigger(victim);      // 随机抽一发，谁也预知不了
     if (bang) victim.alive = false;
     this.log(`${this.player(id).name} ${target === 'self' ? '朝自己' : '朝 ' + this.player(victimId).name + ' 开枪'}`);
 
@@ -197,6 +235,10 @@ class GameEngine {
       else nextShooter = this.nextAlive(victimId);  // 对方死：轮到下一位存活者
     }
 
+    // 下一开枪者必须存活（否则顺延到下一位存活者；若都不行则结束惩罚）
+    if (nextShooter != null && (!this.player(nextShooter) || !this.player(nextShooter).alive)) {
+      nextShooter = this.nextAlive(nextShooter);
+    }
     this.reveal = {
       ...reveal,
       shooter: nextShooter,
@@ -206,11 +248,11 @@ class GameEngine {
       shotsAfter: victim.shots,
     };
 
-    // 只剩 1 人 → 整局结束；否则若无人可开枪（全死或单循环）→ 结束惩罚进入下一局
+    // 只剩 1 人 → 整局结束；否则若无人可开枪 → 结束惩罚（可下一局）
     if (this.alivePlayers().length <= 1) {
       this.finish();
-    } else if (!nextShooter) {
-      this.phase = 'reveal';   // 无下一开枪者（理论不会），退化为直接下一局
+    } else if (!this.reveal.shooter) {
+      this.phase = 'reveal';   // 无下一开枪者 → 惩罚结束，进入下一局
     }
     return { ...this.reveal, cards: [...reveal.cards] };
   }
@@ -263,7 +305,7 @@ class GameEngine {
       winner: this.winner,
       reveal: this.reveal ? { ...this.reveal, cards: [...this.reveal.cards], shotsAfter: this.reveal.shotsAfter != null ? this.reveal.shotsAfter : 0 } : null,
       players: this.players.map(function (p) {
-        return { id: p.id, name: p.name, avatar: p.avatar, bot: p.bot, alive: p.alive, connected: p.connected, hand: p.hand.slice(), shots: p.shots, bullet: p.bullet };
+        return { id: p.id, name: p.name, avatar: p.avatar, bot: p.bot, alive: p.alive, connected: p.connected, hand: p.hand.slice(), shots: p.shots, liveLeft: p.liveLeft, blankLeft: p.blankLeft, cylinder: p.cylinder ? p.cylinder.slice() : null };
       }),
     };
   }
@@ -288,6 +330,8 @@ class GameEngine {
           alive: player.alive,
           connected: player.connected,
           shots: player.shots,
+          liveLeft: player.liveLeft,      // 剩余实弹（公开：大家都能看到弹巢里还有几发实弹）
+          blankLeft: player.blankLeft,    // 剩余虚弹
           handCount: player.hand.length,
         };
         if (player.id === viewerId) view.hand = [...player.hand];
@@ -318,7 +362,9 @@ class GameEngine {
       var p = g.players[i];
       p.hand = sp.hand.slice();
       p.shots = sp.shots;
-      p.bullet = sp.bullet;
+      p.liveLeft = sp.liveLeft != null ? sp.liveLeft : 1;
+      p.blankLeft = sp.blankLeft != null ? sp.blankLeft : 5;
+      p.cylinder = Array.isArray(sp.cylinder) ? sp.cylinder.slice() : null;
       p.alive = sp.alive;
       p.connected = sp.connected;
     });

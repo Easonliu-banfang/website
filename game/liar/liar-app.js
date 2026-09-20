@@ -142,6 +142,56 @@ var app = {
     el.classList.add('bump');
     setTimeout(function () { el.classList.remove('bump'); }, 900);
   }
+  /* 子弹导轨：从桌下滑出 → 展示实弹/虚弹分组（顺序保密）→ 5 秒后缩回 */
+  // AI 开枪决策：只看公开概率（剩余实弹/虚弹），不看顺序——和真人一样信息
+  function aiChooseTarget(shooterId) {
+    var info = railInfoOf(shooterId);
+    if (!info) return 'other';
+    var total = info.live + info.blank;
+    if (total <= 0) return 'other';
+    var risk = info.live / total;          // 朝自己的中弹风险
+    // 风险 ≤ 35% 敢赌朝自己（空弹可再开一枪）；否则把枪指向对方
+    return risk <= 0.35 ? 'self' : 'other';
+  }
+  function renderRailSlots(liveLeft, blankLeft) {
+    var html = '';
+    for (var i = 0; i < liveLeft; i++) {
+      html += '<div class="liar-rail-slot"><span class="rl-live"></span></div>';
+    }
+    if (liveLeft > 0 && blankLeft > 0) html += '<div class="rl-gap"></div>';
+    for (var j = 0; j < blankLeft; j++) {
+      html += '<div class="liar-rail-slot"><span class="rl-blank"></span></div>';
+    }
+    if (!html) html = '<div class="liar-rail-note">弹巢已空</div>';
+    return html;
+  }
+  var railTimer = null;
+  function showBulletRail(whoName, liveLeft, blankLeft, holdMs) {
+    var rail = document.getElementById('bulletRail');
+    if (!rail) return;
+    var title = document.getElementById('railTitle');
+    var slots = document.getElementById('railSlots');
+    if (title) title.textContent = (whoName ? whoName + ' 的左轮 · ' : '左轮 · ') +
+      '实弹 ' + liveLeft + ' / 虚弹 ' + blankLeft;
+    if (slots) slots.innerHTML = renderRailSlots(liveLeft, blankLeft);
+    rail.classList.add('show');
+    if (railTimer) clearTimeout(railTimer);
+    railTimer = setTimeout(function () { rail.classList.remove('show'); }, holdMs || 5000);
+  }
+  function hideBulletRail() {
+    var rail = document.getElementById('bulletRail');
+    if (railTimer) { clearTimeout(railTimer); railTimer = null; }
+    if (rail) rail.classList.remove('show');
+  }
+  // 从当前局面取某人的实弹/虚弹（liveLeft/blankLeft 为公开信息）
+  function railInfoOf(playerId) {
+    var view = app.view;
+    if (!view || !view.players) return null;
+    var p = view.players.find(function (x) { return x.id === playerId; });
+    if (!p) return null;
+    return { name: p.name, live: p.liveLeft != null ? p.liveLeft : 1, blank: p.blankLeft != null ? p.blankLeft : 5 };
+  }
+
   function renderProps(view) {
     if (!document.querySelector('.liar-props')) return;
     var myTurn = view.phase === 'playing' && view.current === app.youId;
@@ -170,13 +220,18 @@ var app = {
     var view = app.view;
     els.players.innerHTML = opponents.map(function (player, index) {
       var cards = Array.from({ length: player.handCount }, function () { return '<i class="liar-mini-card"></i>'; }).join('');
-      var chambers = Array.from({ length: 6 }, function (_, chamber) {
-        return '<span class="' + (chamber < player.shots ? 'used' : '') + '"></span>';
+      // 弹巢：显示剩余实弹（红）/虚弹（灰）——不暴露顺序
+      var liveN = player.liveLeft != null ? player.liveLeft : 0;
+      var blankN = player.blankLeft != null ? player.blankLeft : 0;
+      var chambers = Array.from({ length: liveN }, function () {
+        return '<span class="live"></span>';
+      }).join('') + Array.from({ length: blankN }, function () {
+        return '<span></span>';
       }).join('');
       var status = !player.connected ? '已断开连接'
         : !player.alive ? '已淘汰'
-        : player.handCount ? (player.handCount + ' 张牌 · 弹巢 ' + player.shots + '/6')
-        : ('手牌已出尽 · 弹巢 ' + player.shots + '/6');
+        : player.handCount ? (player.handCount + ' 张牌 · 弹巢 实' + (player.liveLeft != null ? player.liveLeft : 0) + ' 虚' + (player.blankLeft != null ? player.blankLeft : 0))
+        : ('手牌已出尽 · 弹巢 实' + (player.liveLeft != null ? player.liveLeft : 0) + ' 虚' + (player.blankLeft != null ? player.blankLeft : 0));
       return '<article class="liar-opp ' + (!player.alive ? 'dead' : '') + ' ' + (view.current === player.id && view.phase === 'playing' ? 'active' : '') + '" data-seat="' + (index + 1) + '" data-total="' + opponents.length + '">' +
         '<div class="liar-avatar-ring"><div class="liar-avatar">' + avatarHtml(player.avatar) + '</div><i class="liar-turn-dot"></i></div>' +
         '<div class="liar-name">' + escapeHtml(player.name) + '</div>' +
@@ -665,6 +720,11 @@ var app = {
       await sleep(500);
     }
     if (sequence !== app.revealSequence) return;
+    // 开枪阶段：导轨滑出，把左轮装填（实弹/虚弹）展示给所有人看，5 秒后缩回
+    if (result.shooter != null && app.view && app.view.phase === 'shooting') {
+      var info = railInfoOf(result.shooter);
+      if (info) showBulletRail(info.name, info.live, info.blank, 5000);
+    }
     // 我是否该开枪？
     var myTurn = result.shooter != null && result.shooter === app.youId;
     if (online) {
@@ -684,7 +744,7 @@ var app = {
       } else if (result.shooter != null) {
         // AI 开枪：自动决策（朝对方优先，朝自己赌空弹其次——用 AI 简单策略）
         await sleep(800);
-        var aiTarget = (Math.random() < 0.6) ? 'other' : 'self';
+        var aiTarget = aiChooseTarget(result.shooter);
         // 记录本次 shoot 结果以驱动下一轮
         doLocalShoot(result.shooter, aiTarget, sequence);
       } else {
@@ -710,6 +770,9 @@ var app = {
     app.view = app.engine.viewFor(app.youId);
     render();
     if (seq !== app.revealSequence) return;
+    // 开枪后更新导轨（展示最新剩余实弹/虚弹）
+    var vInfo = railInfoOf(result.victim != null ? result.victim : shooter);
+    if (vInfo) showBulletRail(vInfo.name, vInfo.live, vInfo.blank, 3200);
     // 动画
     els.rouletteText.textContent = '扣动扳机……';
     els.roulette.className = 'liar-roulette spin';
@@ -743,7 +806,7 @@ var app = {
     } else if (result.shooter != null) {
       // AI 继续开枪
       await sleep(800);
-      var ai2 = (Math.random() < 0.6) ? 'other' : 'self';
+      var ai2 = aiChooseTarget(result.shooter);
       doLocalShoot(result.shooter, ai2, seq);
     } else {
       els.continueBtn.hidden = false;   // 无人开枪 → 下一局
@@ -754,6 +817,8 @@ var app = {
   async function playOnlineShoot(result) {
     var seq = ++app.revealSequence;
     els.shootChoices.hidden = true;
+    var ovInfo = railInfoOf(result.victim != null ? result.victim : result.shooter);
+    if (ovInfo) showBulletRail(ovInfo.name, ovInfo.live, ovInfo.blank, 3200);
     var chambers = els.roulette.querySelectorAll('.liar-chamber span');
     els.rouletteText.textContent = '扣动扳机……';
     els.roulette.className = 'liar-roulette spin';
