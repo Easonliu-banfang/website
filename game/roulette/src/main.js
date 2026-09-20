@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r18';
-import { createShotgun } from './gun.js?v=r18';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r18';
-import { createDemon } from './demon.js?v=r18';
-import * as SFX from './sfx.js?v=r18';
+import { createScene } from './scene.js?v=r19';
+import { createShotgun } from './gun.js?v=r19';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r19';
+import { createDemon } from './demon.js?v=r19';
+import * as SFX from './sfx.js?v=r19';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r18';
+} from './roulette-engine.js?v=r19';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -245,8 +245,9 @@ function playerShoot(target) {
   const who = g.turn;              // 固定为 'me'（玩家回合才调得到
   SFX.uiClick();
   gun.userData.aim(target === 'self' ? 'me' : 'foe');   // 先拿起来瞄准
+  const fireDelay = (target === 'self') ? 1050 : 750;    // 射自己要转180°→给足端起+转向
   setTimeout(() => {
-    gun.userData.fire();           // 开枪特效（留 700ms 给「端起→举枪→瞄准」）
+    gun.userData.fire();           // 开枪特效（端起→举枪→转向完成后击发）
     SFX.fireShot();                // 枪声
     const r = shoot(g, who, target);
     if (!r) return;
@@ -267,7 +268,7 @@ function playerShoot(target) {
       SFX.pump();
       afterAction(r);
     }, 620);
-  }, 700);
+  }, fireDelay);
 }
 function playerItem(type) {
   if (busy || g.over) return;
@@ -326,6 +327,7 @@ function aiTurn() {
     // 射击
     const target = d.target;       // 'self'（自射）| 'foe'（射玩家
     gun.userData.aim(target === 'self' ? 'foe' : 'me');   // 恶魔视角：自射=恶魔方位(-z) 射玩家=玩家方位(+z)
+    const aiFireDelay = (target === 'self') ? 700 : 1000;  // 射玩家(转180°)给足转向
     setTimeout(() => {
       gun.userData.fire();
       SFX.fireShot();
@@ -346,7 +348,7 @@ function aiTurn() {
         busy = false;
         afterAction(r);
       }, 600);
-    }, 650);          // 恶魔开火延时（给足端起+举枪）
+    }, aiFireDelay);   // 恶魔开火延时（按是否转180°动态）
   }, 500);
 }
 
