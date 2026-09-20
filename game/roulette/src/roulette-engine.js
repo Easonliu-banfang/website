@@ -52,15 +52,18 @@ export function createGame(seed) {
     loadInfo: null,            // 本轮装弹信息 { total, live, blank }
   };
   dealItems(g);
-  load(g);
+  load(g, 3, 1);              // 正版：首局固定 1 实 2 虚（此后每轮 2~8 随机）
   return g;
 }
 
-/** 装弹：随机 2~8 发（n 可指定），实/空至少各 1 */
-export function load(g, n) {
+/** 装弹：随机 2~8 发（n 可指定总数，fixedLive 可指定实弹数），实/空至少各 1 */
+export function load(g, n, fixedLive) {
   const r = g.rng;
-  const total = n || (2 + Math.floor(r() * 7));
-  const live = Math.max(1, Math.min(total - 1, 1 + Math.floor(r() * (total - 1))));
+  const total = n || (2 + Math.floor(r() * 7));   // 正版：每轮 2~8 发随机
+  // 正版：实弹数在 1..N-1 之间随机（至少各 1）；可固定（如首局 1 实 2 虚）
+  const live = (fixedLive != null)
+    ? Math.max(1, Math.min(total - 1, fixedLive))
+    : Math.max(1, Math.min(total - 1, 1 + Math.floor(r() * (total - 1))));
   const arr = new Array(total).fill(false);
   const pos = [];
   for (let i = 0; i < total; i++) pos.push(i);

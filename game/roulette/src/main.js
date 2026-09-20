@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r11';
-import { createShotgun } from './gun.js?v=r11';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r11';
-import { createDemon } from './demon.js?v=r11';
-import * as SFX from './sfx.js?v=r11';
+import { createScene } from './scene.js?v=r12';
+import { createShotgun } from './gun.js?v=r12';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r12';
+import { createDemon } from './demon.js?v=r12';
+import * as SFX from './sfx.js?v=r12';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r11';
+} from './roulette-engine.js?v=r12';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -90,8 +90,7 @@ function renderShells(v) {
   let x = -span / 2;
   for (let i = 0; i < live; i++) {            // 实弹组（红）
     const s = createShell(true);
-    s.rotation.x = Math.PI / 2;
-    s.rotation.z = Math.PI / 2;
+    s.rotation.x = Math.PI / 2;               // 横放：长轴垂直导轨长向（沿 z），弹头朝 +z（导轨长边）
     s.position.set(x, 0, 0);
     shellRow.add(s);
     x += spacing;
@@ -99,8 +98,7 @@ function renderShells(v) {
   if (live > 0 && blank > 0) x += gap;        // 组间缝
   for (let i = 0; i < blank; i++) {           // 空弹组（蓝）
     const s = createShell(false);
-    s.rotation.x = Math.PI / 2;
-    s.rotation.z = Math.PI / 2;
+    s.rotation.x = Math.PI / 2;               // 同上：弹头朝导轨长边
     s.position.set(x, 0, 0);
     shellRow.add(s);
     x += spacing;
@@ -127,13 +125,12 @@ function renderItems(v) {
       const it = createItem(type);
       const side = i < 2 ? -1 : 1;              // 左 2 格 / 右 2 格
       const x = side * SLOT_GRID_X[i % 2];      // 内格 / 外格
-      const baseY = app.tableY + 0.105;
+      const baseY = app.tableY + 0.075;
       it.position.set(x, baseY, z);
-      it.scale.setScalar(0.92);                 // 贴合 0.24 格宽
+      it.scale.setScalar(1.05);                 // 略放大（贴合格子不显小）
+      it.rotation.x = Math.PI / 2;              // 平放在桌面上（躺倒）
       it.userData.owner = owner;
       it.userData.slotIndex = i;
-      // 恶魔侧道具朝玩家侧微微倾斜展示
-      if (owner === 'foe') it.rotation.x = -0.12;
       // 分发动画：从上方错峰弹落（easeOutBounce），0.45s 一个
       it.userData.drop = { t: -i * 0.22, fromY: baseY + 0.55, endY: baseY };
       itemSlots.add(it);

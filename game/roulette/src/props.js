@@ -398,15 +398,10 @@ export function createItem(type) {
     }
   }
 
-  // 道具通用动画：悬浮 + 自转
-  // ⚠ 悬浮基准 baseY 必须「首次 update 时」从当前位置读取——
-  // 因为道具是先 createItem()（y=0）再被摆放到格子上（set position），
-  // 若创建时捕获会覆盖摆放高度导致道具沉到桌面以下。
+  // 道具静置：平放在桌面上（不悬浮不自转），保持原样端放
   g.userData.type = type;
-  g.userData.update = function (dt, t) {
-    if (g.userData.baseY == null) g.userData.baseY = g.position.y;
-    g.rotation.y += dt * 0.8;
-    g.position.y = g.userData.baseY + Math.sin(t * 2 + g.userData.baseY * 12) * 0.006;
+  g.userData.update = function () {
+    // 平放静置（无动画）
   };
 
   return g;
