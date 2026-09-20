@@ -7,7 +7,7 @@
 <title>骗子酒馆 · Liar's Table</title>
 <link rel="stylesheet" href="../style.css?v=b24">
 <link rel="stylesheet" href="../result-overlay.css?v=ro2">
-<link rel="stylesheet" href="liar.css?v=l19">
+<link rel="stylesheet" href="liar.css?v=l20">
 <style>
 /* 桌上道具架（内嵌防缓存） */
 .liar-props {
@@ -346,6 +346,14 @@
       <div class="liar-revolver" aria-hidden="true"><div class="liar-chamber"><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
       <p id="rouletteText">扣动扳机……</p>
     </div>
+    <!-- 开枪方向选择：轮到我开枪时显示 -->
+    <div id="shootChoices" class="liar-shoot" hidden>
+      <p id="shootPrompt" class="liar-shoot-prompt">选择开枪方向</p>
+      <div class="liar-shoot-btns">
+        <button id="shootSelfBtn" class="liar-btn danger compact" type="button">🔫 朝自己开枪</button>
+        <button id="shootOtherBtn" class="liar-btn primary compact" type="button">🎯 朝对方开枪</button>
+      </div>
+    </div>
     <button id="continueBtn" class="liar-btn primary compact" type="button" hidden>继续</button>
     <p id="onlineContinue" class="liar-auto" hidden>下一局即将自动开始…</p>
   </div>
@@ -409,11 +417,11 @@
 
 <script src="../notify.js?v=n3"></script>
 <script src="../lobby.js?v=l15"></script>
-<script src="liar-engine.js?v=l13"></script>
+<script src="liar-engine.js?v=l14"></script>
 <script src="liar-ai.js?v=l13"></script>
 <script src="liar-bot.js?v=l1"></script>
 <script src="../bot.js?v=b5"></script>
-<script src="liar-app.js?v=l24"></script>
+<script src="liar-app.js?v=l25"></script>
 <script src=../result-overlay.js?v=ro2"></script>
 <script src="../auth-check.js?v=a2"></script>
 </body>

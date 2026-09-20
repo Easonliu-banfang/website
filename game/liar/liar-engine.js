@@ -149,27 +149,74 @@ class GameEngine {
     const play = this.lastPlay;
     const lied = play.cards.some((card) => !cardMatchesTarget(card, this.target));
     const loser = lied ? play.player : id;
-    const punished = this.player(loser);
-    const bang = punished.shots === punished.bullet;
-    punished.shots += 1;
-    if (bang) punished.alive = false;
-
-    this.phase = 'reveal';
+    this.phase = 'shooting';          // 质疑分出胜负 → 开枪阶段：输家选择朝谁开枪
     this.log(`${this.player(id).name} 质疑 ${this.player(play.player).name}`);
-    this.log(bang ? `${punished.name} 的左轮击发，已被淘汰` : `${punished.name} 扣下空膛，暂时生还`);
     this.reveal = {
       challenger: id,
       accused: play.player,
       cards: [...play.cards],
       lied,
       loser,
-      bang,
+      shooter: loser,                 // 第一个开枪者 = 输家
+      pending: true,                  // 等待 shooter 选择方向
     };
     return { ...this.reveal, cards: [...this.reveal.cards] };
   }
 
+  // 开枪：shooter 选择方向（朝自己 / 朝对方[质疑者]）
+  // 规则：
+  //   朝对方开枪 → 对方承受；对方没死 → 轮到对方开枪；对方死 → 轮到死亡者下一位存活者
+  //   朝自己开枪 → 空弹(没死) → 自己可再开一枪；实弹(死) → 轮到死亡者下一位存活者
+  //   中弹者出局；只剩 1 人 → 整局结束
+  shoot(id, target) {
+    if (this.phase !== 'shooting') throw new Error('当前不在开枪阶段');
+    const reveal = this.reveal;
+    if (reveal.shooter !== id) throw new Error('还轮不到你开枪');
+    if (target !== 'self' && target !== 'other') throw new Error('无效的开枪方向');
+    if (!this.player(id).alive) throw new Error('你已被淘汰');
+
+    // 受枪者：朝自己 → 开枪者；朝对方 → 质疑者（对方）
+    let victimId = target === 'self' ? id : reveal.challenger;
+    if (victimId === id && target === 'other') {
+      // 朝对方但对方就是自己（单人存活对手为自己？不可能）——兜底
+      victimId = this.nextAlive(id);
+    }
+    const victim = this.player(victimId);
+    const bang = victim.shots === victim.bullet;
+    victim.shots += 1;
+    if (bang) victim.alive = false;
+    this.log(`${this.player(id).name} ${target === 'self' ? '朝自己' : '朝 ' + this.player(victimId).name + ' 开枪'}`);
+
+    // 决定下一开枪者（轮流开枪直到有人中弹出局）
+    let nextShooter = null;
+    if (target === 'self') {
+      if (!bang) nextShooter = id;              // 空弹：自己可再开一枪
+      else nextShooter = this.nextAlive(id);    // 中弹：轮到下一位存活者
+    } else {
+      if (!bang) nextShooter = victimId;        // 对方没死：轮到对方开枪
+      else nextShooter = this.nextAlive(victimId);  // 对方死：轮到下一位存活者
+    }
+
+    this.reveal = {
+      ...reveal,
+      shooter: nextShooter,
+      pending: nextShooter != null,
+      victim: victimId,
+      bang,
+      shotsAfter: victim.shots,
+    };
+
+    // 只剩 1 人 → 整局结束；否则若无人可开枪（全死或单循环）→ 结束惩罚进入下一局
+    if (this.alivePlayers().length <= 1) {
+      this.finish();
+    } else if (!nextShooter) {
+      this.phase = 'reveal';   // 无下一开枪者（理论不会），退化为直接下一局
+    }
+    return { ...this.reveal, cards: [...reveal.cards] };
+  }
+
   nextRound() {
-    if (this.phase !== 'reveal') throw new Error('当前无需进入下一局');
+    if (this.phase !== 'reveal' && this.phase !== 'shooting') throw new Error('当前无需进入下一局');
     return this.alivePlayers().length <= 1 ? this.finish() : this.startRound();
   }
 
@@ -214,7 +261,7 @@ class GameEngine {
       phase: this.phase,
       history: this.history.slice(),
       winner: this.winner,
-      reveal: this.reveal ? { ...this.reveal, cards: [...this.reveal.cards] } : null,
+      reveal: this.reveal ? { ...this.reveal, cards: [...this.reveal.cards], shotsAfter: this.reveal.shotsAfter != null ? this.reveal.shotsAfter : 0 } : null,
       players: this.players.map(function (p) {
         return { id: p.id, name: p.name, avatar: p.avatar, bot: p.bot, alive: p.alive, connected: p.connected, hand: p.hand.slice(), shots: p.shots, bullet: p.bullet };
       }),
@@ -227,6 +274,7 @@ class GameEngine {
       target: this.target,
       current: this.current,
       phase: this.phase,
+      shooting: this.phase === 'shooting' && this.reveal ? { shooter: this.reveal.shooter, pending: this.reveal.pending } : null,
       pileCount: this.pile.length,
       lastPlay: this.lastPlay ? { player: this.lastPlay.player, count: this.lastPlay.count } : null,
       winner: this.winner,
@@ -278,4 +326,5 @@ class GameEngine {
   }
 
   global.LiarEngine = { RANKS: RANKS, WILD_CARD: WILD_CARD, CARD_NAMES: CARD_NAMES, cardMatchesTarget: cardMatchesTarget, createDeck: createDeck, GameEngine: GameEngine, restore: restore };
+  global.LiarEngine.GameEngine.prototype.shoot = GameEngine.prototype.shoot;
 })(typeof window !== 'undefined' ? window : globalThis);

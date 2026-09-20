@@ -765,3 +765,18 @@ body.portrait .liar-chat { bottom: 12px; }
   .liar-prop { width: 56px; height: 72px; }
   .liar-props { display: none; }
 }
+
+/* ============ 开枪方向选择 ============ */
+.liar-shoot { margin: 14px 0 4px; text-align: center; }
+.liar-shoot-prompt {
+  margin: 0 0 10px; font-size: 15px; font-weight: 800; letter-spacing: 2px;
+  color: #ffd7a0; text-shadow: 0 2px 8px rgba(255, 120, 30, 0.4);
+}
+.liar-shoot-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.liar-shoot-btns .liar-btn { min-width: 148px; }
+.liar-shoot-btns .liar-btn.danger {
+  background: linear-gradient(180deg, #e8564a, #b83226);
+  box-shadow: 0 5px 0 #7c1d14, 0 10px 20px rgba(120, 20, 10, 0.4);
+}
+.liar-shoot-btns .liar-btn.danger:hover { filter: brightness(1.08); }
+.liar-shoot-btns .liar-btn.danger:active { transform: translateY(2px) scale(0.97); box-shadow: 0 1px 0 #7c1d14; }
