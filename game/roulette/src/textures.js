@@ -155,7 +155,7 @@ export function screenDual(foeLives, myLives, size = 256) {
     ctx.shadowColor = '#ff4f5e';
     ctx.shadowBlur = s * 0.09;
     ctx.fillStyle = '#ff5c6c';
-    ctx.font = '700 ' + Math.floor(s * 0.42) + 'px "SF Mono", monospace';
+    ctx.font = '700 ' + Math.floor(s * 0.5) + 'px "SF Mono", monospace';
     ctx.fillText(String(foeLives), s * 0.27, s * 0.46);
     // 右：我（绿）
     ctx.shadowColor = '#59c98a';
@@ -168,7 +168,7 @@ export function screenDual(foeLives, myLives, size = 256) {
     ctx.fillStyle = 'rgba(255,120,130,0.7)';
     ctx.fillText('FOE', s * 0.27, s * 0.14);
     ctx.fillStyle = 'rgba(120,220,170,0.75)';
-    ctx.fillText('YOU', s * 0.73, s * 0.14);
+    ctx.fillText('GAMER', s * 0.73, s * 0.14);
     // 底边小刻度（装饰）
     ctx.fillStyle = 'rgba(150,200,180,0.25)';
     for (let i = 0; i < 10; i++) ctx.fillRect(s * 0.08 + i * s * 0.084, s * 0.86, s * 0.05, 2);

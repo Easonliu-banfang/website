@@ -284,9 +284,10 @@ export function createScene(canvas) {
   scoreboard.add(body);
   // 屏幕（正面 +z 朝向玩家）；左=对手命数(红)、右=我的命数(绿)
   const sbTex = screenDual(3, 3);
+  const scoreScreenMat = new THREE.MeshStandardMaterial({ map: sbTex, emissive: 0xffffff, emissiveMap: sbTex, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.1 });
   const screen = new THREE.Mesh(
     new THREE.BoxGeometry(0.36, 0.16, 0.02),
-    new THREE.MeshStandardMaterial({ map: sbTex, emissive: 0xffffff, emissiveMap: sbTex, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.1 })
+    scoreScreenMat
   );
   screen.position.set(0, 0.12, 0.035);
   scoreboard.add(screen);
@@ -384,11 +385,19 @@ export function createScene(canvas) {
   window.addEventListener('resize', resize);
   resize();
 
+  // 记分牌命数实时更新（foe=对手红 / me=自己绿；clone 共享材质 → 两块一起变）
+  function setScoreboardLives(foeL, meL) {
+    const tex = screenDual(Math.max(0, foeL), Math.max(0, meL));
+    scoreScreenMat.map = tex;
+    scoreScreenMat.emissiveMap = tex;
+    scoreScreenMat.needsUpdate = true;
+  }
   return {
     renderer, scene, camera,
     mainLight,
     tableY: TABLE_H,
     tableW: TABLE_W, tableD: TABLE_D,
+    setScoreboardLives,
     start(loop) {
       const clock = new THREE.Clock();
       renderer.setAnimationLoop(() => loop(clock.getElapsedTime()));

@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r15';
-import { createShotgun } from './gun.js?v=r15';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r15';
-import { createDemon } from './demon.js?v=r15';
-import * as SFX from './sfx.js?v=r15';
+import { createScene } from './scene.js?v=r16';
+import { createShotgun } from './gun.js?v=r16';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r16';
+import { createDemon } from './demon.js?v=r16';
+import * as SFX from './sfx.js?v=r16';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r15';
+} from './roulette-engine.js?v=r16';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -155,8 +155,8 @@ function renderLives(container, n, max, who) {
 }
 function renderHUD() {
   const v = view(g);
-  renderLives($('myLives'), v.lives.me, v.maxLives, 'me');
-  renderLives($('foeLives'), v.lives.foe, v.maxLives, 'foe');
+  // 命数由桌面记分牌实时展示（右上/左上 HUD 小方块已移除）
+  if (app.setScoreboardLives) app.setScoreboardLives(v.lives.foe, v.lives.me);
   const left = v.shellLeft || { live: 0, blank: 0, total: 0 };
   $('shellStatus').textContent = '弹仓 ' + left.total + ' 发（实 ' + left.live + ' / 空 ' + left.blank + '）';
   renderShells(v);
