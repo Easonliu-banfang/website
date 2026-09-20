@@ -187,8 +187,8 @@ export function createShotgun(MAT) {
       gun.position.z += 0.05;
       gun.rotation.x -= 0.09;
     },
-    /** 瞄准：'me'（自射，枪口转向自己）| 'foe'（射对手） */
-    aim(target) { aiming = target; },
+    /** 瞄准：target = 'self'（枪口掉转 180° 对准自己）| 'foe'（枪口正对恶魔 -z） */
+    aim(target) { aiming = (target === 'self') ? 'self' : 'foe'; },
     getAim() { return aiming; },
     /** 每帧更新（t = 帧间隔秒） */
     update(dt, tSec) {
@@ -210,9 +210,10 @@ export function createShotgun(MAT) {
       // 后坐复位（弹回原位）
       gun.position.z += (0 - gun.position.z) * Math.min(1, dt * 8);
       gun.rotation.x += (0 - gun.rotation.x) * Math.min(1, dt * 8);
-      // 瞄准姿态：射自己时枪口转向玩家（枪身旋转 ~180° 的视觉效果：绕 y 转并抬高
-      const targetRotY = aiming === 'me' ? Math.PI * 0.86 : 0;
-      const targetRotX = aiming === 'me' ? -0.5 : 0;
+      // 瞄准姿态：射自己 → 绕 y 精确 180°（枪口从 -z 掉头到 +z，正对自己）；
+      // 射对手 → 0°（枪口正对 -z = 恶魔）。
+      const targetRotY = aiming === 'self' ? Math.PI : 0;
+      const targetRotX = aiming === 'self' ? -0.22 : 0;
       gun.rotation.y += (targetRotY - gun.rotation.y) * Math.min(1, dt * 6);
       // 轻微待机晃动（手持感）
       gun.rotation.z = Math.sin(tSec * 1.6) * 0.012;

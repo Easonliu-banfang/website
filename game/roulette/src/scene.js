@@ -11,8 +11,8 @@
  *
  * 所有几何用 Box/Cyl/Sphere 等组合出"精细感"，纯程序化（零外部资源）。
  */
-import * as THREE from '../lib/three.module.min.js?v=r2';
-import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r2';
+import * as THREE from '../lib/three.module.min.js?v=r3';
+import { woodGrain, ironPlate, felt, screenText, screenDual, concrete } from './textures.js?v=r3';
 
 export function createScene(canvas) {
   // ---- 渲染器 ----
@@ -238,40 +238,8 @@ export function createScene(canvas) {
   mk(0.018, TABLE_D - 0.1, -0.34, 0);
   mk(0.018, TABLE_D - 0.1, 0.12, 0);
 
-  // ---- 中线靠右：弹药计数器（实弹/空弹数量屏 + 双灯，面向玩家） ----
-  const bulletIndicator = new THREE.Group();
-  // 底座（梯形台）
-  const biBase = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 0.06, 0.16, 1, 2, 1),
-    MAT.machineBody
-  );
-  biBase.position.y = TABLE_H + 0.08;
-  bulletIndicator.add(biBase);
-  // 状态屏（斜面小屏，显示实弹/空弹剩余数量）
-  const biScreen = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.14, 0.09),
-    new THREE.MeshStandardMaterial({ map: screenText('3|2'), emissive: 0x2f7a54, emissiveIntensity: 1.0, emissiveMap: screenText('3|2'), side: THREE.DoubleSide })
-  );
-  biScreen.position.set(0, TABLE_H + 0.135, 0.085);
-  biScreen.rotation.x = -0.35;   // 朝玩家倾斜
-  bulletIndicator.add(biScreen);
-  // 屏框
-  const biScreenFrame = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.015), MAT.iron);
-  biScreenFrame.position.set(0, TABLE_H + 0.14, 0.02);
-  biScreenFrame.rotation.x = 0.35;
-  bulletIndicator.add(biScreenFrame);
-  // 双灯：左=空弹（蓝灰） 右=实弹（红）
-  const blankLamp = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8),
-    new THREE.MeshStandardMaterial({ color: 0xcfd8e8, emissive: 0x8aa0c8, emissiveIntensity: 1.3 }));
-  blankLamp.position.set(-0.05, TABLE_H + 0.09, 0.1);
-  bulletIndicator.add(blankLamp);
-  const liveLamp = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8),
-    new THREE.MeshStandardMaterial({ color: 0xff5c6c, emissive: 0xff2038, emissiveIntensity: 1.8 }));
-  liveLamp.position.set(0.05, TABLE_H + 0.09, 0.1);
-  bulletIndicator.add(liveLamp);
-  // 两侧小铭牌（LIVE / BLANK）
-  bulletIndicator.position.set(0.38, 0, 0.02);   // 中线靠右，与右侧记分牌分开
-  table.add(bulletIndicator);
+  // （弹药计数器已移除：剩余实/空弹数由 HUD 文案 + 子弹导轨展示）
+
 
   // ---- 道具格：玩家侧左右各 2，恶魔侧左右各 2（共 8 格，方形分布） ----
   const SLOT_X = [0.30, 0.62];           // 每侧两格：内/外
@@ -363,9 +331,10 @@ export function createScene(canvas) {
   base.position.y = 0.015;
   scoreboard.add(base);
   // 位置：桌面右外侧(靠桌沿)，玩家视线右前方；朝向角对准玩家坐姿 (yaw = atan2(-0.72, +1.46) ≈ -0.46 rad)
-  scoreboard.position.set(0.72, TABLE_H + 0.02, 0.32);
-  scoreboard.rotation.y = -0.46;         // 屏幕法线朝玩家(南偏西，正对坐姿)
-  scoreboard.rotation.x = -0.1;          // 微微前倾便于读数
+  // 位置：西侧墙边（玩家正北 = -z → 西 = -x），屏幕法线朝西（-x）
+  scoreboard.position.set(-1.15, TABLE_H + 0.02, 0.15);
+  scoreboard.rotation.y = Math.PI / 2;   // 法线 +z → -x（朝西）
+  scoreboard.rotation.x = -0.16;         // 微微前倾
   table.add(scoreboard);
 
   add(table);               // 桌子整体加入场景
