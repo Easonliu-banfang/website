@@ -576,3 +576,192 @@ body.portrait .liar-chat { bottom: 12px; }
   object-fit: cover; border-radius: 50%;
   display: block;
 }
+
+/* ================= 桌上道具架（酒馆吧台风格） ================= */
+.liar-props {
+  position: absolute;
+  left: 50%; top: 66%;
+  transform: translateX(-50%);
+  display: flex; align-items: flex-end; gap: 14px;
+  z-index: 4;
+  padding: 14px 22px 10px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(60, 44, 24, 0.55), rgba(24, 18, 10, 0.35) 60%, transparent 80%);
+  border-radius: 22px;
+}
+/* 吧台台面 */
+.liar-prop-shelf {
+  position: absolute; left: -6px; right: -6px; bottom: 0; height: 12px;
+  background: linear-gradient(180deg, #5a3d1e, #3a2713);
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 200, 120, 0.25);
+}
+.liar-prop {
+  position: relative; z-index: 1;
+  width: 74px; height: 88px;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 16px;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.liar-prop:hover { transform: translateY(-8px) scale(1.06); }
+.lp3d { position: relative; transform-style: preserve-3d; }
+
+/* ============ 🍺 冰镇啤酒 ============ */
+.lp-beer { width: 34px; height: 46px; }
+.lp-beer::before {   /* 杯身：琥珀色玻璃 */
+  content: ""; position: absolute; inset: 0 0 8px 0;
+  border-radius: 4px 4px 10px 10px;
+  background:
+    linear-gradient(180deg,
+      rgba(255, 214, 120, 0.95) 0%,
+      rgba(224, 148, 40, 0.92) 26%,
+      rgba(150, 84, 18, 0.94) 78%,
+      rgba(96, 48, 8, 0.96) 100%);
+  border: 1px solid rgba(255, 220, 150, 0.5);
+  box-shadow:
+    inset 6px 0 10px rgba(255, 255, 220, 0.35),   /* 左侧高光 */
+    inset -5px 0 8px rgba(60, 25, 0, 0.35),        /* 右侧阴影 */
+    inset 0 -6px 12px rgba(70, 30, 0, 0.5),
+    0 8px 16px rgba(0, 0, 0, 0.5);
+}
+.lp-beer::after {   /* 泡沫帽 */
+  content: ""; position: absolute; top: 0; left: 1px; right: 1px; height: 14px;
+  border-radius: 5px 5px 3px 3px;
+  background:
+    radial-gradient(circle at 30% 40%, #fffdf4 0%, #f3e7c0 45%, #d9c48a 100%);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35), inset 0 -2px 3px rgba(180, 150, 90, 0.6);
+}
+.lp-beer .lp-foam {   /* 溢出泡沫滴 */
+  position: absolute; top: 12px; left: 2px; width: 6px; height: 7px;
+  background: radial-gradient(circle, #fffdf4, #e8d9a8);
+  border-radius: 0 0 50% 50%;
+}
+
+/* ============ 🚬 雪茄 + 烟灰缸 ============ */
+.lp-cigar { width: 46px; height: 34px; }
+.lp-cigar::before {   /* 雪茄身：斜放 */
+  content: ""; position: absolute; left: 4px; bottom: 10px; width: 40px; height: 9px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #7a4a1d 0%, #5a3312 60%, #46260d 100%);
+  transform: rotate(-14deg);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.45), inset 0 -2px 2px rgba(0, 0, 0, 0.35);
+}
+.lp-cigar::after {    /* 点燃端橙红光 + 烟灰缸 */
+  content: ""; position: absolute; left: 42px; bottom: 6px; width: 10px; height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ff8a3c 0%, #ff5a1a 55%, #c22a05 100%);
+  box-shadow: 0 0 12px 4px rgba(255, 110, 30, 0.65);
+  animation: lpEmber 1.6s ease-in-out infinite;
+}
+.lp-cigar .lp-ash {   /* 灰缸 */
+  position: absolute; left: -2px; bottom: -6px; width: 52px; height: 16px;
+  border-radius: 6px 6px 8px 8px;
+  background: radial-gradient(ellipse at 30% 30%, #8a93a0, #565d68 70%, #3c414a);
+  box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+@keyframes lpEmber { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+
+/* ============ 🔍 老式放大镜 ============ */
+.lp-lens { width: 40px; height: 52px; }
+.lp-lens::before {   /* 镜片 */
+  content: ""; position: absolute; left: 4px; top: 0; width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 5px solid #8a6a30;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(190, 230, 255, 0.9) 0%, rgba(120, 180, 220, 0.45) 35%, rgba(60, 110, 150, 0.35) 70%, rgba(40, 70, 100, 0.5) 100%);
+  box-shadow:
+    inset 3px 3px 6px rgba(255, 255, 255, 0.5),
+    inset -3px -3px 6px rgba(10, 30, 50, 0.45),
+    0 5px 10px rgba(0, 0, 0, 0.5);
+}
+.lp-lens::after {    /* 手柄 */
+  content: ""; position: absolute; left: 16px; top: 32px; width: 8px; height: 22px;
+  border-radius: 0 0 5px 5px;
+  background: linear-gradient(90deg, #9c7a3c, #6b4f20 55%, #8a6a30);
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.4);
+}
+.lp-lens .lp-gleam {  /* 镜片反光 */
+  position: absolute; left: 11px; top: 7px; width: 12px; height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+  transform: rotate(-24deg);
+}
+
+/* ============ ⛓️ 铁手铐 ============ */
+.lp-cuffs { width: 46px; height: 34px; }
+.lp-cuffs::before {   /* 上环 */
+  content: ""; position: absolute; left: 5px; top: 2px; width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 6px solid #9aa2ad;
+  background: radial-gradient(circle at 35% 30%, #d8dde4, #a6aeb8 60%, #6e7680);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.5);
+}
+.lp-cuffs::after {    /* 下环 */
+  content: ""; position: absolute; left: 23px; top: 10px; width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 6px solid #9aa2ad;
+  background: radial-gradient(circle at 35% 30%, #d8dde4, #a6aeb8 60%, #6e7680);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.5);
+}
+.lp-cuffs .lp-chain {  /* 链条 */
+  position: absolute; left: 21px; top: 10px; width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 2px solid #aab2bc;
+  background: #7c848e;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ============ 🕯️ 旧蜡烛 ============ */
+.lp-candle { width: 30px; height: 52px; }
+.lp-candle::before {  /* 蜡身 */
+  content: ""; position: absolute; left: 6px; bottom: 6px; width: 18px; height: 38px;
+  border-radius: 4px 4px 3px 3px;
+  background: linear-gradient(90deg, #f3e2b8, #e8cf96 40%, #c9ab72 100%);
+  box-shadow: inset 4px 0 5px rgba(255, 255, 255, 0.4), inset -3px 0 4px rgba(120, 90, 40, 0.3), 0 5px 10px rgba(0, 0, 0, 0.45);
+}
+.lp-candle::after {   /* 火焰 */
+  content: ""; position: absolute; left: 11px; top: 0; width: 9px; height: 14px;
+  border-radius: 50% 50% 45% 55% / 65% 65% 35% 35%;
+  background: radial-gradient(circle at 50% 78%, #fff7c0 0%, #ffc23c 45%, #ff7a1a 78%, rgba(255, 80, 0, 0) 100%);
+  transform-origin: 50% 100%;
+  animation: lpFlame 0.9s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 160, 40, 0.9));
+}
+@keyframes lpFlame {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  30% { transform: scale(1.12, 1.3) rotate(2deg); }
+  60% { transform: scale(0.94, 1.05) rotate(-1deg); }
+  80% { transform: scale(1.06, 1.18) rotate(1deg); }
+}
+
+/* ============ 🔫 左轮手枪 ============ */
+.lp-revolver { width: 52px; height: 34px; }
+.lp-revolver::before {   /* 枪管 + 弹巢 */
+  content: ""; position: absolute; left: 0; top: 6px; width: 34px; height: 14px;
+  border-radius: 7px 3px 3px 7px;
+  background: linear-gradient(180deg, #4a5560, #2c333b 55%, #1d232a);
+  box-shadow: 0 4px 7px rgba(0, 0, 0, 0.55), inset 0 2px 2px rgba(255, 255, 255, 0.15);
+}
+.lp-revolver::after {    /* 握把 */
+  content: ""; position: absolute; left: 26px; top: 18px; width: 14px; height: 16px;
+  border-radius: 3px 3px 6px 6px;
+  background: linear-gradient(180deg, #5a3a1c, #3a2410);
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.5);
+  transform: rotate(8deg);
+}
+.lp-revolver .lp-cyl {   /* 弹巢圆点 */
+  position: absolute; left: 10px; top: 8px; width: 10px; height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #88929c, #4a535d 70%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+.lp-revolver .lp-cyl::after {
+  content: ""; position: absolute; left: 4px; top: 2px; width: 3px; height: 3px;
+  border-radius: 50%; background: #14181c;
+}
+
+@media (max-width: 760px) {
+  .liar-props { gap: 8px; padding: 10px 12px 8px; top: 62%; }
+  .liar-prop { width: 56px; height: 72px; }
+  .liar-props { display: none; }
+}
