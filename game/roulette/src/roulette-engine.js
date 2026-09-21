@@ -45,8 +45,9 @@ export function createGame(seed) {
     turn: 'me',
     items: { me: [], foe: [] },
     itemUsedThisTurn: false,   // 本回合是否已用道具（每回合限 1 个）
-    saw: false,
+    sawBy: null,               // 手锯归属：'me'|'foe'|null（仅持有者下次射击双倍）
     cuff: { me: 0, foe: 0 },
+    cuffUsed: { me: false, foe: false },   // 手铐每轮限一次（官方：用了不能再用手铐）
     over: false,
     winner: null,
     log: [],
@@ -89,6 +90,8 @@ export function startRound(g) {
   g.lives.foe = ROUND_LIVES[g.round];
   g.items.me = [];             // 每轮全新开始：道具清空重发
   g.items.foe = [];
+  g.cuff = { me: 0, foe: 0 };
+  g.cuffUsed = { me: false, foe: false };   // 手铐限用重置
   g.turn = 'me';
   const first = g.round === 1 && g.loadSeq === 0;      // 整场第一局：固定 1 实 2 虚
   load(g, first ? 3 : null, first ? 1 : null);
@@ -139,12 +142,13 @@ export function shoot(g, who, target) {
   if (cur === null) { load(g); giveItems(g, 'me', 2); giveItems(g, 'foe', 2); cur = peek(g); }
 
   const live = cur === true;
-  const dmg = live ? (g.saw ? 2 : 1) : 0;
+  // 手锯：仅【持有者】本次射击双倍（官方：your next shot deals double damage）
+  const dmg = live ? (g.sawBy === who ? 2 : 1) : 0;
   const victim = target === 'self' ? who : (who === 'me' ? 'foe' : 'me');
 
   if (live) {
     g.lives[victim] = Math.max(0, g.lives[victim] - dmg);
-    g.saw = false;          // 手锯一次性
+    g.sawBy = null;         // 手锯一次性（用后复位）
   }
   g.idx++;
 
@@ -160,8 +164,10 @@ export function shoot(g, who, target) {
   }
   g.turn = next;
 
-  // 重置回合标记（每回合限 1 道具）
+  // 重置回合标记（每回合限 1 道具）；用掉的道具下回合补回 1 个（官方 used items replaced）
+  const usedThisTurn = g.itemUsedThisTurn;
   g.itemUsedThisTurn = false;
+  if (usedThisTurn) giveItems(g, who, 1);
   g._aiActed = false;
   g._aiKnown = false;      // 下一回合重新用放大镜（信息不跨回合记忆）
 
@@ -220,17 +226,21 @@ function applyEffect(g, who, item) {
   const foe = who === 'me' ? 'foe' : 'me';
   switch (item) {
     case 'cigarette': {
-      const cap = MAX_LIVES;
+      const cap = ROUND_LIVES[g.round] || MAX_LIVES;
       if (g.lives[who] >= cap) return '命数已满，无法恢复';
+      // 官方：第 3 轮进入突死（剩 2 命及以下，除颤仪断电）后香烟无效
+      if (g.round >= 3 && g.lives[who] <= 2) return '💀 突死模式：电线已断，香烟无效';
       g.lives[who] = Math.min(cap, g.lives[who] + 1);
       return '恢复 1 条命';
     }
     case 'handcuff':
+      if (g.cuffUsed[who]) return '本轮已用过手铐，无法再用';
+      g.cuffUsed[who] = true;
       g.cuff[foe] = (g.cuff[foe] || 0) + 1;
-      return '对手跳过 1 回合';
+      return '对手跳过 1 回合（本轮手铐已用）';
     case 'handsaw':
-      g.saw = true;
-      return '下次伤害翻倍（2 命）';
+      g.sawBy = who;                       // 归属当前使用者
+      return '下次你的射击伤害翻倍（2 命）';
     case 'beer': {
       const c = peek(g);
       if (c === null) return '弹仓空，无法退弹';
@@ -251,8 +261,11 @@ function applyEffect(g, who, item) {
     }
     case 'phone': {
       const n = g.shell.length;
-      if (!n) return '弹仓空';
-      const k = Math.floor(g.rng() * n);
+      const left = n - g.idx;
+      if (left < 2) return '弹仓不足，无法提示';      // 官方：少于 2 发手机失效
+      // 随机揭示【非当前膛内】的一发（官方：excluding the current shell）
+      let k = Math.floor(g.rng() * (n - 1));
+      if (k >= g.idx) k++;
       return '第 ' + (k + 1) + ' 发是 ' + (g.shell[k] ? '实弹' : '空弹');
     }
     case 'adrenaline': {
@@ -295,8 +308,8 @@ export function aiDecide(g) {
     return { action: 'item', item: 'cigarette', reason: '回命' };
   }
 
-  // 手铐：有就优先用（跳过玩家回合）
-  if (has('handcuff') && g.cuff.me === 0) {
+  // 手铐：有就优先用（跳过玩家回合；每轮限一次）
+  if (has('handcuff') && g.cuff.me === 0 && !g.cuffUsed.foe) {
     return { action: 'item', item: 'handcuff', reason: '铐住玩家' };
   }
 
@@ -311,7 +324,7 @@ export function aiDecide(g) {
 
   // 已知当前弹（放大镜看的）
   if (known && cur === true) {
-    if (has('handsaw') && !g.saw) return { action: 'item', item: 'handsaw', reason: '实弹+锯→翻倍' };
+    if (has('handsaw') && g.sawBy !== 'foe') return { action: 'item', item: 'handsaw', reason: '实弹+锯→翻倍' };
     return { action: 'shoot', target: 'foe', reason: '实弹射玩家' };
   }
   if (known && cur === false) {
@@ -320,7 +333,7 @@ export function aiDecide(g) {
 
   // 未知（大多数情况）：纯概率决策，和玩家信息对等
   //   实弹占比高 → 把风险给玩家（射玩家）；低 → 自射博续回合
-  if (has('handsaw') && !g.saw && ratio >= 0.5) {
+  if (has('handsaw') && g.sawBy !== 'foe' && ratio >= 0.5) {
     return { action: 'item', item: 'handsaw', reason: '实弹率高+锯→翻倍' };
   }
   if (ratio >= 0.5) return { action: 'shoot', target: 'foe', reason: '未知·实弹率' + Math.round(ratio * 100) + '%→射玩家' };
@@ -345,7 +358,7 @@ export function view(g) {
     turn: g.turn,
     items: { me: g.items.me.slice(), foe: g.items.foe.slice() },
     itemUsedThisTurn: g.itemUsedThisTurn,
-    saw: g.saw,
+    sawBy: g.sawBy,
     cuff: { me: g.cuff.me, foe: g.cuff.foe },
     over: g.over,
     winner: g.winner,

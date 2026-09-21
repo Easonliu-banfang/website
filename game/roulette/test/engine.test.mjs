@@ -103,7 +103,7 @@ console.log('--- 手锯伤害翻倍 ---');
   g.shell = [true, true]; g.idx = 0;
   g.lives.foe = 2;                          // round1 恶魔 2 命
   shoot(g, 'me', 'foe');                    // 手锯实弹扣 2 → 恶魔命尽
-  ok('手锯一次性', g.saw === false);
+  ok('手锯一次性', g.sawBy === null);
   eq('恶魔命尽 → 玩家赢 round1', g.round, 2);      // 3轮制：进第 2 轮
   eq('round2 双方 4 命', g.lives.me, ROUND_LIVES[2]);
 }
