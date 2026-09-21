@@ -13,8 +13,11 @@
  *          beer 啤酒 / adrenaline 肾上腺素(偷来立即用) / inverter 逆变器 / phone 手机
  */
 
-export const MAX_LIVES = 3;          // 双方各 3 条命
-export const START_ITEMS = 4;        // 开局各发 4 个道具
+export const MAX_LIVES = 5;          // 单轮最大命数（第 3 轮）
+export const MAX_ROUND = 3;          // 正版 3 轮制
+// 正版官方：第1轮2命(无道具) / 第2轮4命(每次装弹发2道具) / 第3轮5命(每次装弹发4道具·突死)
+export const ROUND_LIVES = { 1: 2, 2: 4, 3: 5 };
+export const ROUND_ITEMS = { 1: 0, 2: 2, 3: 4 };
 export const ITEM_POOL = [
   'magnifier', 'cigarette', 'handcuff', 'handsaw',
   'beer', 'adrenaline', 'inverter', 'phone',
@@ -35,7 +38,8 @@ function makeRng(seed) {
 export function createGame(seed) {
   const g = {
     rng: makeRng(seed || (Date.now() & 0xffff)),
-    lives: { me: MAX_LIVES, foe: MAX_LIVES },
+    round: 1,                  // 当前轮次（正版 3 轮：1/2/3）
+    lives: { me: 0, foe: 0 },
     shell: [],
     idx: 0,
     turn: 'me',
@@ -51,8 +55,7 @@ export function createGame(seed) {
     loadSeq: 0,                // 装弹序号（前端导轨展示触发）
     loadInfo: null,            // 本轮装弹信息 { total, live, blank }
   };
-  dealItems(g);
-  load(g, 3, 1);              // 正版：首局固定 1 实 2 虚（此后每轮 2~8 随机）
+  startRound(g);               // 第 1 轮：2 命、无道具、首局固定 1 实 2 虚
   return g;
 }
 
@@ -78,6 +81,19 @@ export function load(g, n, fixedLive) {
   g.loadSeq = (g.loadSeq || 0) + 1;      // 装弹序号（前端据此触发导轨展示）
   g.loadInfo = { total, live, blank: total - live };   // 公开信息：本轮实/空数量
   return g.shell;
+}
+
+/** 开始一轮：命数重置（按轮次）+ 首局固定装弹 + 按轮次发道具 */
+export function startRound(g) {
+  g.lives.me = ROUND_LIVES[g.round];
+  g.lives.foe = ROUND_LIVES[g.round];
+  g.items.me = [];             // 每轮全新开始：道具清空重发
+  g.items.foe = [];
+  g.turn = 'me';
+  const first = g.round === 1 && g.loadSeq === 0;      // 整场第一局：固定 1 实 2 虚
+  load(g, first ? 3 : null, first ? 1 : null);
+  giveItems(g, 'me', ROUND_ITEMS[g.round]);            // 正版：round1 无道具 / r2 发2 / r3 发4
+  giveItems(g, 'foe', ROUND_ITEMS[g.round]);
 }
 
 function giveItems(g, who, n) {
@@ -149,24 +165,39 @@ export function shoot(g, who, target) {
   g._aiActed = false;
   g._aiKnown = false;      // 下一回合重新用放大镜（信息不跨回合记忆）
 
-  // 弹仓打空 → 重装 + 补发道具；正版规则：新负载从玩家先手
+  // 弹仓打空 → 重装 + 按轮次补发道具；正版规则：新负载从玩家先手
   if (g.idx >= g.shell.length) {
     load(g);
-    giveItems(g, 'me', 2);
-    giveItems(g, 'foe', 2);
+    giveItems(g, 'me', ROUND_ITEMS[g.round]);
+    giveItems(g, 'foe', ROUND_ITEMS[g.round]);
     g.turn = 'me';          // 正版：每次装弹后玩家先手
   }
 
-  // 有人归零 → 直接结束（无第二局）
+  // 有人命尽 → 正版 3 轮制判定
   const dead = g.lives.me <= 0 || g.lives.foe <= 0;
   if (dead) {
     const loser = g.lives.me <= 0 ? 'me' : 'foe';
-    g.over = true;
-    g.winner = loser === 'me' ? 'foe' : 'me';
-    g.log.push(loser + ' 命尽 —— ' + g.winner + ' 获胜');
-    return { live, dmg, dead, over: true, winner: g.winner };
+    const winnerP = loser === 'me' ? 'foe' : 'me';
+    g.log.push('第 ' + g.round + ' 轮：' + loser + ' 命尽');
+    if (winnerP === 'me' && g.round >= MAX_ROUND) {
+      // 玩家赢下第 3 轮 → 整场胜利（正版：通关 3 轮获胜）
+      g.over = true; g.winner = 'me';
+      g.log.push('玩家赢下第 3 轮 —— 整场胜利');
+      return { live, dmg, dead, over: true, winner: 'me' };
+    }
+    if (winnerP === 'me') {
+      // 玩家赢下当前轮 → 进入下一轮（命数重置）
+      g.round += 1;
+      startRound(g);
+      g.log.push('进入第 ' + g.round + ' 轮');
+    } else {
+      // 玩家输掉当前轮 → 重打当前轮（正版 1/2 轮可无限复活重来）
+      startRound(g);
+      g.log.push('重打第 ' + g.round + ' 轮');
+    }
+    return { live, dmg, dead, over: false, round: g.round };
   }
-  return { live, dmg, dead, over: false };
+  return { live, dmg, dead, over: false, round: g.round };
 }
 
 /**
@@ -302,7 +333,9 @@ export function view(g) {
   const liveLeft = rest.filter(Boolean).length;
   const blankLeft = rest.length - liveLeft;
   return {
-    maxLives: MAX_LIVES,
+    maxLives: ROUND_LIVES[g.round] || MAX_LIVES,
+    round: g.round,
+    maxRound: MAX_ROUND,
     lives: { me: g.lives.me, foe: g.lives.foe },
     // 只公开「剩余实弹/空弹数量」——顺序保密，谁也预知不了下一发
     shellLeft: { live: liveLeft, blank: blankLeft, total: rest.length },

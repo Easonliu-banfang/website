@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r24';
-import { createShotgun } from './gun.js?v=r24';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r24';
-import { createDemon } from './demon.js?v=r24';
-import * as SFX from './sfx.js?v=r24';
+import { createScene } from './scene.js?v=r25';
+import { createShotgun } from './gun.js?v=r25';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r25';
+import { createDemon } from './demon.js?v=r25';
+import * as SFX from './sfx.js?v=r25';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r24';
+} from './roulette-engine.js?v=r25';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -76,6 +76,7 @@ let railTarget = 0;
 let railHold = null;
 let lastLoadSeq = -1;
 let lastItemSig = '';
+let lastShownRound = -1;
 
 /* 分组渲染：先「实弹排一起」，再留一道缝，然后「空弹排一起」——不代表任何顺序 */
 function renderShells(v) {
@@ -159,7 +160,13 @@ function renderHUD() {
   // 命数由桌面记分牌实时展示（右上/左上 HUD 小方块已移除）
   if (app.setScoreboardLives) app.setScoreboardLives(v.lives.foe, v.lives.me);
   const left = v.shellLeft || { live: 0, blank: 0, total: 0 };
-  $('shellStatus').textContent = '弹仓 ' + left.total + ' 发（实 ' + left.live + ' / 空 ' + left.blank + '）';
+  $('shellStatus').textContent = '第 ' + (v.round || 1) + '/' + (v.maxRound || 3) + ' 轮 · 弹仓 ' + left.total + ' 发（实 ' + left.live + ' / 空 ' + left.blank + '）';
+  // 轮次切换提示
+  if (v.round !== lastShownRound) {
+    lastShownRound = v.round;
+    const rtxt = v.round === 3 ? '💀 第 3 轮 · 突死模式！5 条命' : (v.round === 2 ? '🔄 进入第 2 轮 · 4 条命' : '第 1 轮 · 2 条命');
+    toast(rtxt);
+  }
   renderShells(v);
   // 装弹序号变化 → 导轨升起展示 5 秒（谁也不暴露顺序，只展示实/空各几发）
   if (v.loadSeq !== lastLoadSeq) {
@@ -369,8 +376,8 @@ function aiTurn() {
 function endGame() {
   const v = view(g);
   const won = g.winner === 'me';
-  const title = won ? '🎉 你赢了！' : '💀 你输了';
-  const sub = won ? '恶魔倒下了，你带着钱离开' : '你被永远留在这里';
+  const title = won ? '🎉 你通关了整场（3 轮）！' : '💀 你输了';
+  const sub = won ? '恶魔在突死轮被终结，你带着钱离开' : '你被永远留在这里';
   const stats = [
     ['你的剩余命数', String(v.lives.me)],
     ['恶魔剩余命数', String(v.lives.foe)],
@@ -541,7 +548,7 @@ async function beginGame() {
   busy = false;
   openingSeq = false;
   renderHUD();
-  toast('🚦 正版规则：你先手 —— 枪已上膛，选个方向扣扳机');
+  toast('🚦 第 1 轮 · 2 条命 —— 你先手（正版规则，本轮无道具）');
 }
 
 $('btnStart').addEventListener('click', () => {
