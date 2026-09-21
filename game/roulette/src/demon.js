@@ -173,10 +173,10 @@ export function createDemon() {
   let shakeT = 0;    // 说话/动作抖动
 
   demon.userData = {
-    /** 受击（中弹）反应：抖动 + 红瞳闪白 */
-    hit() { hitT = 0.35; shakeT = 0.25; },
+    /** 受击（中弹）反应：剧烈抖动 + 红瞳闪白 */
+    hit() { hitT = 0.4; shakeT = 0.4; },
     /** 说话/动作（轻微抖动） */
-    talk() { shakeT = 0.3; },
+    talk() { shakeT = 0.25; },
     /** 每帧更新 */
     update(dt, t) {
       // 整体漂浮（缓慢上下 + 左右微摆）
@@ -188,18 +188,23 @@ export function createDemon() {
         h.position.y = -0.12 + Math.sin(t * 1.1 + i * 1.7) * 0.035;
         h.rotation.z = Math.sin(t * 0.9 + i * 2.1) * 0.08;
       });
-      // 受击/说话抖动
+      // 受击/说话抖动（k 归一化 0..1；受击 hitT 额外加力）
+      if (hitT > 0) hitT -= dt;
       if (shakeT > 0) {
         shakeT -= dt;
-        const k = Math.max(0, shakeT / 0.25);
-        demon.position.x = Math.sin(t * 60) * 0.035 * k;
-        demon.rotation.x = Math.sin(t * 70) * 0.05 * k;
+        const k = Math.max(0, Math.min(1, shakeT / 0.4));   // 0..1 平滑衰减
+        const power = (hitT > 0) ? 1.9 : 1.0;               // 受击更剧烈
+        demon.position.x = Math.sin(t * 55) * 0.04 * k * power;
+        demon.rotation.x = Math.sin(t * 65) * 0.06 * k * power;
+        demon.rotation.z = Math.sin(t * 85) * 0.035 * k * power;   // 加 z 轴颤抖更真实
       } else {
         demon.position.x += (0 - demon.position.x) * Math.min(1, dt * 6);
         demon.rotation.x += (0 - demon.rotation.x) * Math.min(1, dt * 6);
+        demon.rotation.z = Math.sin(t * 0.55) * 0.02;        // 恢复漂浮微摆
       }
-      // 红瞳呼吸（发光强弱）
-      const pulse = 1.6 + Math.sin(t * 2.4) * 0.5;
+      // 红瞳呼吸 + 受击闪白（hitT 期间爆亮）
+      const hitBlink = (hitT > 0) ? 3.2 : 0;
+      const pulse = 1.6 + Math.sin(t * 2.4) * 0.5 + hitBlink * (hitT > 0 ? 1 : 0);
       demon.children.forEach((c) => {
         if (c.material && c.material.emissive && c.material.color && c.material.color.getHex() === 0xff3020) {
           c.material.emissiveIntensity = pulse;

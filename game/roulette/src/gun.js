@@ -7,7 +7,7 @@
  *   - 枪托 + 握把（木质）
  *   - 扳机 + 扳机护圈（金属）
  * 朝向：枪口朝 -z（正对恶魔），枪托朝 +z（玩家侧）
- * 提供方法：pump()（泵动动画）、flash()（枪口火光）、aimAt('me'|'foe')
+ * 提供方法：pump()（泵动动画）、flash()（枪口火光）、aim('me'|'foe'|'idle')（目标方位）
  */
 import * as THREE from '../lib/three.module.min.js';
 
@@ -202,7 +202,6 @@ export function createShotgun(MAT) {
         raiseT = 0;
       }
     },
-    getAim() { return aiming; },
     /** 每帧更新（t = 帧间隔秒） */
     update(dt, tSec) {
       // 泵动动画：护木后拉再复位（0.42s）
