@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r19';
-import { createShotgun } from './gun.js?v=r19';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r19';
-import { createDemon } from './demon.js?v=r19';
-import * as SFX from './sfx.js?v=r19';
+import { createScene } from './scene.js?v=r20';
+import { createShotgun } from './gun.js?v=r20';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r20';
+import { createDemon } from './demon.js?v=r20';
+import * as SFX from './sfx.js?v=r20';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r19';
+} from './roulette-engine.js?v=r20';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -480,6 +480,7 @@ app.start((tSec) => {
 
   // 枪归属：平滑移动到当前持枪方（玩家=桌面中央 / 恶魔=恶魔手中）
   gun.position.lerp(gunTarget, Math.min(1, dt * 4));
+  if (gun.userData.liftY) gun.position.y += gun.userData.liftY;   // 端起抬升：枪离桌升起
 
   // 导轨升降（0=桌下 → 1=桌面）
   railT += (railTarget - railT) * Math.min(1, dt * 5.5);

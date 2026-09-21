@@ -177,6 +177,7 @@ export function createShotgun(MAT) {
   let gateRot = 0;    // 转向门：端起完成后才从 0→1（拿起→瞄准 两段式）
 
   gun.userData = {
+    liftY: 0,           // 端起抬升量（玩家射击时枪离桌升起，main 叠加到 position.y）
     /** 泵动上膛（把下一发送入膛内） */
     pump() {
       if (pumping) return;
@@ -231,7 +232,7 @@ export function createShotgun(MAT) {
       if (aiming !== 'idle' && raiseT < 1) raiseT = Math.min(1, raiseT + dt / 0.38);
       const ra = raiseT * raiseT * (3 - 2 * raiseT);
       const overshoot = Math.sin(Math.min(1, raiseT * 1.4) * Math.PI) * 0.03;   // 轻微过头
-      const aimPitch = -(ra * (aiming === 'me' ? 0.26 : 0.16)) + overshoot + recoilT * 0.13;
+      const aimPitch = -(ra * (aiming === 'me' ? 0.28 : 0.22)) + overshoot + recoilT * 0.13;
 
       // 两段式瞄准：① 先端起（45° 躺 → 端平朝前 0°）② 端起完成(≥75%)才旋转到目标方位
       const pickUp = 1 - lay;                                   // 端起程度 0..1
@@ -245,6 +246,9 @@ export function createShotgun(MAT) {
       // 俯仰：躺平=微倾 0.02 ｜ 端平举起=瞄准俯仰（放下时平滑回平）
       const pitchTarget = lay * 0.02 + (1 - lay) * (aiming === 'idle' ? 0 : aimPitch);
       gun.rotation.x += (pitchTarget - gun.rotation.x) * Math.min(1, dt * 6);
+      // 端起抬升：枪从桌面明显离桌升起（由 main 在 lerp 后叠加）
+      const liftTarget = (aiming === 'idle') ? 0 : (1 - lay) * 0.06;
+      gun.userData.liftY += (liftTarget - gun.userData.liftY) * Math.min(1, dt * 6);
 
       // 侧倾：躺下加重侧躺；端平时轻微手持晃动
       const rollTarget = lay * 0.055 + (1 - lay) * (aiming === 'idle' ? 0 : Math.sin(tSec * 1.6) * 0.012);
