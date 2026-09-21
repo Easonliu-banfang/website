@@ -145,6 +145,7 @@ function renderItems(v) {
 let g = createGame();
 let busy = false;          // 动画/AI 进行中，锁输入
 let openingSeq = false;    // 开局装弹/导轨展示阶段（显示「装弹中…」而非恶魔抉择）
+let heartbeatAcc = 0;      // 背景紧张心跳计时
 let suddenShown = false;   // round3 突死剪线仪式（每场一次）
 
 /* ---------- HUD ---------- */
@@ -158,6 +159,7 @@ function renderHUD() {
   // 轮次切换提示
   if (v.round !== lastShownRound) {
     lastShownRound = v.round;
+    if (app.clearCasings) app.clearCasings();   // 新轮次清桌面遗壳
     const rtxt = v.round === 3 ? '💀 第 3 轮 · 突死模式！5 条命' : (v.round === 2 ? '🔄 进入第 2 轮 · 4 条命' : '第 1 轮 · 2 条命');
     toast(rtxt);
   }
@@ -297,13 +299,17 @@ function playerShoot(target) {
   setTimeout(() => {
     gun.userData.fire();           // 开枪特效（端起→举枪→转向完成后击发）
     SFX.fireShot();                // 枪声
+    shakeCam(0.028);               // 开枪剧震
+    muzzleSmoke(gun.position.x, gun.position.y + 0.02, gun.position.z - 0.3);
+    throwCasing(gun.position.x + (Math.random() - 0.5) * 0.06, gun.position.y + 0.05, gun.position.z + 0.02);
     const r = shoot(g, who, target);
     if (!r) return;
     // 中弹方反应
     const victimW = target === 'self' ? 'me' : 'foe';
     if (r.live) {
-      if (target === 'foe') { demon.userData.hit(); if (r.dead) demon.userData.fly(); }
-      else flashScreen();
+      if (target === 'foe') { demon.userData.hit(); if (r.dead) demon.userData.fly(); shakeCam(0.05); }
+      else { flashScreen(); shakeCam(0.08); }
+      boltFlash();                 // 中弹 ⚡ 电量流失
       SFX.hit();                   // 命中闷响
       if (r.dead && !r.over) {
         // 玩家死亡 → 玩家视角除颤复活过场
@@ -336,6 +342,76 @@ function playerItem(type) {
   renderHUD();
   // 道具不结束回合：用完仍可射击（但本回合不能再用了）
 }
+/** ① 镜头剧震（正版：开枪/中弹画面震动） */
+let shakeT = 0, shakeAmp = 0;
+function shakeCam(amp) {
+  shakeT = 0.34;
+  shakeAmp = Math.max(shakeAmp, amp);
+}
+
+/** ② 中弹闪电图标（正版：被击中屏幕中央闪 ⚡ 电量流失） */
+function boltFlash() {
+  const b = document.createElement('div');
+  b.className = 'bolt-hit';
+  b.innerHTML = '⚡';
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 520);
+}
+
+/** ③ 枪口烟雾（正版：开枪后白烟飘散） */
+const smokePuffs = [];
+function muzzleSmoke(x, y, z) {
+  const sp = new THREE.Mesh(
+    new THREE.SphereGeometry(0.05, 8, 6),
+    new THREE.MeshBasicMaterial({ color: 0xb9bfcc, transparent: true, opacity: 0.55, depthWrite: false })
+  );
+  sp.position.set(x, y, z);
+  scene.add(sp);
+  smokePuffs.push({ mesh: sp, t: 0, life: 1.7, vx: (Math.random() - 0.5) * 0.16, vy: 0.45 + Math.random() * 0.2 });
+}
+
+/** ④ 开枪抛壳（正版：弹壳从抛壳口飞出落桌遗留） */
+const flyingCasings = [];
+function throwCasing(x, y, z) {
+  const c = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.0055, 0.0062, 0.02, 8),
+    new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.35, metalness: 0.85 })
+  );
+  c.rotation.x = Math.PI / 2;
+  c.position.set(x, y, z);
+  scene.add(c);
+  flyingCasings.push({
+    mesh: c, t: 0,
+    vx: (Math.random() - 0.5) * 0.4, vy: 1.05 + Math.random() * 0.3, vz: (Math.random() - 0.5) * 0.25,
+    rot: (Math.random() - 0.5) * 10,
+  });
+}
+
+/** ⑤ 恶魔台词气泡（正版：Dealer 说话文字气泡） */
+const DEMON_LINES = ['呵……让命运决定。', '轮到你了，扣扳机。', '真不走运……', '有意思，继续。', '来呀，开枪。', '再想想？'];
+let bubbleEl = null;
+function demonTalk(line) {
+  if (bubbleEl) { bubbleEl.remove(); bubbleEl = null; }
+  const b = document.createElement('div');
+  b.className = 'demon-bubble';
+  b.textContent = line || DEMON_LINES[Math.floor(Math.random() * DEMON_LINES.length)];
+  document.body.appendChild(b);
+  bubbleEl = b;
+  setTimeout(() => {
+    if (bubbleEl === b) { b.classList.add('out'); setTimeout(() => { b.remove(); if (bubbleEl === b) bubbleEl = null; }, 480); }
+  }, 1900);
+}
+
+/** ⑥ 道具盒派发动画（正版：道具盒推入打开） */
+function itemBoxAnim(count) {
+  const bx = document.createElement('div');
+  bx.className = 'item-box';
+  bx.innerHTML = '<div class="ib-glow"></div><div class="ib-box">📦</div><span class="ib-note">获得道具 ×' + count + '</span>';
+  document.body.appendChild(bx);
+  setTimeout(() => bx.classList.add('open'), 40);
+  setTimeout(() => { bx.classList.add('out'); setTimeout(() => bx.remove(), 450); }, 1900);
+}
+
 /* 掉命未死：红色光晕受损脉冲（区别于死亡除颤过场） */
 function lifeLostFlash() {
   const d = document.createElement('div');
@@ -379,6 +455,7 @@ function aiTurn() {
   if (g.over) { busy = false; return; }
   const d = aiDecide(g);
   demon.userData.talk();
+  demonTalk();                    // 恶魔台词气泡
   SFX.uiClick();
   gunTarget.copy(GUN_DEMON);      // 恶魔拿枪（枪移到它手中，指着你）
   setTimeout(() => {
@@ -397,11 +474,15 @@ function aiTurn() {
     setTimeout(() => {
       gun.userData.fire();
       SFX.fireShot();
+      shakeCam(0.022);
+      muzzleSmoke(gun.position.x, gun.position.y + 0.02, gun.position.z + 0.3);
+      throwCasing(gun.position.x + (Math.random() - 0.5) * 0.06, gun.position.y + 0.05, gun.position.z - 0.02);
       const r = shoot(g, 'foe', target);
       const aiVictim = target === 'self' ? 'foe' : 'me';
       if (r && r.live) {
-        if (target === 'foe') flashScreen();   // 玩家中弹
-        else { demon.userData.hit(); if (r.dead) demon.userData.fly(); }
+        if (target === 'foe') { flashScreen(); shakeCam(0.08); }
+        else { demon.userData.hit(); if (r.dead) demon.userData.fly(); shakeCam(0.04); }
+        boltFlash();
         SFX.hit();
         if (r.dead && !r.over) {
           // 玩家死亡 → 玩家视角除颤复活；恶魔死亡 → 场景内飞出/飞回
@@ -428,6 +509,21 @@ function aiTurn() {
 function endGame() {
   const v = view(g);
   const won = g.winner === 'me';
+  // 胜利：先播「开车带钱离开」结局过场，再弹结算
+  if (won && !document.querySelector('.victory')) {
+    const vic = document.createElement('div');
+    vic.className = 'victory';
+    vic.innerHTML =
+      '<div class="vic-road"></div>' +
+      '<div class="vic-taillights"><span class="vic-taillight"></span><span class="vic-taillight"></span></div>' +
+      '<div class="vic-text">🏆 恶魔倒下了 · 你开着车，带着钱离开了</div>';
+    document.body.appendChild(vic);
+    setTimeout(() => { vic.remove(); finishEndGame(v, won); }, 4400);
+    return;
+  }
+  finishEndGame(v, won);
+}
+function finishEndGame(v, won) {
   const title = won ? '🎉 你通关了整场（3 轮）！' : '💀 你输了';
   const sub = won ? '恶魔在突死轮被终结，你带着钱离开' : '你被永远留在这里';
   const stats = [
@@ -457,6 +553,14 @@ function endGame() {
   again.textContent = '🔄 再来一局';
   again.onclick = () => location.reload();
   bar.appendChild(again);
+}
+
+/** ⑧ 心跳间隔：血越少/轮次越靠后 → 心跳越快（正版危险度氛围） */
+function heartbeatInterval() {
+  const v = view(g);
+  const total = v.lives.me + v.lives.foe;
+  const danger = (v.round / 3) * 0.5 + Math.max(0, (10 - total) / 10) * 0.6;
+  return Math.max(0.62, 1.55 - danger * 0.95);
 }
 
 /* ---------- 渲染循环 ---------- */
@@ -553,6 +657,12 @@ app.start((tSec) => {
   // 枪归属：平滑移动到当前持枪方（玩家=桌面中央 / 恶魔=恶魔手中）
   gun.position.lerp(gunTarget, Math.min(1, dt * 4));
   if (gun.userData.liftY) gun.position.y += gun.userData.liftY;   // 端起抬升：枪离桌升起
+
+  /* ① 镜头剧震 */ if (shakeT > 0) { shakeT -= dt; const sk = Math.max(0, shakeT / 0.34); camera.position.x += (Math.random() - 0.5) * shakeAmp * sk * 2; camera.position.y += (Math.random() - 0.5) * shakeAmp * sk * 2; camera.position.z += (Math.random() - 0.5) * shakeAmp * sk; if (shakeT <= 0) shakeAmp = 0; }
+  /* ③ 枪口烟雾 */ for (let i = smokePuffs.length - 1; i >= 0; i--) { const p = smokePuffs[i]; p.t += dt; const k = Math.min(1, p.t / p.life); p.mesh.position.y += p.vy * dt; p.mesh.position.x += p.vx * dt; p.mesh.scale.setScalar(1 + k * 3.2); p.mesh.material.opacity = 0.55 * (1 - k); if (k >= 1) { scene.remove(p.mesh); smokePuffs.splice(i, 1); } }
+  /* ④ 弹壳抛出落桌 */ for (let i = flyingCasings.length - 1; i >= 0; i--) { const c = flyingCasings[i]; c.t += dt; c.vy -= 7.5 * dt; c.mesh.position.x += c.vx * dt; c.mesh.position.y += c.vy * dt; c.mesh.position.z += c.vz * dt; c.mesh.rotation.x += c.rot * dt; if (c.mesh.position.y <= app.tableY + 0.028 && c.vy < 0) { c.mesh.position.y = app.tableY + 0.028; c.mesh.rotation.set(0, 0, 0); scene.remove(c.mesh); app.casingGroup.add(c.mesh); flyingCasings.splice(i, 1); } }
+  /* ⑩ 氛围：烟雾飘 + 顶灯呼吸 */ if (app.smokeH && app.smokeH.userData.update) app.smokeH.userData.update(tSec); app.mainLight.intensity = 7.2 + Math.sin(tSec * 1.25) * 0.6;
+  /* ⑧ 背景紧张心跳 */ heartbeatAcc += dt; if (heartbeatAcc > heartbeatInterval()) { heartbeatAcc = 0; SFX.heartbeatOne(); }
 
   // 导轨升降（0=桌下 → 1=桌面）
   railT += (railTarget - railT) * Math.min(1, dt * 5.5);

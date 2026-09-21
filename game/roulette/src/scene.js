@@ -125,6 +125,26 @@ export function createScene(canvas) {
   }
 
 
+  // 氛围烟雾（缓慢飘动的半透明雾团，还原夜店污浊空气）
+  const smokeGroup = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const smoke = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55 + (i % 2) * 0.25, 14, 10),
+      new THREE.MeshStandardMaterial({ color: 0x8d94a8, transparent: true, opacity: 0.045 + i * 0.014, roughness: 1, depthWrite: false })
+    );
+    smoke.position.set(-1.2 + i * 1.2, 1.5, -1.5 + (i % 2) * 0.9);
+    smoke.scale.set(1.2, 0.7, 1);
+    smokeGroup.add(smoke);
+  }
+  smokeGroup.userData.update = function (t) {
+    smokeGroup.children.forEach((m, i) => {
+      m.position.x += Math.sin(t * 0.11 + i * 2.4) * 0.0006;
+      m.position.y += Math.sin(t * 0.07 + i * 1.3) * 0.0004;
+      m.rotation.y += 0.001;
+    });
+  };
+  add(smokeGroup);
+
   // 天花板 + 管线
   const ceilMat = new THREE.MeshStandardMaterial({ color: 0x171922, roughness: 1 });
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(12, 9), ceilMat);
@@ -392,12 +412,20 @@ export function createScene(canvas) {
     scoreScreenMat.emissiveMap = tex;
     scoreScreenMat.needsUpdate = true;
   }
+  // 桌上弹壳群（开枪抛出的遗留弹壳，正版：遗壳留着当线索）
+  const casingGroup = new THREE.Group();
+  casingGroup.position.y = TABLE_H + 0.03;
+  scene.add(casingGroup);
+  function clearCasings() { while (casingGroup.children.length) casingGroup.remove(casingGroup.children[0]); }
+
   return {
     renderer, scene, camera,
     mainLight,
     tableY: TABLE_H,
     tableW: TABLE_W, tableD: TABLE_D,
     setScoreboardLives,
+    casingGroup, clearCasings,
+    smokeH: smokeGroup,
     start(loop) {
       const clock = new THREE.Clock();
       renderer.setAnimationLoop(() => loop(clock.getElapsedTime()));

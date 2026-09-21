@@ -151,14 +151,36 @@ export function createShotgun(MAT) {
   guardBar.position.set(0, -0.083, 0.062);
   gun.add(guardBar);
 
-  // ---- 枪口火光（默认隐藏，开枪时显示） ----
-  const flash = new THREE.Mesh(
-    new THREE.SphereGeometry(0.06, 10, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.95 })
+  // ---- 枪口火光（双层 + 光晕，开枪时显示） ----
+  const flashCore = new THREE.Mesh(
+    new THREE.SphereGeometry(0.085, 12, 10),
+    new THREE.MeshBasicMaterial({ color: 0xfff2c0, transparent: true, opacity: 1 })
   );
-  flash.position.set(0, 0, -0.54);
-  flash.visible = false;
-  gun.add(flash);
+  flashCore.position.set(0, 0, -0.56);
+  flashCore.visible = false;
+  gun.add(flashCore);
+  const flashHalo = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15, 12, 10),
+    new THREE.MeshBasicMaterial({ color: 0xff9030, transparent: true, opacity: 0.75 })
+  );
+  flashHalo.position.set(0, 0, -0.56);
+  flashHalo.visible = false;
+  gun.add(flashHalo);
+  // 枪口光晕精灵（星形放射感）
+  const glowTex = document.createElement('canvas'); glowTex.width = glowTex.height = 64;
+  const gc = glowTex.getContext('2d');
+  const grad = gc.createRadialGradient(32, 32, 2, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,240,190,1)');
+  grad.addColorStop(0.35, 'rgba(255,170,80,0.8)');
+  grad.addColorStop(1, 'rgba(255,120,40,0)');
+  gc.fillStyle = grad; gc.fillRect(0, 0, 64, 64);
+  const flashGlow = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowTex), transparent: true, opacity: 0.9, depthWrite: false })
+  );
+  flashGlow.scale.set(0.5, 0.5, 1);
+  flashGlow.position.set(0, 0.01, -0.58);
+  flashGlow.visible = false;
+  gun.add(flashGlow);
 
   // 枪口点光源（开枪瞬间照亮）
   const flashLight = new THREE.PointLight(0xffc070, 0, 3, 2);
@@ -186,9 +208,11 @@ export function createShotgun(MAT) {
     },
     /** 开枪：枪口火光 + 后坐 */
     fire() {
-      flashT = 0.09;
-      flash.visible = true;
-      flashLight.intensity = 6;
+      flashT = 0.1;
+      flashCore.visible = true;
+      flashHalo.visible = true;
+      flashGlow.visible = true;
+      flashLight.intensity = 9;
       recoilT = 1;            // 后坐（由 update 衰减）
     },
     /** 瞄准：aim('me') = 对准玩家(+z)｜aim('foe') = 对准恶魔(-z)｜aim('idle') = 45° 斜放待机
@@ -212,12 +236,20 @@ export function createShotgun(MAT) {
         const k = pumpT < 0.5 ? pumpT / 0.5 : (1 - pumpT) / 0.5;
         pump.position.z = -0.2 + k * 0.07;
       }
-      // 火光衰减
+      // 火光衰减（核心先缩，光环外扩，光晕淡出）
       if (flashT > 0) {
         flashT -= dt;
-        flash.scale.setScalar(1 + (0.09 - flashT) * 6);
-        flashLight.intensity = Math.max(0, flashT / 0.09) * 6;
-        if (flashT <= 0) { flash.visible = false; flashLight.intensity = 0; flash.scale.setScalar(1); }
+        const fk = Math.max(0, flashT / 0.1);
+        flashCore.scale.setScalar(1 + (0.1 - flashT) * 3);
+        flashHalo.scale.setScalar(1 + (0.1 - flashT) * 8);
+        flashHalo.material.opacity = 0.75 * fk;
+        flashGlow.material.opacity = 0.9 * fk;
+        flashLight.intensity = fk * 9;
+        if (flashT <= 0) {
+          flashCore.visible = flashHalo.visible = flashGlow.visible = false;
+          flashLight.intensity = 0;
+          flashCore.scale.setScalar(1); flashHalo.scale.setScalar(1); flashHalo.material.opacity = 0.75; flashGlow.material.opacity = 0.9;
+        }
       }
       // 后坐衰减复位
       recoilT = Math.max(0, recoilT - dt * 3.6);

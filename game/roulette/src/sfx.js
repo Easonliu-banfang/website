@@ -66,6 +66,22 @@ export function heartbeat() {
   }
 }
 
+/** 心跳单跳（背景紧张心跳，危险度越高播得越频） */
+export function heartbeatOne() {
+  const c = ac(); if (!c) return;
+  const t0 = c.currentTime;
+  const osc = c.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(54, t0);
+  osc.frequency.exponentialRampToValueAtTime(36, t0 + 0.13);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.3, t0 + 0.018);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
+  osc.connect(g); g.connect(c.destination);
+  osc.start(t0); osc.stop(t0 + 0.18);
+}
+
 /** 开枪：噪声爆音 + 低频冲击 */
 export function fireShot() {
   const c = ac(); if (!c) return;
