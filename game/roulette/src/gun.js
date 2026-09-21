@@ -247,7 +247,7 @@ export function createShotgun(MAT) {
       const pitchTarget = lay * 0.02 + (1 - lay) * (aiming === 'idle' ? 0 : aimPitch);
       gun.rotation.x += (pitchTarget - gun.rotation.x) * Math.min(1, dt * 6);
       // 端起抬升：枪从桌面明显离桌升起（由 main 在 lerp 后叠加）
-      const liftTarget = (aiming === 'idle') ? 0 : (1 - lay) * 0.06;
+      const liftTarget = (aiming === 'idle') ? 0 : (1 - lay) * 0.035;   // 端起微抬（别太高）
       gun.userData.liftY += (liftTarget - gun.userData.liftY) * Math.min(1, dt * 6);
 
       // 侧倾：躺下加重侧躺；端平时轻微手持晃动

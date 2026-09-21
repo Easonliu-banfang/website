@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r20';
-import { createShotgun } from './gun.js?v=r20';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r20';
-import { createDemon } from './demon.js?v=r20';
-import * as SFX from './sfx.js?v=r20';
+import { createScene } from './scene.js?v=r21';
+import { createShotgun } from './gun.js?v=r21';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r21';
+import { createDemon } from './demon.js?v=r21';
+import * as SFX from './sfx.js?v=r21';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r20';
+} from './roulette-engine.js?v=r21';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -143,6 +143,7 @@ function renderItems(v) {
 /* ---------- 游戏状态 ---------- */
 let g = createGame();
 let busy = false;          // 动画/AI 进行中，锁输入
+let openingSeq = false;    // 开局装弹/导轨展示阶段（显示「装弹中…」而非恶魔抉择）
 
 /* ---------- HUD ---------- */
 function renderLives(container, n, max, who) {
@@ -176,6 +177,10 @@ function renderHUD() {
 function renderActions(v) {
   const bar = $('actionBar');
   bar.innerHTML = '';
+  if (openingSeq) {
+    bar.innerHTML = '<div class="waiting">装弹中…</div>';   // 导轨/分道具阶段
+    return;
+  }
   if (g.over || busy || v.turn !== 'me') {
     bar.innerHTML = '<div class="waiting">恶魔正在抉择…</div>';
     return;
@@ -518,6 +523,7 @@ app.start((tSec) => {
 /* 开局流程：装弹导轨展示(≈5s，含道具分发落下) → 随机先手 → 开打 */
 async function beginGame() {
   busy = true;
+  openingSeq = true;       // 装弹/导轨展示阶段
   lastLoadSeq = -1;        // 强制触发开局装弹导轨
   lastItemSig = '';
   renderHUD();             // 导轨升起 + 道具分发（错峰弹落到格）
@@ -525,6 +531,7 @@ async function beginGame() {
   // 正版规则：玩家永远先手（装弹后固定从玩家开始，不随机）
   g.turn = 'me';
   busy = false;
+  openingSeq = false;
   renderHUD();
   toast('🚦 正版规则：你先手 —— 枪已上膛，选个方向扣扳机');
 }
