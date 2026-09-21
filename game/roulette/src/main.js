@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r21';
-import { createShotgun } from './gun.js?v=r21';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r21';
-import { createDemon } from './demon.js?v=r21';
-import * as SFX from './sfx.js?v=r21';
+import { createScene } from './scene.js?v=r22';
+import { createShotgun } from './gun.js?v=r22';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r22';
+import { createDemon } from './demon.js?v=r22';
+import * as SFX from './sfx.js?v=r22';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r21';
+} from './roulette-engine.js?v=r22';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -304,14 +304,14 @@ function toast(msg) {
 function afterAction(r) {
   renderHUD();
   if (r && r.over) { endGame(); return; }
+  // 任何一方打完枪 → 先把枪放回桌面躺 45°，再交棒
+  gunTarget.copy(GUN_DESK);
+  gun.userData.aim('idle');
+  busy = false;
+  renderHUD();
   // 轮到 AI？
   if (g.turn === 'foe' && !g.over) {
-    setTimeout(aiTurn, 900);
-  } else {
-    gunTarget.copy(GUN_DESK);    // 枪回到桌面中央（交还玩家）
-    gun.userData.aim('idle');    // 45° 斜放待机（拿起才旋转对准目标）
-    busy = false;
-    renderHUD();
+    setTimeout(aiTurn, 900);     // 放下的动画播完，恶魔才拿枪（aiTurn 里 gunTarget=GUN_DEMON + 举起）
   }
 }
 function aiTurn() {
