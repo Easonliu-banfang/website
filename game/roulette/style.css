@@ -290,3 +290,10 @@ html, body { height: 100%; }
 .wc-flash { position: absolute; inset: 0; background: #ff3020; opacity: 0;
   animation: wcFlash 0.25s linear 1.18s 3; }
 @keyframes wcFlash { 0% { opacity: 0.35; } 100% { opacity: 0; } }
+
+/* 掉命未死：红色光晕受损脉冲 */
+.lifehit { position: fixed; inset: 0; z-index: 250; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(255,45,45,0.55) 100%);
+  opacity: 0; }
+.lifehit.go { animation: lifehitPulse 0.7s ease-out; }
+@keyframes lifehitPulse { 0% { opacity: 0; } 22% { opacity: 1; } 100% { opacity: 0; } }

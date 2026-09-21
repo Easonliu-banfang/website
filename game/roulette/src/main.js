@@ -305,8 +305,14 @@ function playerShoot(target) {
       if (target === 'foe') { demon.userData.hit(); if (r.dead) demon.userData.fly(); }
       else flashScreen();
       SFX.hit();                   // 命中闷响
-      // 正版：只有血量归零（死亡）才触发除颤复活过场；掉 1 命只是中弹反应
-      if (r.dead && !r.over) defibRevive(victimW);
+      if (r.dead && !r.over) {
+        // 玩家死亡 → 玩家视角除颤复活过场
+        if (victimW === 'me') defibRevive('me');
+        // 恶魔死亡 → 场景内表现：被击飞，延迟飞回（不弹玩家视角的除颤UI）
+        else setTimeout(() => { if (demon.userData.flyBack) demon.userData.flyBack(); }, 2500);
+      } else if (!r.dead) {
+        lifeLostFlash();           // 掉 1 命未死：红色受损脉冲
+      }
     } else {
       SFX.blank();                 // 空弹咔嗒
     }
@@ -330,6 +336,15 @@ function playerItem(type) {
   renderHUD();
   // 道具不结束回合：用完仍可射击（但本回合不能再用了）
 }
+/* 掉命未死：红色光晕受损脉冲（区别于死亡除颤过场） */
+function lifeLostFlash() {
+  const d = document.createElement('div');
+  d.className = 'lifehit';
+  document.body.appendChild(d);
+  requestAnimationFrame(() => d.classList.add('go'));
+  setTimeout(() => d.remove(), 760);
+}
+
 function flashScreen() {
   // 自射中弹：屏幕红闪（简易：给 canvas 加一层红色覆盖
   const f = document.createElement('div');
@@ -388,8 +403,13 @@ function aiTurn() {
         if (target === 'foe') flashScreen();   // 玩家中弹
         else { demon.userData.hit(); if (r.dead) demon.userData.fly(); }
         SFX.hit();
-        // 正版：死亡才除颤复活
-        if (r.dead && !r.over) defibRevive(aiVictim);
+        if (r.dead && !r.over) {
+          // 玩家死亡 → 玩家视角除颤复活；恶魔死亡 → 场景内飞出/飞回
+          if (aiVictim === 'me') defibRevive('me');
+          else setTimeout(() => { if (demon.userData.flyBack) demon.userData.flyBack(); }, 2500);
+        } else if (!r.dead) {
+          lifeLostFlash();       // 掉 1 命未死：红色受损脉冲
+        }
       } else if (r) {
         SFX.blank();
       }
