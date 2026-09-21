@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r23';
-import { createShotgun } from './gun.js?v=r23';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r23';
-import { createDemon } from './demon.js?v=r23';
-import * as SFX from './sfx.js?v=r23';
+import { createScene } from './scene.js?v=r24';
+import { createShotgun } from './gun.js?v=r24';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r24';
+import { createDemon } from './demon.js?v=r24';
+import * as SFX from './sfx.js?v=r24';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r23';
+} from './roulette-engine.js?v=r24';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -181,7 +181,12 @@ function renderActions(v) {
     bar.innerHTML = '<div class="waiting">装弹中…</div>';   // 导轨/分道具阶段
     return;
   }
-  if (g.over || busy || v.turn !== 'me') {
+  if (g.over) { return; }
+  if (busy && v.turn === 'me') {
+    bar.innerHTML = '<div class="waiting">开枪中…</div>';   // 玩家开枪/道具动画
+    return;
+  }
+  if (busy || v.turn !== 'me') {
     bar.innerHTML = '<div class="waiting">恶魔正在抉择…</div>';
     return;
   }
@@ -247,6 +252,7 @@ function defibRevive(who) {
 /* ---------- 玩家操作 ---------- */
 function playerShoot(target) {
   if (busy || g.over) return;
+  busy = true;                     // 立即锁输入：防止举起瞄准期间连点串发
   const who = g.turn;              // 固定为 'me'（玩家回合才调得到
   SFX.uiClick();
   gun.userData.aim(target === 'self' ? 'me' : 'foe');   // 先拿起来瞄准
@@ -277,10 +283,12 @@ function playerShoot(target) {
 }
 function playerItem(type) {
   if (busy || g.over) return;
+  busy = true;                     // 道具动画期间锁输入
   const r = useItem(g, 'me', type);
   if (!r.ok) { toast(r.effect); return; }
   SFX.item();
   toast(r.effect);
+  busy = false;                    // 道具用完解锁（本回合仍可射击）
   renderHUD();
   // 道具不结束回合：用完仍可射击（但本回合不能再用了）
 }
