@@ -34,6 +34,38 @@ function noiseBuffer(c, dur) {
   return buf;
 }
 
+/** 心跳音：低频 thump ×4（除颤复活节奏，正版 DeathManager 心跳效果） */
+export function heartbeat() {
+  const c = ac(); if (!c) return;
+  const t0 = c.currentTime;
+  for (let i = 0; i < 4; i++) {
+    const t = t0 + i * 0.55;
+    // 低频冲击（心搏）
+    const osc = c.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(54, t);
+    osc.frequency.exponentialRampToValueAtTime(36, t + 0.13);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.55, t + 0.018);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    osc.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t + 0.18);
+    // 心搏高频"嗒"（起搏器）
+    if (i > 0) {
+      const tick = c.createOscillator();
+      tick.type = 'square';
+      tick.frequency.setValueAtTime(320, t + 0.02);
+      const tg = c.createGain();
+      tg.gain.setValueAtTime(0.0001, t + 0.02);
+      tg.gain.exponentialRampToValueAtTime(0.12, t + 0.028);
+      tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      tick.connect(tg); tg.connect(c.destination);
+      tick.start(t + 0.02); tick.stop(t + 0.09);
+    }
+  }
+}
+
 /** 开枪：噪声爆音 + 低频冲击 */
 export function fireShot() {
   const c = ac(); if (!c) return;

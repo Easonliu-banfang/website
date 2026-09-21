@@ -145,6 +145,7 @@ function renderItems(v) {
 let g = createGame();
 let busy = false;          // 动画/AI 进行中，锁输入
 let openingSeq = false;    // 开局装弹/导轨展示阶段（显示「装弹中…」而非恶魔抉择）
+let suddenShown = false;   // round3 突死剪线仪式（每场一次）
 
 /* ---------- HUD ---------- */
 
@@ -165,6 +166,11 @@ function renderHUD() {
   if (v.loadSeq !== lastLoadSeq) {
     lastLoadSeq = v.loadSeq;
     showShellRail(5000);
+  }
+  // 第 3 轮突死触发（re倍 ≤2，除颤仪断电）→ 剪线仪式（一次性）
+  if (v.round === 3 && !suddenShown && (v.lives.me <= 2 || v.lives.foe <= 2)) {
+    suddenShown = true;
+    showWirecut();
   }
   // 道具增量：只有道具集合或装弹轮变化才重建（避免每帧重复掉落动画）
   const sig = (v.items.me || []).join('') + '|' + (v.items.foe || []).join('') + '|' + (v.loadSeq || 0);
@@ -226,27 +232,58 @@ function renderActions(v) {
 
 /* ---------- 除颤仪电击复活（掉命表现） ---------- */
 let defibBusy = false;
+/* 剪线仪式（还原正版 DefibCutter）：第 3 轮生命降到 2 命以下，
+ * 生命维持系统面板出现 → 闸刀剪断电线 → 火花 → 红色告警闪动 */
+function showWirecut() {
+  if (document.querySelector('.wirecut')) return;
+  const w = document.createElement('div');
+  w.className = 'wirecut wc-cut wc-show';
+  w.innerHTML =
+    '<div class="wc-panel">' +
+      '<p class="wc-title">LIFE SUPPORT · 生命维持系统</p>' +
+      '<p class="wc-label">⚠ 电线被切断</p>' +
+      '<div class="wc-wires">' +
+        '<div class="wc-wire"></div>' +
+        '<div class="wc-wire wc-wire-2"></div>' +
+        '<div class="wc-blade"></div>' +
+      '</div>' +
+      '<p class="wc-alert">⚡ 除颤仪失效 · 突死模式</p>' +
+    '</div>' +
+    '<div class="wc-flash"></div>';
+  document.body.appendChild(w);
+  setTimeout(() => w.remove(), 2900);
+}
+
+/* 除颤复活过场（还原正版 DeathManager）：
+ * 黑屏阻断 → 除颤仪设备滑入（心电波形绘制）→ 心跳亮度脉动×4
+ * （第 4 跳=电击重击）→ 心跳音 → 白闪淡出恢复 */
 function defibRevive(who) {
   if (defibBusy) return;
   defibBusy = true;
-  const overlay = document.createElement('div');
-  overlay.className = 'defib';
-  // 两片贴片（屏幕两侧） + 电击白光 + "噗通"
-  overlay.innerHTML =
-    '<div class="defib-pad defib-pad-l"></div>' +
-    '<div class="defib-pad defib-pad-r"></div>' +
-    '<div class="defib-flash"></div>' +
-    '<div class="defib-text">⚡ 除颤仪电击 · ' + (who === 'me' ? '你被救回来了' : '恶魔被救回来了') + '</div>';
-  document.body.appendChild(overlay);
-  SFX.hit();
-  setTimeout(() => SFX.fireShot(), 260);   // 电击声
-  setTimeout(() => {
-    overlay.classList.add('go');
-  }, 420);
-  setTimeout(() => {
-    overlay.remove();
-    defibBusy = false;
-  }, 1500);
+  const ov = document.createElement('div');
+  ov.className = 'revive pulsing';
+  ov.innerHTML =
+    '<div class="revive-blocker"></div>' +
+    '<div class="revive-pulse"></div>' +
+    '<div class="defib-rig">' +
+      '<div class="defib-case">' +
+        '<div class="defib-screen"><svg class="defib-ecg" viewBox="0 0 240 64" preserveAspectRatio="none">' +
+          '<polyline class="ecg-line" points="0,32 58,32 72,32 80,8 88,32 96,32 104,29 112,35 120,32 128,32 136,18 144,46 152,32 160,32 168,30 176,34 184,32 240,32"/>' +
+        '</svg></div>' +
+        '<div class="defib-btn"></div>' +
+      '</div>' +
+      '<div class="defib-handle defib-handle-l"></div>' +
+      '<div class="defib-handle defib-handle-r"></div>' +
+    '</div>' +
+    '<div class="revive-text">⚡ 除颤成功 · ' + (who === 'me' ? '你被救回来了' : '恶魔被救回来了') + '</div>' +
+    '<div class="revive-fade"></div>';
+  document.body.appendChild(ov);
+  SFX.hit();                    // 倒下闷响
+  SFX.heartbeat();              // 心跳音（4 跳）
+  // 恶魔被救回：延迟飞回桌前（正版 Dealer 回桌）
+  if (who === 'foe') setTimeout(() => { if (demon.userData.flyBack) demon.userData.flyBack(); }, 2400);
+  setTimeout(() => ov.classList.add('go'), 2650);        // 白闪淡出
+  setTimeout(() => { ov.remove(); defibBusy = false; }, 3250);
 }
 
 /* ---------- 玩家操作 ---------- */
@@ -263,12 +300,13 @@ function playerShoot(target) {
     const r = shoot(g, who, target);
     if (!r) return;
     // 中弹方反应
+    const victimW = target === 'self' ? 'me' : 'foe';
     if (r.live) {
-      if (target === 'foe') demon.userData.hit();
+      if (target === 'foe') { demon.userData.hit(); if (r.dead) demon.userData.fly(); }
       else flashScreen();
       SFX.hit();                   // 命中闷响
-      // 掉命但未死 → 除颤仪电击复活
-      if (!r.over) defibRevive(target === 'self' ? 'me' : 'foe');
+      // 正版：只有血量归零（死亡）才触发除颤复活过场；掉 1 命只是中弹反应
+      if (r.dead && !r.over) defibRevive(victimW);
     } else {
       SFX.blank();                 // 空弹咔嗒
     }
@@ -345,12 +383,13 @@ function aiTurn() {
       gun.userData.fire();
       SFX.fireShot();
       const r = shoot(g, 'foe', target);
+      const aiVictim = target === 'self' ? 'foe' : 'me';
       if (r && r.live) {
         if (target === 'foe') flashScreen();   // 玩家中弹
-        else demon.userData.hit();
+        else { demon.userData.hit(); if (r.dead) demon.userData.fly(); }
         SFX.hit();
-        // 掉命但未死 → 除颤仪电击复活
-        if (!r.over) defibRevive(target === 'self' ? 'foe' : 'me');
+        // 正版：死亡才除颤复活
+        if (r.dead && !r.over) defibRevive(aiVictim);
       } else if (r) {
         SFX.blank();
       }

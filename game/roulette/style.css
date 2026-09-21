@@ -190,3 +190,103 @@ html, body { height: 100%; }
 }
 .action-btn.item.used { opacity: 0.4; cursor: not-allowed; }
 .waiting.small { font-size: 12px; padding: 6px 12px; opacity: 0.75; }
+
+/* ================= 除颤复活过场（正版 DeathManager 还原） ================= */
+.revive { position: fixed; inset: 0; z-index: 300; pointer-events: none; overflow: hidden; }
+/* ① 黑屏阻断（view blocker） */
+.revive-blocker { position: absolute; inset: 0; background: #000; opacity: 0; animation: revBlock 0.4s ease-out forwards; }
+@keyframes revBlock { 0% { opacity: 0; } 100% { opacity: 0.93; } }
+/* ② 心跳亮度脉动（4 跳逐渐增强，第 4 跳=电击重击） */
+.revive-pulse { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(150,205,255,0.95), rgba(120,170,255,0.5)); opacity: 0; }
+.revive.pulsing .revive-pulse { animation: revHeart 2.3s ease-out 0.55s both; }
+@keyframes revHeart {
+  0%   { opacity: 0; }
+  5%   { opacity: 0.55; } 11% { opacity: 0.04; }
+  24%  { opacity: 0.48; } 30% { opacity: 0.04; }
+  43%  { opacity: 0.4; }  49% { opacity: 0.04; }
+  62%  { opacity: 0.9; }  74% { opacity: 0.05; }
+  100% { opacity: 0.05; }
+}
+/* ③ 除颤仪设备（CSS 3D 感：主体 + 屏幕 + 心电波形 + 双把手） */
+.defib-rig { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  width: 200px; height: 128px; opacity: 0; animation: rigIn 0.45s ease-out 0.7s forwards; }
+@keyframes rigIn { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.defib-case { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 200px; height: 128px; border-radius: 14px;
+  background: linear-gradient(160deg, #262b36, #14171d 70%, #0c0e13);
+  border: 1px solid #3a4150;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.12), 0 18px 46px rgba(0,0,0,0.8);
+}
+/* 屏幕（深绿背光，慢慢亮起） */
+.defib-screen { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -55%);
+  width: 158px; height: 60px; border-radius: 6px; overflow: hidden;
+  background: rgba(4, 26, 14, 0.9); border: 2px solid #33403a;
+  box-shadow: inset 0 0 18px rgba(0, 60, 30, 0.8); }
+.defib-ecg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0;
+  animation: ecgIn 0.4s linear 1.15s forwards; }
+@keyframes ecgIn { to { opacity: 1; } }
+.ecg-line { fill: none; stroke: #63ff96; stroke-width: 2; stroke-linejoin: round;
+  stroke-dasharray: 260; stroke-dashoffset: 260;
+  animation: ecgDraw 1.3s linear 1.15s forwards, ecgGlow 1s ease-in-out 2.2s infinite; }
+@keyframes ecgDraw { to { stroke-dashoffset: 0; } }
+@keyframes ecgGlow { 0%,100% { filter: drop-shadow(0 0 2px rgba(99,255,150,0.8)); } 50% { filter: drop-shadow(0 0 7px rgba(99,255,150,1)); } }
+/* 双把手（电击时闪蓝） */
+.defib-handle { position: absolute; top: 50%; width: 30px; height: 96px; border-radius: 8px;
+  background: linear-gradient(90deg, #20252e, #3a4250 55%, #20252e);
+  border: 1px solid #454e5e; box-shadow: inset 0 2px 3px rgba(0,0,0,0.6); }
+.defib-handle-l { left: -34px; }
+.defib-handle-r { right: -34px; }
+.revive.pulsing .defib-handle { animation: handleCharge 2.3s ease-out 0.55s both; }
+@keyframes handleCharge {
+  0%, 11%, 30%, 49% { box-shadow: inset 0 2px 3px rgba(0,0,0,0.6); }
+  5%, 24%, 43%, 62% { box-shadow: inset 0 2px 3px rgba(0,0,0,0.6), 0 0 22px 6px rgba(130, 200, 255, 0.9); }
+}
+/* 绿色按钮（电源） */
+.defib-btn { position: absolute; left: 8px; bottom: 8px; width: 16px; height: 16px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #b8ffc8, #2fae4f 60%, #13702c);
+  box-shadow: 0 0 10px rgba(80, 220, 120, 0.7); }
+/* 文字 */
+.revive-text { position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%);
+  font-size: 17px; font-weight: 900; letter-spacing: 3px; color: #d9f2ff; opacity: 0;
+  text-shadow: 0 0 24px rgba(120, 200, 255, 1);
+  background: rgba(6, 10, 20, 0.75); padding: 10px 30px; border-radius: 14px;
+  border: 1px solid rgba(140, 210, 255, 0.4);
+  animation: revText 0.35s ease-out 2.1s forwards; }
+@keyframes revText { to { opacity: 1; } }
+.revive .revive-fade { position: absolute; inset: 0; background: #fff; opacity: 0; }
+.revive.go .revive-fade { animation: revOut 0.5s ease-in forwards; }
+@keyframes revOut { to { opacity: 1; } }
+
+/* ================= 剪线仪式（round3 突死 · DefibCutter 还原） ================= */
+.wirecut { position: fixed; inset: 0; z-index: 310; pointer-events: none; overflow: hidden;
+  background: rgba(0,0,0,0.92); opacity: 0; animation: wcBlock 0.3s ease-out forwards; }
+@keyframes wcBlock { to { opacity: 1; } }
+.wc-panel { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  width: 260px; padding: 26px 22px 22px; text-align: center;
+  background: linear-gradient(160deg, #1d2230, #10141c);
+  border: 1px solid #3c4658; border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85); }
+.wc-title { margin: 0 0 6px; font-size: 12px; letter-spacing: 4px; color: #7f8ba0; }
+.wc-label { margin: 0 0 16px; font-size: 14px; font-weight: 800; letter-spacing: 3px; color: #ff6a6a;
+  text-shadow: 0 0 12px rgba(255, 60, 60, 0.8); }
+/* 两根电线 + 闸刀 */
+.wc-wires { position: relative; height: 44px; margin: 0 auto 18px; width: 180px; }
+.wc-wire { position: absolute; left: 30px; right: 30px; top: 18px; height: 5px; border-radius: 3px;
+  background: linear-gradient(90deg, #8a8f9c, #d8dce6 40%, #8a8f9c);
+  box-shadow: 0 0 8px rgba(180,190,210,0.5); }
+.wc-wire-2 { top: 30px; height: 3px; background: linear-gradient(90deg, #5a6070, #98a0b0 40%, #5a6070); }
+.wc-blade { position: absolute; left: 50%; top: -4px; width: 26px; height: 52px; margin-left: -13px;
+  background: linear-gradient(180deg, #c2c8d4, #7d8494 70%, #5d6474);
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  transform-origin: 50% 0; }
+.wc-cut .wc-blade { animation: wcBlade 0.5s ease-in 0.7s forwards; }
+@keyframes wcBlade { to { transform: rotate(16deg); } }
+.wc-cut .wc-wire { animation: wcSnap 0.25s ease-in 1.15s forwards; }
+@keyframes wcSnap { 50% { background: #fff; box-shadow: 0 0 16px #fff; } to { opacity: 0.35; transform: translateY(2px) scaleY(0.4); } }
+.wc-alert { opacity: 0; font-size: 13px; font-weight: 800; letter-spacing: 2px; color: #ff5050;
+  text-shadow: 0 0 14px rgba(255, 30, 30, 0.9); animation: wcAlert 0.3s linear 1.5s infinite; }
+.wc-show .wc-alert { opacity: 1; }
+@keyframes wcAlert { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.wc-flash { position: absolute; inset: 0; background: #ff3020; opacity: 0;
+  animation: wcFlash 0.25s linear 1.18s 3; }
+@keyframes wcFlash { 0% { opacity: 0.35; } 100% { opacity: 0; } }

@@ -171,14 +171,44 @@ export function createDemon() {
   // ---- 状态 ----
   let hitT = 0;      // 受击闪烁计时
   let shakeT = 0;    // 说话/动作抖动
+  const BASE_POS = new THREE.Vector3(0, 1.42, -1.3);   // 桌上原位（恶魔）
+  const OUT_POS = new THREE.Vector3(0, 2.35, -3.4);    // 击飞点（正版：被击飞离桌）
+  let flyMode = null;  // 'out' 飞出 | 'back' 回位 | null
+  let flyK = 0;        // 0..1 进度
 
   demon.userData = {
     /** 受击（中弹）反应：剧烈抖动 + 红瞳闪白 */
     hit() { hitT = 0.4; shakeT = 0.4; },
+    /** 死亡击飞（正版：Dealer 被击飞离桌） */
+    fly() { flyMode = 'out'; flyK = 0; },
+    /** 击飞后回桌 */
+    flyBack() { flyMode = 'back'; flyK = 0; },
+    isFlying() { return flyMode !== null; },
     /** 说话/动作（轻微抖动） */
     talk() { shakeT = 0.25; },
     /** 每帧更新 */
     update(dt, t) {
+      // 死亡击飞/回位（正版：Dealer 被击飞离桌再回来）
+      if (flyMode === 'out') {
+        flyK += dt / 0.7;                              // 0.7s 飞出
+        const k = Math.min(1, flyK);
+        const e = k * k;                               // easeIn 加速离桌
+        demon.position.lerpVectors(BASE_POS, OUT_POS, e);
+        demon.rotation.z = -0.45 * e;
+        demon.rotation.x = 0.25 * e;
+        if (k >= 1) { /* 停在外侧等回位触发 */ }
+        return;
+      }
+      if (flyMode === 'back') {
+        flyK += dt / 1.0;                              // 1s 飞回
+        const k = Math.min(1, flyK);
+        const eBack = 1 - Math.pow(1 - k, 3);          // easeOut 回桌
+        demon.position.lerpVectors(OUT_POS, BASE_POS, eBack);
+        demon.rotation.z = -0.45 * (1 - eBack);
+        demon.rotation.x = 0.25 * (1 - eBack);
+        if (k >= 1) { flyMode = null; }
+        return;
+      }
       // 整体漂浮（缓慢上下 + 左右微摆）
       demon.position.y = 1.42 + Math.sin(t * 0.85) * 0.045;
       demon.rotation.y = Math.sin(t * 0.4) * 0.06;
