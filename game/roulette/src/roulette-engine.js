@@ -106,11 +106,6 @@ function giveItems(g, who, n) {
   }
 }
 
-/** 发道具：开局各 4 个；弹仓重装时各补发 2 个 */
-export function dealItems(g) {
-  giveItems(g, 'me', START_ITEMS);
-  giveItems(g, 'foe', START_ITEMS);
-}
 
 /** 当前膛内弹：true=实弹，false=空弹，null=弹仓空 */
 export function peek(g) {

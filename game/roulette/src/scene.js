@@ -283,7 +283,7 @@ export function createScene(canvas) {
   body.position.y = 0.12;
   scoreboard.add(body);
   // 屏幕（正面 +z 朝向玩家）；左=对手命数(红)、右=我的命数(绿)
-  const sbTex = screenDual(3, 3);
+  const sbTex = screenDual(2, 2);   // round1 双方 2 命（开局初始，随后 setScoreboardLives 实时更新）
   const scoreScreenMat = new THREE.MeshStandardMaterial({ map: sbTex, emissive: 0xffffff, emissiveMap: sbTex, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.1 });
   const screen = new THREE.Mesh(
     new THREE.BoxGeometry(0.36, 0.16, 0.02),

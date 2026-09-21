@@ -4,14 +4,14 @@
  *       ../../result-overlay.js(统一结算覆盖层)
  */
 import * as THREE from '../lib/three.module.min.js';
-import { createScene } from './scene.js?v=r27';
-import { createShotgun } from './gun.js?v=r27';
-import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r27';
-import { createDemon } from './demon.js?v=r27';
-import * as SFX from './sfx.js?v=r27';
+import { createScene } from './scene.js?v=r28';
+import { createShotgun } from './gun.js?v=r28';
+import { createShell, createItem, ITEM_CN, ITEM_DESC } from './props.js?v=r28';
+import { createDemon } from './demon.js?v=r28';
+import * as SFX from './sfx.js?v=r28';
 import {
   createGame, shoot, useItem, view, aiDecide, MAX_LIVES,
-} from './roulette-engine.js?v=r27';
+} from './roulette-engine.js?v=r28';
 import '../../result-overlay.js';   // 挂载 window.ResultOverlay
 
 const $ = (id) => document.getElementById(id);
@@ -147,14 +147,7 @@ let busy = false;          // 动画/AI 进行中，锁输入
 let openingSeq = false;    // 开局装弹/导轨展示阶段（显示「装弹中…」而非恶魔抉择）
 
 /* ---------- HUD ---------- */
-function renderLives(container, n, max, who) {
-  container.innerHTML = '';
-  for (let i = 0; i < max; i++) {
-    const d = document.createElement('div');
-    d.className = 'life-cell ' + (i < n ? 'on' : 'empty');
-    container.appendChild(d);
-  }
-}
+
 function renderHUD() {
   const v = view(g);
   // 命数由桌面记分牌实时展示（右上/左上 HUD 小方块已移除）
