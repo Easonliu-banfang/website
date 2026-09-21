@@ -164,10 +164,8 @@ export function shoot(g, who, target) {
   }
   g.turn = next;
 
-  // 重置回合标记（每回合限 1 道具）；用掉的道具下回合补回 1 个（官方 used items replaced）
-  const usedThisTurn = g.itemUsedThisTurn;
+  // 重置回合标记（每回合限 1 道具）；原版道具稀缺：只有装弹时才发
   g.itemUsedThisTurn = false;
-  if (usedThisTurn) giveItems(g, who, 1);
   g._aiActed = false;
   g._aiKnown = false;      // 下一回合重新用放大镜（信息不跨回合记忆）
 
